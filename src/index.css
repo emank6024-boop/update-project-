@@ -29,18 +29,18 @@
   --error
 */
 
-/* Default :root (Modern Pakistani AI Super-App: Premier Emerald SaaS + Clean Slate) */
+/* Default :root (Modern Pakistani AI Super-App: Clean White, Mint-Green & Navy Text) */
 :root {
-  --background: #f8fafc;
+  --background: #ffffff;
   --surface: #ffffff;
-  --surface-secondary: #f1f5f9;
-  --surface-hover: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-  --border: #e2e8f0;
-  --border-subtle: #f1f5f9;
-  --accent: #059669; /* refined Pakistani emerald */
+  --surface-secondary: #f0fdf4;
+  --surface-hover: #e6fcf5;
+  --text-primary: #0a192f; /* Deep navy text */
+  --text-secondary: #1e3a5f;
+  --text-muted: #536b85;
+  --border: #d1fae5; /* Mint green border */
+  --border-subtle: #ecfdf5;
+  --accent: #059669; /* Refined Pakistani emerald */
   --accent-hover: #047857;
   --accent-foreground: #ffffff;
   --accent-subtle: #ecfdf5;
@@ -50,43 +50,44 @@
   --button-primary-bg: #059669;
   --button-primary-text: #ffffff;
   --button-secondary-bg: #ffffff;
-  --button-secondary-text: #0f172a;
+  --button-secondary-text: #0a192f;
   --input-background: #ffffff;
-  --input-foreground: #0f172a;
+  --input-foreground: #0a192f;
   --input-bg: #ffffff;
-  --input-text: #0f172a;
-  --input-placeholder: #94a3b8;
+  --input-text: #0a192f;
+  --input-placeholder: #8899ac;
   --focus-ring: #10b981;
   --success: #10b981;
   --warning: #d97706;
   --error: #ef4444;
-  --header-bg: #09131e;
-  --header-border: #132438;
-  --header-text: #ffffff;
+  --header-bg: #ffffff;
+  --header-border: #e1f0e9;
+  --header-text: #0a192f;
   --dropdown-bg: #ffffff;
-  --dropdown-text: #0f172a;
+  --dropdown-text: #0a192f;
 
-  /* Legacy aliases for backward compatibility */
+  /* Legacy aliases */
   --app-bg: var(--background);
   --surface-bg: var(--surface);
   --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #f8fafc;
+  --surface-subtle: #f0fdf4;
   --border-strong: var(--border);
   --accent-color: var(--accent);
   color-scheme: light;
 }
 
-/* 0. FLAGSHIP THEME: Modern Pakistani Emerald SaaS */
+/* 0. FLAGSHIP THEME: Modern Pakistani Emerald & Mint SaaS (Light) */
+html[data-theme="light"],
 html[data-theme="emerald"] {
-  --background: #f8fafc;
+  --background: #ffffff;
   --surface: #ffffff;
-  --surface-secondary: #f1f5f9;
-  --surface-hover: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-  --border: #e2e8f0;
-  --border-subtle: #f1f5f9;
+  --surface-secondary: #f0fdf4;
+  --surface-hover: #e6fcf5;
+  --text-primary: #0a192f;
+  --text-secondary: #1e3a5f;
+  --text-muted: #536b85;
+  --border: #d1fae5;
+  --border-subtle: #ecfdf5;
   --accent: #059669;
   --accent-hover: #047857;
   --accent-foreground: #ffffff;
@@ -97,26 +98,26 @@ html[data-theme="emerald"] {
   --button-primary-bg: #059669;
   --button-primary-text: #ffffff;
   --button-secondary-bg: #ffffff;
-  --button-secondary-text: #0f172a;
+  --button-secondary-text: #0a192f;
   --input-background: #ffffff;
-  --input-foreground: #0f172a;
+  --input-foreground: #0a192f;
   --input-bg: #ffffff;
-  --input-text: #0f172a;
-  --input-placeholder: #94a3b8;
+  --input-text: #0a192f;
+  --input-placeholder: #8899ac;
   --focus-ring: #10b981;
   --success: #10b981;
   --warning: #d97706;
   --error: #ef4444;
-  --header-bg: #09131e;
-  --header-border: #132438;
-  --header-text: #ffffff;
+  --header-bg: #ffffff;
+  --header-border: #e1f0e9;
+  --header-text: #0a192f;
   --dropdown-bg: #ffffff;
-  --dropdown-text: #0f172a;
+  --dropdown-text: #0a192f;
 
   --app-bg: var(--background);
   --surface-bg: var(--surface);
   --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #f8fafc;
+  --surface-subtle: #f0fdf4;
   --border-strong: var(--border);
   --accent-color: var(--accent);
   color-scheme: light;
@@ -166,89 +167,92 @@ html[data-theme="navy-gold"] {
   color-scheme: light;
 }
 
-/* 1. DARK THEME: Deep Navy + Crisp White */
-html[data-theme="dark"] {
-  --background: #070c1e;
-  --surface: #0e1733;
-  --surface-secondary: #14224b;
-  --surface-hover: #1c2e63;
-  --text-primary: #ffffff;
-  --text-secondary: #e2e8f0;
-  --text-muted: #94a3b8;
-  --border: #1e3164;
-  --border-subtle: #162449;
+/* 1. DARK THEME: Navy/Black Backgrounds + Emerald-Green Accents */
+html[data-theme="dark"],
+html.dark {
+  --background: #080f1d;
+  --surface: #0f1d33;
+  --surface-secondary: #162947;
+  --surface-hover: #1e365c;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #8899ac;
+  --border: #1d365a;
+  --border-subtle: #162a47;
   --accent: #10b981;
   --accent-hover: #059669;
   --accent-foreground: #ffffff;
+  --accent-subtle: rgba(16, 185, 129, 0.15);
+  --accent-border: #10b981;
   --button-background: #10b981;
   --button-foreground: #ffffff;
   --button-primary-bg: #10b981;
   --button-primary-text: #ffffff;
-  --button-secondary-bg: #14224b;
+  --button-secondary-bg: #162947;
   --button-secondary-text: #ffffff;
-  --input-background: #0a1229;
+  --input-background: #0b1526;
   --input-foreground: #ffffff;
-  --input-bg: #0a1229;
+  --input-bg: #0b1526;
   --input-text: #ffffff;
-  --input-placeholder: #94a3b8;
+  --input-placeholder: #8899ac;
   --focus-ring: #10b981;
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
-  --header-bg: #070c1e;
-  --header-border: #1e3164;
+  --header-bg: #080f1d;
+  --header-border: #1d365a;
   --header-text: #ffffff;
-  --dropdown-bg: #0e1733;
+  --dropdown-bg: #0f1d33;
   --dropdown-text: #ffffff;
 
   --app-bg: var(--background);
   --surface-bg: var(--surface);
   --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #0a1229;
+  --surface-subtle: #0b1526;
   --border-strong: var(--border);
   --accent-color: var(--accent);
   color-scheme: dark;
 }
 
-/* 2. LIGHT / WHITE THEME: Clean Crisp Slate + Deep Navy */
+/* 2. LIGHT THEME: Clean White, Mint-Green and Emerald-Green with Navy Text */
 html[data-theme="light"] {
   --background: #f8fafc;
   --surface: #ffffff;
-  --surface-secondary: #f1f5f9;
-  --surface-hover: #e2e8f0;
-  --text-primary: #0a1128;
-  --text-secondary: #1e293b;
-  --text-muted: #475569;
-  --border: #cbd5e1;
-  --border-subtle: #e2e8f0;
-  --accent: #0a1128;
-  --accent-hover: #1e293b;
+  --surface-secondary: #f0fdf4;
+  --surface-hover: #e6fcf5;
+  --text-primary: #0a192f;
+  --text-secondary: #1e3a5f;
+  --text-muted: #536b85;
+  --border: #d1fae5;
+  --border-subtle: #ecfdf5;
+  --accent: #059669;
+  --accent-hover: #047857;
   --accent-foreground: #ffffff;
-  --button-background: #0a1128;
+  --button-background: #059669;
   --button-foreground: #ffffff;
-  --button-primary-bg: #0a1128;
+  --button-primary-bg: #059669;
   --button-primary-text: #ffffff;
-  --button-secondary-bg: #f1f5f9;
-  --button-secondary-text: #0a1128;
+  --button-secondary-bg: #f0fdf4;
+  --button-secondary-text: #0a192f;
   --input-background: #ffffff;
-  --input-foreground: #0a1128;
+  --input-foreground: #0a192f;
   --input-bg: #ffffff;
-  --input-text: #0a1128;
-  --input-placeholder: #64748b;
-  --focus-ring: #0a1128;
+  --input-text: #0a192f;
+  --input-placeholder: #8899ac;
+  --focus-ring: #10b981;
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
-  --header-bg: #0a1128;
-  --header-border: #18284f;
-  --header-text: #ffffff;
+  --header-bg: #ffffff;
+  --header-border: #d1fae5;
+  --header-text: #0a192f;
   --dropdown-bg: #ffffff;
-  --dropdown-text: #0a1128;
+  --dropdown-text: #0a192f;
 
   --app-bg: var(--background);
   --surface-bg: var(--surface);
   --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #f8fafc;
+  --surface-subtle: #f0fdf4;
   --border-strong: var(--border);
   --accent-color: var(--accent);
   color-scheme: light;

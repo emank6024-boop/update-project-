@@ -509,8 +509,8 @@ export const Home: React.FC<HomeProps> = ({
               </h3>
               <p className="text-xs text-[var(--text-secondary)] max-w-xl">
                 {isRTL
-                  ? 'گوگل یا ای میل کے ذریعے سیکنڈوں میں شامل ہوں۔ آپ کے تمام سوالات اور ترجمے محفوظ رہیں گے۔'
-                  : 'Sign in with Google or Email in seconds to store personalized activity and access seamless cross-device syncing.'}
+                  ? 'ای میل کے ذریعے سیکنڈوں میں شامل ہوں۔ آپ کے تمام سوالات اور ترجمے محفوظ رہیں گے۔'
+                  : 'Sign in with your Email in seconds to store personalized activity and access seamless cross-device syncing.'}
               </p>
             </div>
             <button

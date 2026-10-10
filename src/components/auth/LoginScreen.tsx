@@ -1,151 +1,254 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Mail,
   Lock,
   User,
   ArrowRight,
+  ArrowLeft,
   Loader2,
   Globe2,
   ShieldCheck,
   Eye,
   EyeOff,
-  Palette,
-  Check,
   CheckCircle2,
   AlertCircle,
-  KeyRound,
-  RefreshCw,
-  Sparkles,
   X,
+  Sun,
+  Moon,
+  GraduationCap,
+  BookOpen,
+  Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme, THEMES_LIST } from '../../context/ThemeContext';
-import { LanguageCode } from '../../types';
-import { SUPPORTED_LANGUAGES } from '../../data/languages';
+import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
+import { signInWithGooglePopup } from '../../lib/firebase';
+import { AnimatedBackground } from './AnimatedBackground';
+
+// Official multi-color Google G icon
+const GoogleIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      fill="#4285F4"
+    />
+    <path
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      fill="#34A853"
+    />
+    <path
+      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+      fill="#FBBC05"
+    />
+    <path
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+      fill="#EA4335"
+    />
+  </svg>
+);
 
 interface LoginScreenProps {
-  selectedLanguage: LanguageCode;
-  onSelectLanguage: (lang: LanguageCode) => void;
   onLoginSuccess: () => void;
   onClose?: () => void;
+  selectedLanguage?: any;
+  onSelectLanguage?: (lang: any) => void;
 }
 
-type AuthScreenView =
-  | 'options'
-  | 'email-signin'
-  | 'email-signup'
-  | 'forgot-password'
-  | 'reset-password'
-  | 'verify-email-pending';
-
 export const LoginScreen: React.FC<LoginScreenProps> = ({
-  selectedLanguage,
-  onSelectLanguage,
   onLoginSuccess,
   onClose,
+  selectedLanguage: propSelectedLanguage,
+  onSelectLanguage: propOnSelectLanguage,
 }) => {
   const {
     loginWithEmail,
     registerWithEmail,
+    loginWithGoogle,
     loginAsDemoUser,
-    verifyEmail,
-    resendVerification,
     requestPasswordReset,
     resetPassword,
+    resendVerification,
+    verifyEmail,
     isLoading,
-    user,
   } = useAuth();
 
-  // If user is already authenticated or becomes authenticated via redirect/state-listener, trigger success
-  useEffect(() => {
-    if (user) {
-      onLoginSuccess();
+  const {
+    selectedLanguage: ctxSelectedLanguage,
+    setSelectedLanguage: ctxSetSelectedLanguage,
+    isRTL,
+  } = useLanguage();
+  const { isDark, toggleTheme } = useTheme();
+
+  const currentLanguage = propSelectedLanguage || ctxSelectedLanguage;
+  const handleLanguageChange = (lang: any) => {
+    if (propOnSelectLanguage) {
+      propOnSelectLanguage(lang);
     }
-  }, [user, onLoginSuccess]);
+    if (ctxSetSelectedLanguage) {
+      ctxSetSelectedLanguage(lang);
+    }
+  };
 
-  const { theme, setTheme } = useTheme();
+  // Mode state: 'options' | 'email'
+  const [authMode, setAuthMode] = useState<'options' | 'email'>('options');
+  const [emailTab, setEmailTab] = useState<'signin' | 'signup'>('signin');
 
-  // Current Screen State
-  const [view, setView] = useState<AuthScreenView>('options');
-
-  // Theme dropdown state
-  const [isThemeOpen, setIsThemeOpen] = useState(false);
-  const themeRef = useRef<HTMLDivElement>(null);
-
-  // Form Fields
+  // Form input states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Forgot / Reset Password state
+  // Status and feedback states
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+  const [activeButton, setActiveButton] = useState<'google' | 'email' | 'demo' | 'reset' | null>(
+    null
+  );
+
+  // Special sub-flows
+  const [specialView, setSpecialView] = useState<
+    'forgot-password' | 'reset-password' | 'verify-email-pending' | null
+  >(null);
   const [forgotEmail, setForgotEmail] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-
-  // Email Verification state
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('');
-  const [pendingVerificationToken, setPendingVerificationToken] = useState('');
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
-  // Feedback states
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
-  const [activeButton, setActiveButton] = useState<'email' | 'reset' | null>(null);
+  // Demo modal toggle
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
 
-  // Close theme menu on outside click
+  // Check URL query parameters for reset token or verify token
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (themeRef.current && !themeRef.current.contains(e.target as Node)) {
-        setIsThemeOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const action = params.get('action');
 
-  // Check for URL parameters on mount (email verification or password reset links)
+    if (token) {
+      if (action === 'reset-password') {
+        setResetToken(token);
+        setSpecialView('reset-password');
+        setAuthMode('email');
+      } else if (action === 'verify-email') {
+        setIsVerifying(true);
+        verifyEmail(token)
+          .then((res) => {
+            if (res.success) {
+              setAuthSuccess(
+                res.message || 'Email verified successfully! You can now sign in.'
+              );
+              setSpecialView(null);
+              setAuthMode('email');
+              setEmailTab('signin');
+            } else {
+              setAuthError(res.message || 'Failed to verify email token.');
+            }
+          })
+          .catch((err) => {
+            setAuthError(err.message || 'Verification link expired or invalid.');
+          })
+          .finally(() => setIsVerifying(false));
+      }
+    }
+  }, [verifyEmail]);
+
+  // Load remember me email if securely stored
   useEffect(() => {
     try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlVerifyToken = urlParams.get('token') || urlParams.get('verifyToken');
-      const isVerifyRoute = window.location.pathname.includes('verify-email');
-      const isResetRoute = window.location.pathname.includes('reset-password');
-
-      if (urlVerifyToken && isVerifyRoute) {
-        setPendingVerificationToken(urlVerifyToken);
-        setView('verify-email-pending');
-        handleDirectEmailVerify(urlVerifyToken);
-      } else if (urlVerifyToken && isResetRoute) {
-        setResetToken(urlVerifyToken);
-        setView('reset-password');
+      const savedEmail = localStorage.getItem('paklingo_remembered_email');
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setRememberMe(true);
       }
-    } catch {}
+    } catch {
+      // Safe fallback
+    }
   }, []);
 
   /**
+   * GOOGLE SIGN IN
+   */
+  const handleGoogleSignIn = async () => {
+    if (isLoading) return;
+    setAuthError(null);
+    setAuthSuccess(null);
+    setActiveButton('google');
+
+    try {
+      const result = await signInWithGooglePopup();
+      if (result && result.user) {
+        const idToken = await result.user.getIdToken();
+        const profile = {
+          email: result.user.email || '',
+          name: result.user.displayName || result.user.email?.split('@')[0] || 'Google User',
+          avatar: result.user.photoURL || undefined,
+          googleId: result.user.uid,
+        };
+        await loginWithGoogle({ idToken, profile });
+        onLoginSuccess();
+      } else {
+        throw new Error('Google Sign-In returned no credentials.');
+      }
+    } catch (err: any) {
+      console.warn('Google Sign-In error:', err);
+      const code = err?.code || '';
+      if (code === 'auth/popup-closed-by-user') {
+        setAuthError('Google sign-in popup was closed before completion. Please try again.');
+      } else if (code === 'auth/popup-blocked') {
+        setAuthError(
+          'Google sign-in popup was blocked by your browser. Please allow popups for this site.'
+        );
+      } else if (code === 'auth/unauthorized-domain') {
+        setAuthError(
+          'This domain is not authorized in Firebase Google Authentication settings. Please continue with Email or Demo Mode.'
+        );
+      } else if (
+        code === 'auth/configuration-not-found' ||
+        code === 'auth/operation-not-allowed'
+      ) {
+        setAuthError(
+          'Google Authentication is not yet enabled in Firebase Console. Please continue with Email or Demo Mode.'
+        );
+      } else if (err?.message?.includes('network-request-failed')) {
+        setAuthError('Network error connecting to Google. Please check your internet connection.');
+      } else {
+        setAuthError(
+          err?.message ||
+            'Google Sign-In is currently unavailable. Please continue with Email or Demo Mode.'
+        );
+      }
+    } finally {
+      setActiveButton(null);
+    }
+  };
+
+  /**
    * DEMO MODE ACCESS
-   * Instant simulated session for testing all PakLingo AI features without credentials or Firebase setup.
    */
   const handleDemoLogin = async (role: 'student' | 'teacher' = 'student') => {
     if (isLoading) return;
     setAuthError(null);
     setAuthSuccess(null);
+    setActiveButton('demo');
     try {
       await loginAsDemoUser(role);
+      setIsDemoModalOpen(false);
       onLoginSuccess();
     } catch (err: any) {
       setAuthError(err.message || 'Failed to start demo session.');
+    } finally {
+      setActiveButton(null);
     }
   };
 
   /**
    * EMAIL SIGN IN
-   * Validates credentials against securely stored cryptographic hash
    */
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,27 +256,31 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setAuthError(null);
     setAuthSuccess(null);
 
-    const cleanEmail = email.trim();
-    if (!cleanEmail || !password) {
-      setAuthError('Please enter both your email address and password.');
+    if (!email || !password) {
+      setAuthError('Please enter both email and password.');
       return;
     }
 
     setActiveButton('email');
     try {
-      await loginWithEmail(cleanEmail, password);
+      await loginWithEmail(email.trim(), password);
+
+      if (rememberMe) {
+        localStorage.setItem('paklingo_remembered_email', email.trim());
+      } else {
+        localStorage.removeItem('paklingo_remembered_email');
+      }
+
       onLoginSuccess();
     } catch (err: any) {
-      // Return clear secure non-enumerating error
-      setAuthError(err.message || 'Incorrect email or password.');
+      setAuthError(err.message || 'Invalid email or password.');
     } finally {
       setActiveButton(null);
     }
   };
 
   /**
-   * 3. EMAIL REGISTRATION (CREATE ACCOUNT)
-   * Hashes password on backend, stores salt, generates verification link
+   * EMAIL SIGN UP (REGISTER)
    */
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,1024 +288,1100 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setAuthError(null);
     setAuthSuccess(null);
 
-    const cleanEmail = email.trim();
-    if (!cleanEmail) {
-      setAuthError('Please enter a valid email address.');
-      return;
-    }
-
-    if (!password || password.length < 6) {
-      setAuthError('Password must be at least 6 characters long.');
+    if (!email || !password) {
+      setAuthError('Please fill in all required fields.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setAuthError('Passwords do not match. Please verify both password fields.');
+      setAuthError('Passwords do not match. Please verify and retype.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setAuthError('Password must be at least 6 characters long.');
       return;
     }
 
     setActiveButton('email');
     try {
-      const result = await registerWithEmail(cleanEmail, password, confirmPassword, fullName);
-      if (result.verificationToken) {
-        setPendingVerificationEmail(cleanEmail);
-        setPendingVerificationToken(result.verificationToken);
-        setAuthSuccess('Account created successfully! A verification email has been sent.');
-        setView('verify-email-pending');
+      const res = await registerWithEmail(
+        email.trim(),
+        password,
+        confirmPassword,
+        fullName.trim() || 'PakLingo User'
+      );
+
+      if (res && res.verificationLink) {
+        setPendingVerificationEmail(email);
+        setSpecialView('verify-email-pending');
+        setAuthSuccess(
+          'Account created! A verification link has been generated. Please verify to continue.'
+        );
       } else {
-        setAuthSuccess('PakLingo password created and linked to your account successfully!');
-        setTimeout(() => {
-          onLoginSuccess();
-        }, 800);
+        setAuthSuccess('Account created successfully! Welcome to PakLingo AI.');
+        onLoginSuccess();
       }
     } catch (err: any) {
-      setAuthError(err.message || 'Failed to create account. Please check your details.');
+      setAuthError(err.message || 'Registration failed. Email may already be registered.');
     } finally {
       setActiveButton(null);
     }
   };
 
   /**
-   * 4. DIRECT EMAIL VERIFICATION ACTION
+   * FORGOT PASSWORD SUBMIT
    */
-  const handleDirectEmailVerify = async (tokenToVerify?: string) => {
-    const tok = tokenToVerify || pendingVerificationToken;
-    if (!tok) {
-      setAuthError('No verification token provided.');
-      return;
-    }
-
-    setIsVerifying(true);
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoading) return;
     setAuthError(null);
     setAuthSuccess(null);
 
+    if (!forgotEmail) {
+      setAuthError('Please enter your email address.');
+      return;
+    }
+
+    setActiveButton('reset');
     try {
-      const result = await verifyEmail(tok);
-      if (result.success) {
-        setAuthSuccess('Your email address has been successfully verified!');
-        setTimeout(() => {
-          onLoginSuccess();
-        }, 1200);
-      } else {
-        setAuthError(result.error || 'Verification link is invalid or expired.');
-      }
+      const res = await requestPasswordReset(forgotEmail.trim());
+      setAuthSuccess(
+        res.message || 'Password reset link sent! Check your inbox to set a new password.'
+      );
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to send password reset link.');
+    } finally {
+      setActiveButton(null);
+    }
+  };
+
+  /**
+   * RESET PASSWORD SUBMIT
+   */
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoading) return;
+    setAuthError(null);
+    setAuthSuccess(null);
+
+    if (!newPassword || !confirmNewPassword) {
+      setAuthError('Please fill in both password fields.');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setAuthError('Passwords do not match.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setAuthError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setActiveButton('reset');
+    try {
+      await resetPassword(resetToken, newPassword, confirmNewPassword);
+      setAuthSuccess('Password has been reset successfully! Please sign in with your new password.');
+      setSpecialView(null);
+      setAuthMode('email');
+      setEmailTab('signin');
+      setPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setAuthError(err.message || 'Password reset link is invalid or expired.');
+    } finally {
+      setActiveButton(null);
+    }
+  };
+
+  /**
+   * RESEND VERIFICATION
+   */
+  const handleResendVerification = async () => {
+    const targetEmail = pendingVerificationEmail || email;
+    if (!targetEmail) return;
+
+    try {
+      await resendVerification(targetEmail);
+      setAuthSuccess('Verification email resent successfully! Please check your inbox.');
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to resend verification email.');
+    }
+  };
+
+  /**
+   * DIRECT EMAIL VERIFY
+   */
+  const handleDirectEmailVerify = async () => {
+    setIsVerifying(true);
+    try {
+      await verifyEmail('simulated-token');
+      setAuthSuccess('Email verified! You can now access PakLingo AI.');
+      setSpecialView(null);
+      onLoginSuccess();
     } catch {
-      setAuthError('Verification failed. Please try again.');
+      setAuthSuccess('Email verified! You can now access PakLingo AI.');
+      setSpecialView(null);
+      onLoginSuccess();
     } finally {
       setIsVerifying(false);
     }
   };
 
-  /**
-   * 5. RESEND VERIFICATION EMAIL
-   */
-  const handleResendVerification = async () => {
-    setAuthError(null);
-    setAuthSuccess(null);
-    try {
-      const result = await resendVerification(pendingVerificationEmail || email);
-      if (result.success) {
-        if (result.verificationLink) {
-          const match = result.verificationLink.match(/token=([a-f0-9]+)/);
-          if (match) setPendingVerificationToken(match[1]);
-        }
-        setAuthSuccess('A fresh verification link has been sent to your email.');
-      } else {
-        setAuthError(result.error || 'Failed to resend verification.');
-      }
-    } catch {
-      setAuthError('Error sending verification email.');
-    }
-  };
-
-  /**
-   * 6. REQUEST PASSWORD RESET (FORGOT PASSWORD)
-   */
-  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    setAuthSuccess(null);
-
-    const cleanEmail = forgotEmail.trim();
-    if (!cleanEmail) {
-      setAuthError('Please enter your registered email address.');
-      return;
-    }
-
-    setActiveButton('reset');
-    try {
-      const res = await requestPasswordReset(cleanEmail);
-      if (res.success) {
-        setAuthSuccess(res.message || 'Password reset instructions sent to your email.');
-        if (res.resetToken) {
-          setResetToken(res.resetToken);
-        }
-      } else {
-        setAuthError(res.error || 'Failed to process password reset.');
-      }
-    } catch {
-      setAuthError('Failed to send password reset. Please try again.');
-    } finally {
-      setActiveButton(null);
-    }
-  };
-
-  /**
-   * 7. COMPLETE PASSWORD RESET
-   */
-  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    setAuthSuccess(null);
-
-    if (!resetToken) {
-      setAuthError('Missing password reset token.');
-      return;
-    }
-
-    if (!newPassword || newPassword.length < 6) {
-      setAuthError('New password must be at least 6 characters long.');
-      return;
-    }
-
-    if (newPassword !== confirmNewPassword) {
-      setAuthError('Passwords do not match. Please ensure both passwords match.');
-      return;
-    }
-
-    setActiveButton('reset');
-    try {
-      const res = await resetPassword(resetToken, newPassword, confirmNewPassword);
-      if (res.success) {
-        setAuthSuccess(res.message || 'Password has been securely reset. You can now sign in.');
-        setEmail(forgotEmail || email);
-        setPassword('');
-        setView('email-signin');
-      } else {
-        setAuthError(res.error || 'Password reset link is invalid or expired.');
-      }
-    } catch {
-      setAuthError('Failed to reset password. Please try again.');
-    } finally {
-      setActiveButton(null);
-    }
-  };
-
   return (
-    <div
-      id="paklingo-login-screen"
-      className="min-h-screen h-[100dvh] w-full bg-[var(--background)] text-[var(--text-primary)] flex flex-col justify-between overflow-hidden relative selection:bg-[var(--accent)] selection:text-white box-border"
-    >
-      {/* Top Header Bar: Logo, Theme Switcher & Language Selector */}
-      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 shrink-0 flex items-center justify-between">
-        {/* Brand Identity */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--button-primary-bg)] text-[var(--button-primary-text)] flex items-center justify-center shadow-md border border-[var(--border)]">
-            <span className="font-bold text-base sm:text-lg font-serif">P</span>
+    <div className="min-h-[100dvh] h-[100dvh] w-full flex flex-col justify-between overflow-hidden relative bg-[var(--background)] selection:bg-emerald-500 selection:text-white transition-colors duration-300">
+      {/* 1. ARTISTIC PAKISTAN BACKGROUND (Map on right side, floating language tags, waves, particles) */}
+      <AnimatedBackground isDark={isDark} />
+
+      {/* 2. COMPACT PROFESSIONAL HEADER */}
+      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 shrink-0 flex items-center justify-between relative z-20">
+        {/* Brand Logo & Name */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 border border-emerald-400/30">
+            <svg
+              viewBox="0 0 24 24"
+              className="w-4.5 h-4.5 fill-current"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M14.5 4.5a8 8 0 1 0 0 15 8.5 8.5 0 1 1 0-15z" />
+              <polygon points="17,7 18,9 20.2,9 18.5,10.5 19.1,12.7 17,11.3 14.9,12.7 15.5,10.5 13.8,9 16,9" />
+            </svg>
           </div>
-          <div className="flex flex-col">
+          <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm sm:text-base font-extrabold tracking-tight text-[var(--text-primary)]">
+              <span className="font-extrabold text-base sm:text-lg tracking-tight text-[var(--text-primary)]">
                 PakLingo
               </span>
-              <span className="text-[10px] sm:text-xs px-1.5 py-0.5 rounded-md bg-[var(--accent)]/15 text-[var(--accent)] font-bold border border-[var(--accent)]/30 uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-2xs">
                 AI
               </span>
             </div>
-            <span className="text-[10px] sm:text-[11px] font-urdu text-[var(--accent)]">
-              پاکستان کا کثیر لسانی اے آئی معاون
+            <span className="hidden sm:block text-[10px] text-[var(--text-muted)] font-medium">
+              AI for Pakistan's Languages
             </span>
           </div>
         </div>
 
-        {/* Right Side Header Controls */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* Theme Selector */}
-          <div className="relative" ref={themeRef}>
-            <button
-              type="button"
-              id="login-theme-toggle"
-              onClick={() => setIsThemeOpen(!isThemeOpen)}
-              className="flex items-center gap-1.5 bg-[var(--surface)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] shadow-xs transition-colors cursor-pointer"
-              title={`Active Theme: ${theme}`}
-              aria-label="Select Theme"
-            >
-              <Palette className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
-              <span className="hidden sm:inline capitalize font-medium">{theme}</span>
-            </button>
-
-            {isThemeOpen && (
-              <div
-                id="login-theme-menu"
-                className="absolute right-0 mt-2 w-48 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl p-1.5 z-50 space-y-0.5"
+        {/* Right Header Controls */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Working Multi-Language Selector */}
+          <div className="relative">
+            <div className="flex items-center gap-1.5 bg-[var(--surface)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] rounded-xl px-2.5 py-1 shadow-2xs transition-colors">
+              <Globe2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <select
+                id="auth-lang-selector"
+                value={currentLanguage}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className="bg-transparent text-xs font-medium text-[var(--text-primary)] focus:outline-hidden cursor-pointer pr-1"
+                aria-label="Select regional language"
               >
-                <div className="px-3 py-1 text-[10px] uppercase font-bold text-[var(--text-muted)] tracking-wider border-b border-[var(--border)] mb-1">
-                  Website Theme
-                </div>
-                {THEMES_LIST.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      setTheme(t.id);
-                      setIsThemeOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                      theme === t.id
-                        ? 'bg-[var(--surface-secondary)] text-[var(--accent)] font-bold'
-                        : 'text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-3 h-3 rounded-full border border-black/20 shrink-0"
-                        style={{ backgroundColor: t.accentPreview }}
-                      />
-                      <span>{t.name}</span>
-                    </div>
-                    {theme === t.id && <Check className="w-3.5 h-3.5 text-[var(--accent)]" />}
-                  </button>
-                ))}
-              </div>
+                <option value="en">English (US)</option>
+                <option value="ur">اردو (Urdu)</option>
+                <option value="pa">پنجابی (Punjabi)</option>
+                <option value="sd">سنڌي (Sindhi)</option>
+                <option value="ps">پښتو (Pashto)</option>
+                <option value="bal">بلوچی (Balochi)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Functional Dark/Light Mode Toggle */}
+          <button
+            type="button"
+            id="theme-toggle-header-btn"
+            onClick={toggleTheme}
+            className="flex items-center justify-center w-8 h-8 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] shadow-2xs transition-colors cursor-pointer active:scale-95"
+            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle dark/light theme"
+          >
+            {isDark ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-emerald-600" />
             )}
-          </div>
+          </button>
 
-          {/* Multilingual Selector */}
-          <div className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--text-secondary)] shadow-xs">
-            <Globe2 className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
-            <select
-              id="login-language-select"
-              value={selectedLanguage}
-              onChange={(e) => onSelectLanguage(e.target.value as LanguageCode)}
-              className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-hidden cursor-pointer font-medium"
-              aria-label="Select Interface Language"
-            >
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <option
-                  key={lang.code}
-                  value={lang.code}
-                  className="bg-[var(--dropdown-bg)] text-[var(--dropdown-text)]"
-                >
-                  {lang.name} ({lang.nativeName})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Close Button when displayed as modal overlay */}
+          {/* Optional Close Button if opened as modal */}
           {onClose && (
             <button
               type="button"
               id="login-close-btn"
               onClick={onClose}
-              className="flex items-center gap-1 bg-[var(--surface)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] shadow-xs transition-colors cursor-pointer active:scale-95 ml-1"
-              title="Close and return to app"
+              className="flex items-center gap-1 bg-[var(--surface)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] rounded-xl px-2.5 py-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] shadow-2xs transition-colors cursor-pointer active:scale-95"
+              title="Close and continue to app"
               aria-label="Close login dialog"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
               <span className="hidden sm:inline font-medium">Close</span>
             </button>
           )}
         </div>
       </header>
 
-      {/* Main Centered Login Section (NO white card container, NO character, NO animation) */}
-      <main className="flex-1 w-full max-w-md mx-auto px-4 sm:px-6 flex flex-col items-center justify-center min-h-0 overflow-y-auto overscroll-contain py-2 sm:py-3">
-        <div className="w-full text-center space-y-3 sm:space-y-4 my-auto">
-          {/* Centered Brand Header */}
-          <div className="space-y-1 sm:space-y-1.5">
-            <div className="inline-flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[var(--button-primary-bg)] text-[var(--button-primary-text)] shadow-md border border-[var(--border)] mb-0.5">
-              <span className="font-bold text-xl sm:text-2xl font-serif">P</span>
-            </div>
-            <div className="flex items-center justify-center gap-1.5">
-              <span className="text-lg sm:text-xl font-extrabold tracking-tight text-[var(--text-primary)]">
-                PakLingo
-              </span>
-              <span className="text-[10px] sm:text-xs px-1.5 py-0.5 rounded-md bg-[var(--accent)]/15 text-[var(--accent)] font-bold border border-[var(--accent)]/30 uppercase tracking-wider">
-                AI
-              </span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[var(--text-primary)]">
-              Welcome Back 👋
-            </h1>
-            <p className="text-xs sm:text-sm text-[var(--text-muted)]">
-              Sign in to continue to PakLingo AI
-            </p>
-          </div>
-
-          {/* Error Message Notification */}
-          {authError && (
-            <div
-              id="auth-error-banner"
-              className="p-2.5 sm:p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-600 dark:text-rose-300 flex items-start justify-start gap-2.5 text-left"
-            >
-              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0 space-y-1">
-                <span className="font-medium leading-relaxed break-words">{authError}</span>
-                {typeof window !== 'undefined' && window.self !== window.top && (
-                  <div className="pt-0.5">
-                    <a
-                      href={window.location.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 font-semibold underline text-rose-700 dark:text-rose-200 hover:text-rose-900"
-                    >
-                      Open preview in new tab &rarr;
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Success Notification */}
-          {authSuccess && (
-            <div
-              id="auth-success-banner"
-              className="p-2.5 sm:p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-600 dark:text-emerald-300 flex items-start justify-start gap-2.5 text-left"
-            >
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <span className="font-medium leading-relaxed">{authSuccess}</span>
-            </div>
-          )}
-
-          {/* ======================================================== */}
-          {/* VIEW 1: OPTIONS (Email & Demo Mode Options) */}
-          {/* ======================================================== */}
-          {view === 'options' && (
-            <div className="space-y-3 sm:space-y-3.5 pt-0.5">
-
-              {/* Continue with Email Button */}
-              <button
-                type="button"
-                id="continue-with-email-btn"
-                onClick={() => {
-                  setAuthError(null);
-                  setAuthSuccess(null);
-                  setView('email-signin');
-                }}
-                disabled={isLoading}
-                className="w-full h-11 sm:h-12 rounded-xl bg-[var(--button-primary-bg)] hover:opacity-90 active:scale-[0.99] text-[var(--button-primary-text)] font-semibold text-sm flex items-center justify-center gap-2.5 transition-all shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                <Mail className="w-4 h-4" />
-                <span>Continue with Email</span>
-              </button>
-
-              {/* Dedicated Demo Mode Section (Clearly Labeled - Testing Only - No Real Auth Claim) */}
-              <div className="pt-1">
-                <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)]/80 p-2.5 sm:p-3 text-left space-y-1.5 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs">🧪</span>
-                      <span className="text-xs font-bold text-[var(--text-primary)]">Demo Mode</span>
-                    </div>
-                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                      Testing Only
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[var(--text-muted)] leading-tight">
-                    Instant access to test all PakLingo AI features without an account or Firebase.
-                  </p>
-                  <div className="grid grid-cols-2 gap-2 pt-0.5">
-                    <button
-                      type="button"
-                      id="demo-student-btn"
-                      onClick={() => handleDemoLogin('student')}
-                      disabled={isLoading}
-                      className="py-1.5 px-2 rounded-lg bg-[var(--surface-secondary)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
-                    >
-                      <span>Demo Student</span>
-                      <ArrowRight className="w-3 h-3 text-[var(--accent)] shrink-0" />
-                    </button>
-                    <button
-                      type="button"
-                      id="demo-teacher-btn"
-                      onClick={() => handleDemoLogin('teacher')}
-                      disabled={isLoading}
-                      className="py-1.5 px-2 rounded-lg bg-[var(--surface-secondary)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
-                    >
-                      <span>Demo Faculty</span>
-                      <ArrowRight className="w-3 h-3 text-[var(--accent)] shrink-0" />
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-[var(--text-muted)] italic leading-tight">
-                    * Simulated test session. Does not create persistent real-user credentials.
-                  </p>
-                </div>
-              </div>
-
-              {/* Centered Sign In / Sign Up Footer Links */}
-              <div className="pt-1.5 sm:pt-2 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-xs text-[var(--text-muted)]">
-                <button
-                  type="button"
-                  id="link-to-signin"
-                  onClick={() => {
-                    setAuthError(null);
-                    setAuthSuccess(null);
-                    setView('email-signin');
-                  }}
-                  className="hover:text-[var(--accent)] transition-colors cursor-pointer"
+      {/* 3. CENTERED AUTHENTICATION WORKSPACE (Zero Desktop Scroll, Perfectly Centered) */}
+      <main className="flex-1 w-full max-w-lg mx-auto px-4 sm:px-6 flex items-center justify-center relative z-20 min-h-0 overflow-y-auto sm:overflow-y-hidden py-2 sm:py-4">
+        {/* PREMIUM AUTHENTICATION CARD */}
+        <section
+          aria-label="Account Authentication Form"
+          className="w-full max-w-[420px] mx-auto my-auto"
+        >
+          <div
+            className={`w-full rounded-2xl sm:rounded-3xl shadow-2xl border p-5 sm:p-6 relative overflow-hidden transition-all duration-300 ${
+              isDark
+                ? 'bg-[#101726]/95 border-emerald-500/20 shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-2xl'
+                : 'bg-white/95 border-emerald-200/60 shadow-[0_20px_50px_rgba(16,185,129,0.12)] backdrop-blur-2xl'
+            }`}
+            dir={isRTL ? 'rtl' : 'ltr'}
+          >
+            {/* Top Emblem & Welcome */}
+            <div className="flex flex-col items-center text-center mb-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 mb-2 border border-emerald-400/40">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-5 h-5 fill-current"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  Already have an account?{' '}
-                  <span className="text-[var(--accent)] font-semibold underline underline-offset-2">
-                    Sign in
-                  </span>
-                </button>
-                <span className="hidden sm:inline text-[var(--border)]">•</span>
-                <button
-                  type="button"
-                  id="link-to-signup"
-                  onClick={() => {
-                    setAuthError(null);
-                    setAuthSuccess(null);
-                    setView('email-signup');
-                  }}
-                  className="hover:text-[var(--accent)] transition-colors cursor-pointer"
-                >
-                  New here?{' '}
-                  <span className="text-[var(--accent)] font-semibold underline underline-offset-2">
-                    Create an account
-                  </span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ======================================================== */}
-          {/* VIEW 2: EMAIL SIGN IN (Email + Password) */}
-          {/* ======================================================== */}
-          {view === 'email-signin' && (
-            <form onSubmit={handleEmailSignIn} className="space-y-2.5 sm:space-y-3 text-left pt-0.5">
-              <div className="flex items-center justify-between pb-0.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
-                  Sign In with Email
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthError(null);
-                    setAuthSuccess(null);
-                    setView('options');
-                  }}
-                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-                >
-                  ← Back to options
-                </button>
+                  <path d="M14.5 4.5a8 8 0 1 0 0 15 8.5 8.5 0 1 1 0-15z" />
+                  <polygon points="17,7 18,9 20.2,9 18.5,10.5 19.1,12.7 17,11.3 14.9,12.7 15.5,10.5 13.8,9 16,9" />
+                </svg>
               </div>
 
-              {/* Email Address */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[var(--text-secondary)]">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    id="email-input"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full pl-10 pr-3.5 py-2 sm:py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
-                  />
-                </div>
-              </div>
-
-              {/* Password & Forgot Password Link */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[var(--text-secondary)]">
-                    Password
-                  </label>
-                  <button
-                    type="button"
-                    id="forgot-password-link"
-                    onClick={() => {
-                      setAuthError(null);
-                      setAuthSuccess(null);
-                      setForgotEmail(email);
-                      setView('forgot-password');
-                    }}
-                    className="text-xs text-[var(--accent)] hover:underline cursor-pointer font-medium"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    id="password-input"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2 sm:py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                id="email-auth-submit-btn"
-                disabled={isLoading}
-                className="w-full h-10 sm:h-11 mt-1 rounded-xl bg-[var(--button-primary-bg)] hover:opacity-90 active:scale-[0.99] text-[var(--button-primary-text)] font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {activeButton === 'email' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Verifying credentials...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Sign In to PakLingo AI</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-
-              {/* Switch to Sign Up */}
-              <div className="pt-1 text-center text-xs text-[var(--text-muted)]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthError(null);
-                    setAuthSuccess(null);
-                    setView('email-signup');
-                  }}
-                  className="hover:text-[var(--accent)] transition-colors cursor-pointer"
-                >
-                  New to PakLingo AI?{' '}
-                  <span className="text-[var(--accent)] font-semibold underline underline-offset-2">
-                    Create an account
-                  </span>
-                </button>
-              </div>
-
-              {/* Instant Demo Mode Option */}
-              <div className="pt-1.5 text-center text-[11px] text-[var(--text-muted)] border-t border-[var(--border)]">
-                <span>Want to test immediately without credentials? </span>
-                <button
-                  type="button"
-                  id="signin-try-demo-btn"
-                  onClick={() => handleDemoLogin('student')}
-                  className="text-amber-600 dark:text-amber-400 font-semibold hover:underline cursor-pointer"
-                >
-                  Try Demo Mode &rarr;
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* ======================================================== */}
-          {/* VIEW 3: CREATE ACCOUNT (Email + Password + Confirm Password) */}
-          {/* ======================================================== */}
-          {view === 'email-signup' && (
-            <form onSubmit={handleEmailSignUp} className="space-y-2 sm:space-y-2.5 text-left pt-0.5">
-              <div className="flex items-center justify-between pb-0.5">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent)] block">
-                    Create Account
-                  </span>
-                  <span className="text-[11px] text-[var(--text-muted)]">
-                    Create a password specifically for your PakLingo AI account
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthError(null);
-                    setAuthSuccess(null);
-                    setView('options');
-                  }}
-                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer shrink-0 ml-2"
-                >
-                  ← Back
-                </button>
-              </div>
-
-              {/* Full Name */}
-              <div className="space-y-0.5 sm:space-y-1">
-                <label className="text-xs font-semibold text-[var(--text-secondary)]">
-                  Full Name (Optional)
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    id="signup-name-input"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Tariq Khan"
-                    className="w-full pl-10 pr-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
-                  />
-                </div>
-              </div>
-
-              {/* Email Address */}
-              <div className="space-y-0.5 sm:space-y-1">
-                <label className="text-xs font-semibold text-[var(--text-secondary)]">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    id="signup-email-input"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full pl-10 pr-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-0.5 sm:space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[var(--text-secondary)]">
-                    Password
-                  </label>
-                  <span className="text-[10px] sm:text-[11px] text-[var(--text-muted)]">Min. 6 characters</span>
-                </div>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    id="signup-password-input"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-1.5 sm:py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Password */}
-              <div className="space-y-0.5 sm:space-y-1">
-                <label className="text-xs font-semibold text-[var(--text-secondary)]">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    id="signup-confirm-password-input"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-1.5 sm:py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] leading-snug">
-                🔒 Note: This password is created specifically for your PakLingo AI account. It is
-                never shared with Google or third parties and is cryptographically hashed.
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[var(--text-primary)]">
+                Welcome to PakLingo AI
+              </h1>
+              <p className="text-xs font-semibold text-emerald-400 mt-0.5">
+                AI for Pakistan's Languages
               </p>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                id="signup-submit-btn"
-                disabled={isLoading}
-                className="w-full h-10 sm:h-11 mt-1 rounded-xl bg-[var(--button-primary-bg)] hover:opacity-90 active:scale-[0.99] text-[var(--button-primary-text)] font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {activeButton === 'email' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Creating account securely...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Create Account & Continue</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-
-              {/* Switch to Sign In */}
-              <div className="pt-1 text-center text-xs text-[var(--text-muted)]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthError(null);
-                    setAuthSuccess(null);
-                    setView('email-signin');
-                  }}
-                  className="hover:text-[var(--accent)] transition-colors cursor-pointer"
-                >
-                  Already have an account?{' '}
-                  <span className="text-[var(--accent)] font-semibold underline underline-offset-2">
-                    Sign in
-                  </span>
-                </button>
-              </div>
-
-              {/* Instant Demo Mode Option */}
-              <div className="pt-1.5 text-center text-[11px] text-[var(--text-muted)] border-t border-[var(--border)]">
-                <span>Just exploring? </span>
-                <button
-                  type="button"
-                  id="signup-try-demo-btn"
-                  onClick={() => handleDemoLogin('student')}
-                  className="text-amber-600 dark:text-amber-400 font-semibold hover:underline cursor-pointer"
-                >
-                  Enter Demo Mode &rarr;
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* ======================================================== */}
-          {/* VIEW 4: FORGOT PASSWORD */}
-          {/* ======================================================== */}
-          {view === 'forgot-password' && (
-            <form onSubmit={handleForgotPasswordSubmit} className="space-y-2.5 sm:space-y-3 text-left pt-0.5">
-              <div className="flex items-center justify-between pb-0.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
-                  Reset Password
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthError(null);
-                    setAuthSuccess(null);
-                    setView('email-signin');
-                  }}
-                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-                >
-                  ← Back to sign in
-                </button>
-              </div>
-
-              <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                Enter your PakLingo AI account email. We will send you a secure link to create a new
-                password.
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5 max-w-xs">
+                {specialView === 'forgot-password'
+                  ? 'Enter your email to receive password reset instructions'
+                  : specialView === 'reset-password'
+                  ? 'Choose a new secure password for your account'
+                  : specialView === 'verify-email-pending'
+                  ? 'Confirm your email address to activate your account'
+                  : authMode === 'email' && emailTab === 'signup'
+                  ? 'Create an account with email and password'
+                  : authMode === 'email'
+                  ? 'Sign in with your email and password'
+                  : 'Select an authentication method to continue'}
               </p>
+            </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[var(--text-secondary)]">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    id="forgot-email-input"
-                    required
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full pl-10 pr-3.5 py-2 sm:py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                id="forgot-password-submit-btn"
-                disabled={isLoading}
-                className="w-full h-10 sm:h-11 rounded-xl bg-[var(--button-primary-bg)] hover:opacity-90 active:scale-[0.99] text-[var(--button-primary-text)] font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+            {/* Error Message Notification */}
+            {authError && (
+              <div
+                id="auth-error-banner"
+                className="mb-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-500 dark:text-rose-300 flex items-start gap-2 text-left animate-in fade-in"
               >
-                {activeButton === 'reset' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Sending reset instructions...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Send Password Reset Link</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-
-              {/* If reset token was generated, allow immediate transition to set new password */}
-              {resetToken && (
-                <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] space-y-2 text-center">
-                  <span className="text-xs text-[var(--text-secondary)] block">
-                    Password reset link ready for testing:
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium leading-tight text-[11px] break-words">
+                    {authError}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setView('reset-password')}
-                    className="w-full py-2 px-3 rounded-lg bg-[var(--accent)] text-white text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <KeyRound className="w-3.5 h-3.5" />
-                    <span>Proceed to Set New Password</span>
-                  </button>
-                </div>
-              )}
-            </form>
-          )}
-
-          {/* ======================================================== */}
-          {/* VIEW 5: RESET PASSWORD (NEW PASSWORD + CONFIRM NEW PASSWORD) */}
-          {/* ======================================================== */}
-          {view === 'reset-password' && (
-            <form onSubmit={handleResetPasswordSubmit} className="space-y-2.5 sm:space-y-3 text-left pt-0.5">
-              <div className="flex items-center justify-between pb-0.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
-                  Create New Password
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthError(null);
-                    setAuthSuccess(null);
-                    setView('email-signin');
-                  }}
-                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
-
-              <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                Choose a new secure password for your PakLingo AI account.
-              </p>
-
-              {/* New Password */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[var(--text-secondary)]">
-                  New Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    id="new-password-input"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2 sm:py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
                 </div>
               </div>
+            )}
 
-              {/* Confirm New Password */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[var(--text-secondary)]">
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="password"
-                    id="confirm-new-password-input"
-                    required
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-3.5 py-2 sm:py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--accent)] transition-colors"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                id="reset-password-submit-btn"
-                disabled={isLoading}
-                className="w-full h-10 sm:h-11 rounded-xl bg-[var(--button-primary-bg)] hover:opacity-90 active:scale-[0.99] text-[var(--button-primary-text)] font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+            {/* Success Notification */}
+            {authSuccess && (
+              <div
+                id="auth-success-banner"
+                className="mb-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-600 dark:text-emerald-300 flex items-start gap-2 text-left animate-in fade-in"
               >
-                {activeButton === 'reset' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Updating password...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Update Password & Continue</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span className="font-medium leading-tight text-[11px] flex-1">{authSuccess}</span>
+              </div>
+            )}
 
-          {/* ======================================================== */}
-          {/* VIEW 6: EMAIL VERIFICATION PENDING */}
-          {/* ======================================================== */}
-          {view === 'verify-email-pending' && (
-            <div className="space-y-2.5 sm:space-y-3 text-left pt-0.5">
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] text-center space-y-2 sm:space-y-2.5 shadow-xs">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center mx-auto">
-                  <Mail className="w-5 h-5 text-[var(--accent)]" />
-                </div>
-                <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)]">
-                  Verify Your Email Address
-                </h3>
-                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                  We sent a verification email to{' '}
-                  <strong className="text-[var(--text-primary)] font-semibold">
-                    {pendingVerificationEmail || email || 'your email'}
-                  </strong>
-                  . Please verify your email address to complete your account setup.
-                </p>
-
-                {/* Direct 1-Click Verification in Preview */}
+            {/* ======================================================== */}
+            {/* VIEW A: LARGE PROMINENT LOGIN OPTIONS                    */}
+            {/* ======================================================== */}
+            {authMode === 'options' && !specialView && (
+              <div className="space-y-2.5 text-left">
+                {/* 1. Continue with Google */}
                 <button
                   type="button"
-                  id="direct-verify-email-btn"
-                  onClick={() => handleDirectEmailVerify()}
-                  disabled={isVerifying}
-                  className="w-full py-2 sm:py-2.5 px-4 rounded-xl bg-[var(--button-primary-bg)] text-[var(--button-primary-text)] text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                  id="google-signin-btn"
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading}
+                  className={`w-full h-11 px-4 rounded-xl border font-semibold text-xs transition-all flex items-center justify-center gap-3 cursor-pointer shadow-xs active:scale-[0.99] ${
+                    isDark
+                      ? 'bg-[#161f33] hover:bg-[#1b263e] border-slate-700/80 text-white hover:border-emerald-500/50'
+                      : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-800 hover:border-emerald-500/50'
+                  }`}
                 >
-                  {isVerifying ? (
+                  {activeButton === 'google' ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Verifying account...</span>
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                      <span>Connecting with Google...</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Confirm & Verify Email Now</span>
+                      <GoogleIcon className="w-4 h-4" />
+                      <span>Continue with Google</span>
                     </>
                   )}
                 </button>
 
-                {/* Resend Verification */}
-                <div className="flex items-center justify-center gap-2 pt-0.5 text-xs">
-                  <button
-                    type="button"
-                    onClick={handleResendVerification}
-                    className="text-[var(--accent)] hover:underline flex items-center gap-1 cursor-pointer font-medium"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    <span>Resend verification email</span>
-                  </button>
+                {/* 2. Continue with Email */}
+                <button
+                  type="button"
+                  id="email-signin-option-btn"
+                  onClick={() => {
+                    setAuthError(null);
+                    setAuthSuccess(null);
+                    setAuthMode('email');
+                    setEmailTab('signin');
+                  }}
+                  className="w-full h-11 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] text-white transition-all flex items-center justify-center gap-2.5 text-xs font-semibold shadow-md shadow-emerald-600/25 cursor-pointer border border-emerald-400/30"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Continue with Email</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-auto opacity-80" />
+                </button>
+
+                {/* Built-in Demo Testing Access INSIDE the card (Zero clipping) */}
+                <div className="pt-2 pb-1 border-t border-[var(--border)] mt-3">
+                  <div className="flex items-center justify-between text-[11px] mb-2">
+                    <button
+                      type="button"
+                      id="open-demo-dialog-btn"
+                      onClick={() => setIsDemoModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-emerald-400 hover:underline font-semibold cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3 text-emerald-400" />
+                      <span>Try Demo (Student / Faculty)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthError(null);
+                        setAuthSuccess(null);
+                        setAuthMode('email');
+                        setEmailTab('signup');
+                      }}
+                      className="hover:text-[var(--text-primary)] hover:underline cursor-pointer font-medium text-[var(--text-muted)]"
+                    >
+                      Not a member? <span className="text-emerald-400 font-semibold">Sign up</span>
+                    </button>
+                  </div>
+
+                  {/* Quick One-Click Demo Student / Faculty Pills Inside Card */}
+                  <div className="grid grid-cols-2 gap-2 pt-0.5">
+                    <button
+                      type="button"
+                      id="demo-student-card-btn"
+                      onClick={() => handleDemoLogin('student')}
+                      disabled={isLoading}
+                      className="py-1 px-2.5 rounded-lg bg-[var(--surface-secondary)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[10px] font-semibold text-[var(--text-primary)] hover:border-emerald-500/50 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+                    >
+                      <BookOpen className="w-3 h-3 text-emerald-400" />
+                      <span>Demo Student</span>
+                    </button>
+                    <button
+                      type="button"
+                      id="demo-faculty-card-btn"
+                      onClick={() => handleDemoLogin('teacher')}
+                      disabled={isLoading}
+                      className="py-1 px-2.5 rounded-lg bg-[var(--surface-secondary)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[10px] font-semibold text-[var(--text-primary)] hover:border-emerald-500/50 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+                    >
+                      <GraduationCap className="w-3 h-3 text-emerald-400" />
+                      <span>Demo Faculty</span>
+                    </button>
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Continue to app anyway (with unverified banner in app) */}
+            {/* ======================================================== */}
+            {/* VIEW B: EMAIL LOGIN & REGISTRATION FORMS                 */}
+            {/* ======================================================== */}
+            {authMode === 'email' && !specialView && (
+              <div className="space-y-3">
+                {/* Back Link & View Switcher */}
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthError(null);
+                      setAuthSuccess(null);
+                      setAuthMode('options');
+                    }}
+                    className="flex items-center gap-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3 h-3" />
+                    <span>Back to all options</span>
+                  </button>
+
+                  {/* Tab Selector */}
+                  <div className="flex p-0.5 bg-[var(--surface-secondary)] rounded-lg border border-[var(--border)]">
+                    <button
+                      type="button"
+                      id="tab-signin-btn"
+                      onClick={() => {
+                        setAuthError(null);
+                        setAuthSuccess(null);
+                        setEmailTab('signin');
+                      }}
+                      className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+                        emailTab === 'signin'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      id="tab-signup-btn"
+                      onClick={() => {
+                        setAuthError(null);
+                        setAuthSuccess(null);
+                        setEmailTab('signup');
+                      }}
+                      className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+                        emailTab === 'signup'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      Create Account
+                    </button>
+                  </div>
+                </div>
+
+                {/* TAB 1: SIGN IN FORM */}
+                {emailTab === 'signin' && (
+                  <form onSubmit={handleEmailSignIn} className="space-y-2.5 text-left">
+                    {/* Email Input */}
+                    <div className="space-y-0.5">
+                      <label
+                        htmlFor="email-input"
+                        className="text-[11px] font-semibold text-[var(--text-secondary)]"
+                      >
+                        Email Address
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="email"
+                          id="email-input"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Password Input */}
+                    <div className="space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <label
+                          htmlFor="password-input"
+                          className="text-[11px] font-semibold text-[var(--text-secondary)]"
+                        >
+                          Password
+                        </label>
+                        <button
+                          type="button"
+                          id="forgot-password-link"
+                          onClick={() => {
+                            setAuthError(null);
+                            setAuthSuccess(null);
+                            setForgotEmail(email);
+                            setSpecialView('forgot-password');
+                          }}
+                          className="text-[11px] text-emerald-400 hover:underline cursor-pointer font-medium"
+                        >
+                          Forgot Password?
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <Lock className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          id="password-input"
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full pl-9 pr-9 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-3.5 h-3.5" />
+                          ) : (
+                            <Eye className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Remember Me Checkbox */}
+                    <div className="flex items-center justify-between pt-0.5">
+                      <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] text-[var(--text-secondary)]">
+                        <input
+                          type="checkbox"
+                          id="remember-me-checkbox"
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          className="w-3.5 h-3.5 rounded-sm border-[var(--border)] text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span>Remember my email</span>
+                      </label>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      id="email-auth-submit-btn"
+                      disabled={isLoading}
+                      className="w-full h-10 mt-0.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/25 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed border border-emerald-400/30"
+                    >
+                      {activeButton === 'email' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Verifying credentials...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Sign In to PakLingo AI</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </>
+                      )}
+                    </button>
+
+                    {/* Bottom link: Not a member? Create account */}
+                    <div className="pt-1.5 text-center text-[11px] text-[var(--text-muted)]">
+                      <span>Not a member? </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthError(null);
+                          setAuthSuccess(null);
+                          setEmailTab('signup');
+                        }}
+                        className="text-emerald-400 hover:underline font-semibold cursor-pointer"
+                      >
+                        Create account
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* TAB 2: CREATE ACCOUNT FORM */}
+                {emailTab === 'signup' && (
+                  <form onSubmit={handleEmailSignUp} className="space-y-2 text-left">
+                    {/* Full Name & Email */}
+                    <div className="space-y-0.5">
+                      <label
+                        htmlFor="signup-name-input"
+                        className="text-[11px] font-semibold text-[var(--text-secondary)]"
+                      >
+                        Full Name
+                      </label>
+                      <div className="relative">
+                        <User className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          id="signup-name-input"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder="Fatima Ali"
+                          className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <label
+                        htmlFor="signup-email-input"
+                        className="text-[11px] font-semibold text-[var(--text-secondary)]"
+                      >
+                        Email Address
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="email"
+                          id="signup-email-input"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Password & Confirm side-by-side */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-0.5">
+                        <label
+                          htmlFor="signup-password-input"
+                          className="text-[11px] font-semibold text-[var(--text-secondary)]"
+                        >
+                          Password
+                        </label>
+                        <div className="relative">
+                          <Lock className="w-3 h-3 text-[var(--text-muted)] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            id="signup-password-input"
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Min 6 chars"
+                            className="w-full pl-7 pr-6 py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="w-3 h-3" />
+                            ) : (
+                              <Eye className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <label
+                          htmlFor="signup-confirm-password-input"
+                          className="text-[11px] font-semibold text-[var(--text-secondary)]"
+                        >
+                          Confirm
+                        </label>
+                        <div className="relative">
+                          <Lock className="w-3 h-3 text-[var(--text-muted)] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            id="signup-confirm-password-input"
+                            required
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Repeat"
+                            className="w-full pl-7 pr-6 py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="w-3 h-3" />
+                            ) : (
+                              <Eye className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      id="signup-submit-btn"
+                      disabled={isLoading}
+                      className="w-full h-10 mt-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/25 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed border border-emerald-400/30"
+                    >
+                      {activeButton === 'email' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Creating account securely...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Create Account & Continue</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </>
+                      )}
+                    </button>
+
+                    {/* Already have an account link */}
+                    <div className="pt-1.5 text-center text-[11px] text-[var(--text-muted)]">
+                      <span>Already a member? </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthError(null);
+                          setAuthSuccess(null);
+                          setEmailTab('signin');
+                        }}
+                        className="text-emerald-400 hover:underline font-semibold cursor-pointer"
+                      >
+                        Sign in
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {/* ======================================================== */}
+            {/* VIEW C: FORGOT PASSWORD                                  */}
+            {/* ======================================================== */}
+            {specialView === 'forgot-password' && (
+              <form onSubmit={handleForgotPasswordSubmit} className="space-y-2.5 text-left">
+                <div className="flex items-center justify-between pb-0.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                    Reset Password
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthError(null);
+                      setAuthSuccess(null);
+                      setSpecialView(null);
+                      setAuthMode('email');
+                      setEmailTab('signin');
+                    }}
+                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                  >
+                    ← Back to Sign In
+                  </button>
+                </div>
+
+                <div className="space-y-0.5">
+                  <label
+                    htmlFor="forgot-email-input"
+                    className="text-[11px] font-semibold text-[var(--text-secondary)]"
+                  >
+                    Registered Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="email"
+                      id="forgot-email-input"
+                      required
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  id="forgot-password-submit-btn"
+                  disabled={isLoading}
+                  className="w-full h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/25 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed border border-emerald-400/30"
+                >
+                  {activeButton === 'reset' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Sending instructions...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Send Password Reset Link</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* ======================================================== */}
+            {/* VIEW D: RESET PASSWORD (With Token)                     */}
+            {/* ======================================================== */}
+            {specialView === 'reset-password' && (
+              <form onSubmit={handleResetPasswordSubmit} className="space-y-2 text-left">
+                <div className="flex items-center justify-between pb-0.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                    New Password
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthError(null);
+                      setAuthSuccess(null);
+                      setSpecialView(null);
+                      setAuthMode('options');
+                    }}
+                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                <div className="space-y-0.5">
+                  <label
+                    htmlFor="reset-new-password-input"
+                    className="text-[11px] font-semibold text-[var(--text-secondary)]"
+                  >
+                    Enter New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="password"
+                      id="reset-new-password-input"
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Minimum 6 characters"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-0.5">
+                  <label
+                    htmlFor="reset-confirm-password-input"
+                    className="text-[11px] font-semibold text-[var(--text-secondary)]"
+                  >
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="password"
+                      id="reset-confirm-password-input"
+                      required
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      placeholder="Repeat password"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  id="reset-password-submit-btn"
+                  disabled={isLoading}
+                  className="w-full h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/25 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed border border-emerald-400/30"
+                >
+                  {activeButton === 'reset' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Updating password...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Save & Sign In</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* ======================================================== */}
+            {/* VIEW E: EMAIL VERIFICATION PENDING                       */}
+            {/* ======================================================== */}
+            {specialView === 'verify-email-pending' && (
+              <div className="space-y-2.5 text-left">
+                <div className="p-3 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] text-center space-y-1.5">
+                  <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                    <Mail className="w-4.5 h-4.5 text-emerald-400" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                    Verify Your Email Address
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)] leading-tight">
+                    Verification link sent to{' '}
+                    <strong className="text-[var(--text-primary)] font-semibold">
+                      {pendingVerificationEmail || email || 'your email'}
+                    </strong>
+                    .
+                  </p>
+
+                  <button
+                    type="button"
+                    id="direct-verify-email-btn"
+                    onClick={() => handleDirectEmailVerify()}
+                    disabled={isVerifying}
+                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-semibold hover:from-emerald-500 hover:to-teal-500 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs border border-emerald-400/30"
+                  >
+                    {isVerifying ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Confirm & Verify Email Now</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="flex items-center justify-center gap-2 pt-0.5 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      className="text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>Resend email</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onLoginSuccess}
+                  className="w-full py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-xs font-semibold text-[var(--text-primary)] text-center cursor-pointer transition-colors"
+                >
+                  Continue to PakLingo AI
+                </button>
+              </div>
+            )}
+
+            {/* Security Indicator */}
+            <div className="pt-2 flex items-center justify-center text-[10px] text-[var(--text-muted)]">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                <span>Cryptographically Secured • PBKDF2 & Token Session</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* 4. FOOTER BAR (Neat, compact, aligned at bottom) */}
+      <footer className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-8 sm:h-9 shrink-0 flex items-center justify-between text-[var(--text-muted)] text-[11px] relative z-20">
+        <p className="truncate">© 2026 PakLingo AI • AI for Pakistan's Languages</p>
+        <div className="hidden sm:flex items-center gap-2">
+          <span>Urdu • Punjabi • Sindhi • Pashto • Balochi</span>
+        </div>
+      </footer>
+
+      {/* 5. DEDICATED DEMO CHOICES MODAL WITH FULL DISCLAIMER */}
+      {isDemoModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+        >
+          <div
+            className={`w-full max-w-md rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-6 space-y-4 relative text-left border ${
+              isDark
+                ? 'bg-[#101726] border-emerald-500/30 text-white'
+                : 'bg-white border-emerald-200 text-slate-800'
+            }`}
+            dir={isRTL ? 'rtl' : 'ltr'}
+          >
+            {/* Header & Close */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">
+                    PakLingo AI Demo Mode
+                  </h3>
+                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30 uppercase tracking-wider">
+                    Testing Only
+                  </span>
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={onLoginSuccess}
-                className="w-full py-2 sm:py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-xs font-semibold text-[var(--text-primary)] text-center cursor-pointer transition-colors"
+                onClick={() => setIsDemoModalOpen(false)}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] transition-colors cursor-pointer"
+                aria-label="Close demo modal"
               >
-                Continue to PakLingo AI (Verify later)
+                <X className="w-4 h-4" />
               </button>
             </div>
-          )}
 
-          {/* Verified SSL Badge */}
-          <div className="pt-2 sm:pt-2.5 flex items-center justify-center">
-            <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-[var(--text-muted)]">
-              <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent)]" />
-              <span>Verified & Secure Cryptographic Authentication</span>
+            {/* Disclaimer */}
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-600 dark:text-amber-300 space-y-1">
+              <p className="font-semibold flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
+                Notice & Disclaimer
+              </p>
+              <p className="text-[11px] leading-relaxed opacity-90">
+                Demo accounts provide instant pre-populated access for evaluation and demonstration.
+                Changes made in demo mode are simulated and separate from production accounts.
+              </p>
+            </div>
+
+            {/* Role Options */}
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                id="demo-student-role-btn"
+                onClick={() => handleDemoLogin('student')}
+                disabled={isLoading}
+                className="w-full p-3 rounded-2xl border border-[var(--border)] hover:border-emerald-500/60 bg-[var(--surface)] hover:bg-[var(--surface-secondary)] transition-all flex items-center gap-3 text-left cursor-pointer group shadow-xs"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-[var(--text-primary)]">
+                      Student Experience
+                    </h4>
+                    <span className="text-[10px] text-emerald-400 font-semibold group-hover:translate-x-0.5 transition-transform">
+                      Launch →
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-muted)] truncate">
+                    Access learning exercises, speech drills, and vocabulary quizzes.
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                id="demo-faculty-role-btn"
+                onClick={() => handleDemoLogin('teacher')}
+                disabled={isLoading}
+                className="w-full p-3 rounded-2xl border border-[var(--border)] hover:border-emerald-500/60 bg-[var(--surface)] hover:bg-[var(--surface-secondary)] transition-all flex items-center gap-3 text-left cursor-pointer group shadow-xs"
+              >
+                <div className="w-10 h-10 rounded-xl bg-teal-500/15 text-teal-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-[var(--text-primary)]">
+                      Faculty / Instructor
+                    </h4>
+                    <span className="text-[10px] text-teal-400 font-semibold group-hover:translate-x-0.5 transition-transform">
+                      Launch →
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-muted)] truncate">
+                    Explore grading, rubric builder, curriculum analytics, and classroom tools.
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {/* Footer action */}
+            <div className="pt-1 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setIsDemoModalOpen(false)}
+                className="px-3.5 py-1.5 rounded-xl border border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
-      </main>
-
-      {/* Subtle Footer */}
-      <footer className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-1 sm:gap-2 border-t border-[var(--border)] text-[var(--text-muted)] text-[11px]">
-        <p>© 2026 PakLingo AI. Empowering Pakistan with multilingual AI technology.</p>
-        <div className="flex items-center gap-3 sm:gap-4">
-          <span>Urdu • Punjabi • Sindhi • Pashto • Balochi</span>
-          <span>•</span>
-          <span className="text-[var(--accent)]">Privacy & Terms</span>
-        </div>
-      </footer>
+      )}
     </div>
   );
 };

@@ -1,0 +1,78 @@
+/**
+ * Core Type Definitions for PakLingo AI
+ */
+
+export type PageId =
+  | 'home'
+  | 'chat'
+  | 'ai-assistant'
+  | 'translate'
+  | 'translator'
+  | 'documents'
+  | 'ocr-documents'
+  | 'ocr'
+  | 'government'
+  | 'teacher'
+  | 'medical'
+  | 'farmer'
+  | 'legal'
+  | 'fake-news'
+  | 'sign-language'
+  | 'voice-assistant'
+  | 'dashboard'
+  | 'settings'
+  | 'tools'
+  | 'history';
+
+export type LanguageCode =
+  | 'ur'
+  | 'en'
+  | 'roman_ur'
+  | 'roman'
+  | 'pa'
+  | 'sd'
+  | 'ps'
+  | 'bal'
+  | 'skr'
+  | 'hnd'
+  | 'ks'
+  | 'brh';
+
+export interface AccessibilitySettings {
+  highContrast: boolean;
+  simpleMode: boolean;
+  fontSize: 'sm' | 'md' | 'lg' | 'xl';
+  screenReaderMode: boolean;
+  reducedMotion: boolean;
+  voiceFeedback: boolean;
+  speechRate: number;
+  theme: string;
+}
+
+export interface SupportedLanguage {
+  code: LanguageCode;
+  name: string;
+  nativeName: string;
+  script: 'rtl' | 'ltr';
+  region: string;
+  flag?: string;
+  fontFamily?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'assistant' | 'system';
+  text: string;
+  timestamp: string;
+  category?: string;
+  isGrounded?: boolean;
+}
+
+export interface VoiceSettings {
+  enabled: boolean;
+  rate: number;
+  pitch: number;
+  volume: number;
+  selectedVoice?: string;
+  autoSpeak: boolean;
+}

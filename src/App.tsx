@@ -48,12 +48,17 @@ function AppContent() {
     if (typeof window === 'undefined') return false;
     const search = window.location.search;
     const pathname = window.location.pathname;
-    return (
+    if (
       search.includes('token=') ||
       search.includes('verifyToken=') ||
       pathname.includes('verify-email') ||
       pathname.includes('reset-password')
-    );
+    ) {
+      return true;
+    }
+    const hasToken = localStorage.getItem('paklingo_auth_token');
+    const isGuest = sessionStorage.getItem('paklingo_guest_mode');
+    return !hasToken && !isGuest;
   });
 
   // Pages that genuinely require authenticated account context
@@ -70,6 +75,9 @@ function AppContent() {
 
   const handleLoginSuccess = () => {
     setIsAuthModalOpen(false);
+    try {
+      sessionStorage.removeItem('paklingo_guest_mode');
+    } catch {}
     if (intendedPage) {
       setCurrentPage(intendedPage);
       setIntendedPage(null);
@@ -77,6 +85,9 @@ function AppContent() {
   };
 
   const handleCloseAuthModal = () => {
+    try {
+      sessionStorage.setItem('paklingo_guest_mode', 'true');
+    } catch {}
     setIsAuthModalOpen(false);
     setIntendedPage(null);
   };
