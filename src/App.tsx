@@ -4,9 +4,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { PageId, LanguageCode, AccessibilitySettings } from './types';
+import { PageId, LanguageCode, AccessibilitySettings, ChatAttachment } from './types';
 import { Navbar } from './components/Navbar';
 import { ModuleSubNav } from './components/ModuleSubNav';
+import { HomeScrollBackground } from './components/HomeScrollBackground';
 import { Home } from './components/pages/Home';
 import { AIAssistant } from './components/pages/AIAssistant';
 import { GovernmentAssistant } from './components/pages/GovernmentAssistant';
@@ -74,12 +75,17 @@ function AppContent() {
       'sign-language': 'sign-language',
       'history': 'history',
       'dashboard': 'dashboard',
+      'tools': 'tools',
+      'features': 'tools',
+      'all-features': 'tools',
     };
     return map[hash] || 'home';
   };
 
   const [currentPage, setCurrentPage] = useState<PageId>(getPageFromUrl);
   const [initialAssistantPrompt, setInitialAssistantPrompt] = useState<string | undefined>(undefined);
+  const [initialAssistantAttachments, setInitialAssistantAttachments] = useState<ChatAttachment[] | undefined>(undefined);
+  const [initialConversationId, setInitialConversationId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const handleUrlChange = () => {
@@ -176,9 +182,31 @@ function AppContent() {
     setAccessibility((prev) => ({ ...prev, ...settings }));
   };
 
-  const handleStartChatWithPrompt = (prompt: string) => {
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (accessibility.highContrast) {
+      document.documentElement.classList.add('high-contrast-mode');
+    } else {
+      document.documentElement.classList.remove('high-contrast-mode');
+    }
+  }, [accessibility.highContrast]);
+
+  const handleStartChatWithPrompt = (prompt: string, attachments?: ChatAttachment[]) => {
+    setInitialConversationId(undefined);
     setInitialAssistantPrompt(prompt);
+    setInitialAssistantAttachments(attachments);
     setCurrentPage('ai-assistant');
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '#ai-assistant');
+    }
+  };
+
+  const handleOpenConversation = (conversationId: string) => {
+    setInitialConversationId(conversationId);
+    setCurrentPage('ai-assistant');
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '#ai-assistant');
+    }
   };
 
   const handleScrollToSection = (sectionId: string) => {
@@ -216,12 +244,12 @@ function AppContent() {
   const isHome = currentPage === 'home';
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
-      className={`min-h-screen flex flex-col font-sans transition-colors duration-200 bg-[var(--app-bg)] text-[var(--text-primary)] ${fontSizeClass}`}
+    <div
+      className={`relative min-h-dvh w-full max-w-full min-w-0 overflow-x-hidden flex flex-col font-sans transition-colors duration-200 bg-[var(--app-bg)] text-[var(--text-primary)] ${fontSizeClass}`}
     >
+      {/* Global Pakistani Heritage & AI Architectural Background (Behind All Content, pointer-events: none) */}
+      <HomeScrollBackground isRTL={isRTL} isHome={isHome} currentPage={currentPage} />
+
       {/* Universal Sticky Navbar */}
       <Navbar
         currentPage={currentPage}
@@ -231,27 +259,28 @@ function AppContent() {
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
       />
 
-      {/* Demo Mode Notice Banner (Clearly labeled - Testing only) */}
+      {/* Demo Mode Notice Banner (Compact, readable, non-intrusive) */}
       {user && user.isDemo && (
         <div
           id="demo-mode-active-banner"
-          className="bg-amber-500/10 border-b border-amber-500/25 px-4 py-2 text-xs text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-2 shadow-2xs"
+          className="relative z-10 bg-[var(--surface-secondary)]/95 backdrop-blur-md border-b border-[var(--border)] px-4 py-1.5 text-xs text-[var(--text-secondary)] flex flex-wrap items-center justify-center sm:justify-between gap-2 max-w-full"
         >
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-[10px] uppercase tracking-wider bg-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-500/30">
-              🧪 Demo Mode Active
-            </span>
-            <span className="text-[12px]">
-              Logged in as <strong>{user.name}</strong> for simulated testing. No credentials or personal data are stored.
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
+          <div className="max-w-7xl w-full mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="inline-flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-500/30 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                <span>Demo Mode</span>
+              </span>
+              <span className="text-[11px] sm:text-xs text-[var(--text-secondary)] truncate">
+                Signed in as <strong className="text-[var(--text-primary)] font-semibold">{user.name}</strong> for testing.
+              </span>
+            </div>
             <button
               type="button"
               onClick={() => setIsAuthModalOpen(true)}
-              className="text-xs font-semibold text-amber-900 dark:text-amber-100 underline underline-offset-2 hover:opacity-80 cursor-pointer"
+              className="text-[11px] sm:text-xs font-semibold text-[var(--accent-text)] hover:underline underline-offset-2 cursor-pointer shrink-0"
             >
-              Sign in with real account
+              Sign in with real account →
             </button>
           </div>
         </div>
@@ -261,10 +290,10 @@ function AppContent() {
       {user && !user.isDemo && user.provider !== 'google' && !user.emailVerified && !dismissVerifyBanner && user.email && (
         <div
           id="email-verification-banner"
-          className="bg-[var(--surface-secondary)] border-b border-[var(--border)] px-4 py-2.5 text-xs text-[var(--text-primary)] flex flex-wrap items-center justify-between gap-3 transition-colors shadow-xs"
+          className="relative z-10 bg-[var(--surface-secondary)] border-b border-[var(--border)] px-4 py-2.5 text-xs text-[var(--text-primary)] flex flex-wrap items-center justify-between gap-3 transition-colors shadow-xs"
         >
-          <div className="flex items-center gap-2.5 flex-1 min-w-[280px]">
-            <div className="w-6 h-6 rounded-lg bg-[var(--accent)] text-white flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div className="w-6 h-6 rounded-lg bg-[var(--button-primary-bg)] text-[var(--button-primary-text)] flex items-center justify-center shrink-0">
               <Mail className="w-3.5 h-3.5" />
             </div>
             <div className="flex-1 text-[12px] leading-snug">
@@ -309,16 +338,24 @@ function AppContent() {
       )}
 
       {/* Sub-Navigation breadcrumbs when viewing inner specialized sub-tools */}
-      <ModuleSubNav
-        currentPage={currentPage}
-        onSelectPage={handleSelectPage}
-      />
+      <div className="relative z-10 w-full">
+        <ModuleSubNav
+          currentPage={currentPage}
+          onSelectPage={handleSelectPage}
+        />
+      </div>
 
       {/* Main Content Area */}
       <main
         id="main-app-content"
         role="main"
-        className={`flex-1 w-full ${isHome ? '' : 'max-w-7xl mx-auto p-4 sm:p-6 lg:p-8'}`}
+        className={`relative z-10 flex-1 w-full max-w-full min-w-0 flex flex-col ${
+          isHome
+            ? ''
+            : currentPage === 'chat' || currentPage === 'ai-assistant'
+            ? 'max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-2 sm:py-3'
+            : 'max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5'
+        }`}
       >
         {currentPage === 'home' && (
           <Home
@@ -340,6 +377,13 @@ function AppContent() {
             selectedLanguage={selectedLanguage}
             onSelectLanguage={setSelectedLanguage}
             initialPrompt={initialAssistantPrompt}
+            initialAttachments={initialAssistantAttachments}
+            initialConversationId={initialConversationId}
+            onClearInitialConversation={() => setInitialConversationId(undefined)}
+            onClearInitialPrompt={() => {
+              setInitialAssistantPrompt(undefined);
+              setInitialAssistantAttachments(undefined);
+            }}
           />
         )}
 
@@ -353,7 +397,10 @@ function AppContent() {
 
         {(currentPage === 'history' || currentPage === 'dashboard') && (
           isAuthenticated ? (
-            <HistoryPage onSelectPage={handleSelectPage} />
+            <HistoryPage
+              onSelectPage={handleSelectPage}
+              onOpenConversation={handleOpenConversation}
+            />
           ) : (
             <div className="max-w-md mx-auto py-16 px-4 text-center space-y-4">
               <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
@@ -477,7 +524,7 @@ function AppContent() {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 

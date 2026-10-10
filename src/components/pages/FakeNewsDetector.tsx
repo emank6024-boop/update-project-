@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { AudioControlBar } from '../AudioControlBar';
 
 interface FakeNewsDetectorProps {
   selectedLanguage: LanguageCode;
@@ -55,8 +56,8 @@ export const FakeNewsDetector: React.FC<FakeNewsDetectorProps> = ({ selectedLang
       case 'VERIFIED_TRUE':
         return {
           label: t('factCheck.verifiedTrue', 'Verified True'),
-          color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
-          icon: <CheckCircle2 className="w-5 h-5 text-emerald-600" />,
+          color: 'keep-emerald status-success bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
+          icon: <CheckCircle2 className="keep-emerald w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
         };
       case 'FALSE_HOAX':
         return {
@@ -81,7 +82,7 @@ export const FakeNewsDetector: React.FC<FakeNewsDetectorProps> = ({ selectedLang
 
   return (
     <div
-      className="max-w-4xl mx-auto space-y-6 py-4"
+      className="w-full space-y-6 py-4"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <div className="flex items-center gap-3">
@@ -158,6 +159,12 @@ export const FakeNewsDetector: React.FC<FakeNewsDetectorProps> = ({ selectedLang
               </span>
             )}
           </div>
+
+          <AudioControlBar
+            text={result.explanation || result.analysis || result.answer || ''}
+            language={selectedLanguage}
+            label={`${currentLanguage.nativeName} Verification Audio`}
+          />
 
           <div className="space-y-2">
             <h3 className="text-sm font-bold text-[var(--text-primary)]">

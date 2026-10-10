@@ -66,6 +66,17 @@ export interface SupportedLanguage {
   fontFamily?: string;
 }
 
+export interface ChatAttachment {
+  id: string;
+  type: 'image' | 'file';
+  name: string;
+  mimeType: string;
+  size: number;
+  dataBase64?: string;
+  previewUrl?: string;
+  textContent?: string;
+}
+
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant' | 'system';
@@ -73,13 +84,32 @@ export interface ChatMessage {
   timestamp: string;
   category?: string;
   isGrounded?: boolean;
+  attachments?: ChatAttachment[];
+  replyToUserMsgId?: string;
+  conversationId?: string;
+  language?: LanguageCode;
+}
+
+export interface ChatConversation {
+  id: string;
+  title: string;
+  subtitle?: string;
+  language: LanguageCode;
+  category?: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ChatMessage[];
 }
 
 export interface VoiceSettings {
-  enabled: boolean;
+  enabled?: boolean;
   rate: number;
   pitch: number;
   volume: number;
   selectedVoice?: string;
-  autoSpeak: boolean;
+  selectedVoiceURI?: string;
+  autoSpeak?: boolean;
+  autoPlay?: boolean;
 }
+
+

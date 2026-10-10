@@ -57,13 +57,15 @@ export const ModuleSubNav: React.FC<ModuleSubNavProps> = ({ currentPage, onSelec
 
   return (
     <div
-      className="w-full bg-[var(--surface)] border-b border-[var(--border)] overflow-x-auto no-scrollbar py-2 px-4 shadow-2xs"
+      id="module-subnav"
+      className="w-full max-w-full shrink-0 bg-[var(--surface)] border-b border-[var(--border)] overflow-hidden px-3 sm:px-6 lg:px-8 shadow-2xs"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
-      <div className="max-w-7xl mx-auto flex items-center gap-2">
+      <div className="max-w-7xl w-full min-w-0 mx-auto h-11 flex items-center gap-2">
         <button
+          type="button"
           onClick={() => onSelectPage('home')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] transition-colors shrink-0 cursor-pointer"
+          className="h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] transition-colors shrink-0 cursor-pointer"
         >
           <Home className="w-3.5 h-3.5" />
           <span>{t('nav.home', 'Home')}</span>
@@ -73,7 +75,7 @@ export const ModuleSubNav: React.FC<ModuleSubNavProps> = ({ currentPage, onSelec
           {isRTL ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         </span>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
           {MODULE_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -86,9 +88,9 @@ export const ModuleSubNav: React.FC<ModuleSubNavProps> = ({ currentPage, onSelec
               <button
                 key={item.id}
                 onClick={() => onSelectPage(item.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 cursor-pointer ${
+                className={`h-8 flex items-center gap-1.5 px-3 rounded-xl text-xs font-medium transition-colors shrink-0 cursor-pointer ${
                   isActive
-                    ? 'bg-emerald-600 text-white shadow-xs font-semibold'
+                    ? 'bg-[var(--button-primary-bg)] text-[var(--button-primary-text)] shadow-xs font-semibold'
                     : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:bg-[var(--border)] hover:text-[var(--text-primary)]'
                 }`}
               >

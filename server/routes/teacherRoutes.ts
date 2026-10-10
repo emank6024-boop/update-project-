@@ -1,15 +1,29 @@
 import { Router, Request, Response } from 'express';
-import { getGemini, callWithCandidateModels } from '../geminiService.js';
-import { getGlobalLanguageDirective } from '../languageDirectives.js';
+import {
+  getGemini,
+  callWithCandidateModels,
+  getOrderedCandidateModels,
+  markWorkingModel,
+  markModelRateLimited,
+  isQuotaExhaustedError,
+  getFastModelConfig,
+  ServerLRUCache,
+  deduplicateRequest,
+} from '../geminiService.js';
+import { getGlobalLanguageDirective, getLanguageName } from '../languageDirectives.js';
 
 export const teacherRouter = Router();
+
+const teacherTextCache = new ServerLRUCache<string>(300, 30 * 60 * 1000);
+const teacherJsonCache = new ServerLRUCache<any>(200, 30 * 60 * 1000);
 
 // Helper for Educational Language Prompting
 export function getEducationLanguageInstruction(lang?: string): string {
   const baseDirective = getGlobalLanguageDirective(lang || 'ur');
+  const langName = getLanguageName(lang || 'ur');
   return `${baseDirective}
 ADDITIONAL EDUCATIONAL INSTRUCTION:
-Provide pedagogical, structured explanations with key academic/technical terminology included in parentheses where helpful for Pakistani board/curriculum students (FBISE, Punjab, Sindh, KPK, Balochistan). Ensure the entire explanation is given in the requested language.`;
+Provide pedagogical, structured explanations in ${langName} with key academic/technical terminology included in parentheses where helpful for Pakistani board/curriculum students (FBISE, Punjab, Sindh, KPK, Balochistan). Ensure the entire lesson is delivered in ${langName}.`;
 }
 
 // Subject Visual Meta and Domain Boundaries for Teacher
@@ -95,103 +109,181 @@ export function getSubjectVisual(subject: string): { icon: string; name: string;
   };
 }
 
-// Subject Relevance Validation
-export function isResponseRelevantToSubject(text: string, subject: string, question: string): { isRelevant: boolean; reason?: string } {
-  if (!text || text.trim().length === 0) return { isRelevant: false, reason: 'Empty response' };
-
-  const s = (subject || '').toLowerCase();
-  const lower = text.toLowerCase();
-  const qLower = (question || '').toLowerCase();
-
-  // Allow interdisciplinary questions only if student specifically asked for comparison
-  if (qLower.includes('compare') || qLower.includes('relation') || qLower.includes('difference between')) {
-    return { isRelevant: true };
+// Helper to stream or return JSON for text-based teacher endpoints
+async function handleTeacherTextGeneration(
+  req: Request,
+  res: Response,
+  options: {
+    actionName: string;
+    cacheKey: string;
+    systemInstruction: string;
+    prompt: string;
+    responseField: string;
+    stream?: boolean;
   }
+) {
+  const { actionName, cacheKey, systemInstruction, prompt, responseField, stream = false } = options;
 
-  // 1. Computer Science: Must NOT be pure Mathematics or pure Biology or pure Chemistry
-  if (s.includes('computer') || s.includes('cs')) {
-    const csKeywords = ['computer', 'program', 'code', 'software', 'hardware', 'oop', 'object', 'class', 'method', 'variable', 'algorithm', 'loop', 'data', 'function', 'cpu', 'memory', 'binary', 'byte', 'syntax', 'logic'];
-    const csHits = csKeywords.filter((k) => lower.includes(k)).length;
-
-    const mathKeywords = [
-      'quadratic equation', 'quadratic formula', 'pythagoras theorem',
-      'hypotenuse', 'trigonometr', 'sin(', 'cos(', 'tan(', 'right triangle',
-      'determinant of matrix', 'integration by parts', 'derivative of',
-      'differentiation with respect to', 'polynomial expression'
-    ];
-    const mathHits = mathKeywords.filter((k) => lower.includes(k)).length;
-    if (mathHits >= 1 && csHits < 2) {
-      return { isRelevant: false, reason: 'Response contained Mathematics topics instead of Computer Science.' };
+  const cached = teacherTextCache.get(cacheKey);
+  if (cached) {
+    if (stream) {
+      res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      res.write(
+        `data: ${JSON.stringify({
+          chunk: cached,
+          done: true,
+          [responseField]: cached,
+          answer: cached,
+          explanation: cached,
+        })}\n\n`
+      );
+      return res.end();
     }
-
-    const bioKeywords = ['photosynthesis', 'chloroplast', 'mitochondria', 'meiosis', 'mitosis', 'red blood cells', 'digestive system'];
-    const bioHits = bioKeywords.filter((k) => lower.includes(k)).length;
-    if (bioHits >= 1 && csHits < 2) {
-      return { isRelevant: false, reason: 'Response wandered into Biology instead of Computer Science.' };
-    }
-
-    const chemKeywords = ['covalent bond', 'ionic bond', 'periodic table', 'molarity', 'titration', 'avogadro number'];
-    const chemHits = chemKeywords.filter((k) => lower.includes(k)).length;
-    if (chemHits >= 1 && csHits < 2) {
-      return { isRelevant: false, reason: 'Response wandered into Chemistry instead of Computer Science.' };
-    }
-  }
-
-  // 2. Mathematics: Must NOT be programming code or cell organelles
-  if (s.includes('math')) {
-    const mathKeywords = ['math', 'equation', 'formula', 'algebra', 'geometry', 'square root', 'quadratic', 'solve', 'calculate', 'matrix', 'determinant', 'triangle', 'angle', 'pythagoras', 'theorem', 'ratio', 'fraction', 'derivative', 'integral'];
-    const mathHits = mathKeywords.filter((k) => lower.includes(k)).length;
-
-    const csKeywords = ['class student:', 'public static void main', 'def __init__', '#include <iostream>', 'console.log', 'object-oriented programming', 'oop inheritance'];
-    const csHits = csKeywords.filter((k) => lower.includes(k)).length;
-    if (csHits >= 1 && mathHits < 2) {
-      return { isRelevant: false, reason: 'Response contained Computer Science code instead of Mathematics.' };
-    }
-
-    const bioKeywords = ['photosynthesis', 'mitochondria', 'digestive tract', 'chloroplast', 'meiosis'];
-    const bioHits = bioKeywords.filter((k) => lower.includes(k)).length;
-    if (bioHits >= 1 && mathHits < 2) {
-      return { isRelevant: false, reason: 'Response discussed Biology instead of Mathematics.' };
-    }
-  }
-
-  // 3. Physics: Must NOT be digestive system or photosynthesis or CS code
-  if (s.includes('physic')) {
-    const bioKeywords = ['photosynthesis', 'cell wall', 'mitochondria', 'digestive system'];
-    if (bioKeywords.filter((k) => lower.includes(k)).length >= 2 && !lower.includes('force') && !lower.includes('energy') && !lower.includes('wave')) {
-      return { isRelevant: false, reason: 'Response discussed Biology instead of Physics.' };
-    }
-    const csKeywords = ['class student:', 'public static void', 'def __init__', 'sql database'];
-    if (csKeywords.some((k) => lower.includes(k))) {
-      return { isRelevant: false, reason: 'Response contained Computer Science code instead of Physics.' };
-    }
-  }
-
-  // 4. Biology: Must NOT be pure programming or pure calculus
-  if (s.includes('bio')) {
-    const csKeywords = ['binary search algorithm', 'oop inheritance polymorphism', 'sql database', 'class student:', 'def __init__'];
-    if (csKeywords.some((k) => lower.includes(k)) && !lower.includes('cell') && !lower.includes('life')) {
-      return { isRelevant: false, reason: 'Response discussed Computer Science instead of Biology.' };
-    }
-    const mathKeywords = ['quadratic formula', 'integration by parts', 'pythagoras theorem'];
-    if (mathKeywords.some((k) => lower.includes(k)) && !lower.includes('cell')) {
-      return { isRelevant: false, reason: 'Response discussed Mathematics instead of Biology.' };
-    }
-  }
-
-  return { isRelevant: true };
-}
-
-// 1. AI Teacher: Ask Teacher (any educational question)
-teacherRouter.post('/api/teacher/ask', async (req: Request, res: Response) => {
-  const { question, subject = 'General Science', grade = 'Matric (Class 9-10)', difficulty = 'Beginner', language = 'en' } = req.body;
-  if (!question || typeof question !== 'string') {
-    return res.status(400).json({ error: 'Question is required.' });
+    return res.json({
+      [responseField]: cached,
+      answer: cached,
+      explanation: cached,
+      solution: cached,
+      cached: true,
+    });
   }
 
   const ai = getGemini();
   if (!ai) {
     return res.status(503).json({ error: 'AI_UNAVAILABLE', message: 'Gemini API not configured.' });
+  }
+
+  if (stream) {
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    const candidateModels = getOrderedCandidateModels();
+    let streamedSuccessfully = false;
+    let accumulatedText = '';
+
+    for (const modelName of candidateModels) {
+      try {
+        const streamResp = await ai.models.generateContentStream({
+          model: modelName,
+          contents: prompt,
+          config: getFastModelConfig(modelName, {
+            systemInstruction,
+            temperature: 0.35,
+          }),
+        });
+
+        for await (const chunk of streamResp) {
+          const chunkText =
+            chunk.text ||
+            chunk?.candidates?.[0]?.content?.parts
+              ?.map((p: any) => p.text)
+              .filter(Boolean)
+              .join('') ||
+            '';
+          if (chunkText) {
+            streamedSuccessfully = true;
+            accumulatedText += chunkText;
+            res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
+          }
+        }
+
+        if (streamedSuccessfully && accumulatedText.trim()) {
+          markWorkingModel(modelName);
+          teacherTextCache.set(cacheKey, accumulatedText);
+          res.write(
+            `data: ${JSON.stringify({
+              done: true,
+              [responseField]: accumulatedText,
+              answer: accumulatedText,
+              explanation: accumulatedText,
+            })}\n\n`
+          );
+          return res.end();
+        }
+      } catch (err: any) {
+        if (isQuotaExhaustedError(err)) {
+          markModelRateLimited(modelName);
+        }
+        if (streamedSuccessfully && accumulatedText.trim()) {
+          res.write(
+            `data: ${JSON.stringify({
+              done: true,
+              [responseField]: accumulatedText,
+              answer: accumulatedText,
+              explanation: accumulatedText,
+            })}\n\n`
+          );
+          return res.end();
+        }
+      }
+    }
+
+    res.write(
+      `data: ${JSON.stringify({
+        error: 'Unable to generate lesson right now. Please try again.',
+        done: true,
+      })}\n\n`
+    );
+    return res.end();
+  }
+
+  try {
+    const generatedText = await deduplicateRequest(`inflight_${cacheKey}`, async () => {
+      const response = await callWithCandidateModels(
+        actionName,
+        (modelName) =>
+          ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: getFastModelConfig(modelName, {
+              systemInstruction,
+              temperature: 0.35,
+            }),
+          }),
+        16000
+      );
+      return (
+        response.text ||
+        response?.candidates?.[0]?.content?.parts
+          ?.map((p: any) => p.text)
+          .filter(Boolean)
+          .join('\n') ||
+        ''
+      );
+    });
+
+    if (generatedText) {
+      teacherTextCache.set(cacheKey, generatedText);
+      return res.json({
+        [responseField]: generatedText,
+        answer: generatedText,
+        explanation: generatedText,
+        solution: generatedText,
+      });
+    }
+    return res.status(503).json({ error: 'Unable to generate lesson content right now.' });
+  } catch (err: any) {
+    console.error(`${actionName} Error:`, err?.message || err);
+    return res.status(503).json({ error: 'Unable to generate lesson content right now.' });
+  }
+}
+
+// 1. AI Teacher: Ask Teacher / Interactive Lesson (any educational question or topic)
+teacherRouter.post('/api/teacher/ask', async (req: Request, res: Response) => {
+  const rawQuestion = req.body.question || req.body.query || req.body.topic || '';
+  const question = typeof rawQuestion === 'string' ? rawQuestion.trim() : '';
+  const subject = req.body.subject || 'General Science';
+  const grade = req.body.grade || req.body.gradeLevel || req.body.targetClass || 'Matric (Class 9-10)';
+  const language = req.body.language || 'ur';
+  const stream = Boolean(req.body.stream);
+
+  if (!question) {
+    return res.status(400).json({ error: 'Question or topic is required.' });
   }
 
   const visualInfo = getSubjectVisual(subject);
@@ -199,201 +291,142 @@ teacherRouter.post('/api/teacher/ask', async (req: Request, res: Response) => {
   const systemInstruction = `You are the PakLingo AI Teacher, an elite academic educator for Pakistani students following FBISE and Provincial Board syllabi (Punjab, Sindh, KPK, Balochistan).
 
 CRITICAL CONSTRAINTS:
-1. STRICT SUBJECT BOUNDARY (ABSOLUTE CEILING & WALLS):
-   - You are teaching: "${subject}".
-   - You MUST generate content STRICTLY AND EXCLUSIVELY for "${subject}".
-   - Under NO circumstances may you introduce concepts, examples, or questions from other subjects (e.g. if the subject is Computer Science, do NOT explain mathematics, chemistry, biology, or physics).
-   - If the student asks a question like "What is OOP?", teach Object-Oriented Programming purely within Computer Science.
+1. STRICT SUBJECT FOCUS:
+   - You are teaching: "${subject}" at Academic Level: "${grade}".
+   - Keep examples, definitions, and explanations focused on "${subject}".
 
-2. ACADEMIC LEVEL TARGETING:
-   - Target Grade: "${grade}".
-   - For Matric (Class 9-10): Use simple language, syllabus-level concepts, easy examples, and board exam-oriented explanations.
-   - For Intermediate (Class 11-12 / FSc): Provide detailed concepts, board-level depth, and technical terminology.
-   - For University / O/A Levels: Provide technical rigor without excessive jargon.
+2. STRUCTURED VISUAL LESSON LAYOUT:
+   Format the lesson to be clear, visual, well-organized, and easy to read and listen to using these Markdown section headings:
+   - \`### 📚 Concept Overview\` — Direct, crystal-clear definition and foundational explanation
+   - \`### 💡 Simple Explanation\` — Explain the concept in plain, everyday words
+   - \`### 🧠 Step-by-Step Breakdown\` — Numbered steps, formulas, or core mechanics
+   - \`### ${visualInfo.icon} Real-Life Pakistani Example\` — Relatable example for students
+   - \`### 🎯 Key Takeaways & Exam Tips\` — 3 to 4 concise bullet points for board exams (FBISE / BISE)
+   ${visualInfo.isCS ? '- For programming topics, include a clean fenced code block with brief line explanations.' : ''}
 
-3. STRUCTURED VISUAL LESSON LAYOUT:
-   Format the lesson to be visual, highly organized, and easy to scan using these structured section markers where appropriate:
-   - 📚 Concept: Direct, crystal-clear definition and foundational explanation
-   - 💡 Easy Idea: Explain the concept in very simple, plain everyday words
-   - 🧠 How It Works: Step-by-step breakdown or mechanics
-   - ${visualInfo.icon} Real-Life Example: Relatable example (use Pakistani context where suitable)
-   - 🎯 Key Points: 2 to 4 bullet points summarizing essential takeaways
-   - 📝 Exam Tip: Useful exam-focused advice for board exams (FBISE / BISE)
-   - ⚠️ Common Mistake: A frequent misunderstanding students make and how to avoid it
-   ${visualInfo.isCS ? '- Code Formatting: For programming questions, ALWAYS provide clean, indented code inside a fenced code block with language specified (e.g. ```python or ```cpp), and clearly explain what each part of the code does underneath.' : ''}
-
-4. CLEAN FORMATTING:
-   - Use standard Markdown headings (###) and bullet lists (* or -).
-   - NEVER output raw escaped characters or chaotic punctuation.
+3. CLEAN FORMATTING:
+   - Use standard Markdown headings (\`###\`), bold key terms (\`**term**\`), and clean bullet/numbered lists.
 ${getEducationLanguageInstruction(language)}`;
 
   const prompt = `SUBJECT: ${subject}
 ACADEMIC LEVEL: ${grade}
-STUDENT QUESTION: "${question}"
+TOPIC / QUESTION: "${question}"
 
-Teach this concept strictly within ${subject} at the ${grade} level following the structured visual lesson layout.`;
+Teach this lesson clearly in ${getLanguageName(language)}.`;
 
-  try {
-    const response = await callWithCandidateModels(
-      'Teacher Ask Question',
-      (modelName) =>
-        ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: { systemInstruction },
-        }),
-      22000
-    );
-    let answer = response.text || '';
+  const cacheKey = `teacher_ask_${language}_${subject}_${grade}_${question.toLowerCase()}`;
 
-    // Validate subject relevance before sending to client
-    const validation = isResponseRelevantToSubject(answer, subject, question);
-    if (!validation.isRelevant) {
-      console.warn(`AI Teacher response failed subject validation: ${validation.reason}. Regenerating with strict correction...`);
-      const retryPrompt = `CORRECTION REQUIRED:
-The previous answer was rejected because it wandered outside of SUBJECT: "${subject}".
-You MUST generate an explanation STRICTLY for SUBJECT: "${subject}" at ACADEMIC LEVEL: "${grade}".
-STUDENT QUESTION: "${question}"
-Do NOT mention or introduce any other subject.`;
-
-      const retryResponse = await callWithCandidateModels(
-        'Teacher Ask Question Retry',
-        (modelName) =>
-          ai.models.generateContent({
-            model: modelName,
-            contents: retryPrompt,
-            config: { systemInstruction },
-          }),
-        22000
-      );
-      if (retryResponse.text) {
-        answer = retryResponse.text;
-      }
-    }
-
-    if (answer) {
-      return res.json({ answer });
-    }
-    return res.status(503).json({ error: 'Unable to answer question right now.' });
-  } catch (err: any) {
-    console.error('Teacher Ask Error:', err?.message || err);
-    return res.status(503).json({ error: 'Unable to answer question right now.' });
-  }
+  return handleTeacherTextGeneration(req, res, {
+    actionName: 'Teacher Ask Question',
+    cacheKey,
+    systemInstruction,
+    prompt,
+    responseField: 'answer',
+    stream,
+  });
 });
 
 // 2. AI Teacher: Topic explanation endpoint
 teacherRouter.post('/api/teacher/explain', async (req: Request, res: Response) => {
-  const { subject, grade, topic, difficulty = 'Intermediate', language = 'en' } = req.body;
-  if (!topic || typeof topic !== 'string') {
+  const rawTopic = req.body.topic || req.body.question || req.body.query || '';
+  const topic = typeof rawTopic === 'string' ? rawTopic.trim() : '';
+  const subject = req.body.subject || 'General Science';
+  const grade = req.body.grade || req.body.gradeLevel || 'Matric (Class 9-10)';
+  const difficulty = req.body.difficulty || 'Intermediate';
+  const language = req.body.language || 'ur';
+  const stream = Boolean(req.body.stream);
+
+  if (!topic) {
     return res.status(400).json({ error: 'Topic is required.' });
   }
 
-  const ai = getGemini();
-  if (!ai) {
-    return res.status(503).json({ error: 'AI_UNAVAILABLE', message: 'Gemini API not configured.' });
-  }
-
   const systemInstruction = `You are the PakLingo AI Teacher for Pakistani students.
-Explain the requested concept in an encouraging, engaging, and pedagogically sound manner tailored to the FBISE and provincial Pakistani curriculum standards (Matric, FSc, Primary, Middle, O/A Levels).
-Structure your explanation with:
-1. Fundamental Concept & Core Intuition (بنیادی تصور)
-2. Real-Life Contextual Example (relatable Pakistani analogies: sports/cricket, daily life, local industries, agriculture)
-3. Key Step-by-Step Problem-Solving Framework / Rules / Formulas
-4. Common Board Exam Pitfalls to Avoid
-5. Quick Review Checklist
+Explain the requested topic in an encouraging, clear, and pedagogically structured manner tailored to Pakistani curriculum standards (Matric, FSc, Middle, O/A Levels).
+Structure your lesson with:
+- \`### 📚 Fundamental Concept\`
+- \`### 💡 Real-Life Example\`
+- \`### 📝 Key Rules, Formulas & Steps\`
+- \`### ⚠️ Common Board Exam Mistakes to Avoid\`
+- \`### ✅ Quick Revision Checklist\`
 
 ${getEducationLanguageInstruction(language)}`;
 
-  const prompt = `Subject: ${subject || 'General'}\nGrade Level: ${grade || 'Matric'}\nDifficulty: ${difficulty}\nTopic: ${topic}`;
+  const prompt = `Subject: ${subject}\nGrade Level: ${grade}\nDifficulty: ${difficulty}\nTopic: ${topic}`;
+  const cacheKey = `teacher_explain_${language}_${subject}_${grade}_${difficulty}_${topic.toLowerCase()}`;
 
-  try {
-    const response = await callWithCandidateModels(
-      'Teacher Explanation',
-      (modelName) =>
-        ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: { systemInstruction },
-        }),
-      22000
-    );
-    const explanation = response.text || '';
-    if (explanation) {
-      return res.json({ explanation });
-    }
-    return res.status(503).json({ error: 'Unable to generate explanation right now.' });
-  } catch (err: any) {
-    console.error('Teacher Explain Error:', err?.message || err);
-    return res.status(503).json({ error: 'Unable to generate explanation right now.' });
-  }
+  return handleTeacherTextGeneration(req, res, {
+    actionName: 'Teacher Explanation',
+    cacheKey,
+    systemInstruction,
+    prompt,
+    responseField: 'explanation',
+    stream,
+  });
 });
 
 // 3. AI Teacher: Summarize text / Chapter Notes
 teacherRouter.post('/api/teacher/summarize', async (req: Request, res: Response) => {
-  const { text, subject, grade, language = 'en', targetLanguage } = req.body;
-  if (!text || typeof text !== 'string') {
-    return res.status(400).json({ error: 'Text to summarize is required.' });
+  const rawText = req.body.text || req.body.topic || req.body.query || '';
+  const text = typeof rawText === 'string' ? rawText.trim() : '';
+  const subject = req.body.subject || 'General Science';
+  const grade = req.body.grade || req.body.gradeLevel || 'Matric';
+  const language = req.body.targetLanguage || req.body.language || 'ur';
+  const stream = Boolean(req.body.stream);
+
+  if (!text) {
+    return res.status(400).json({ error: 'Text or topic to summarize is required.' });
   }
 
-  const ai = getGemini();
-  if (!ai) {
-    return res.status(503).json({ error: 'AI_UNAVAILABLE', message: 'Gemini API not configured.' });
-  }
-
-  const effectiveLang = targetLanguage || language;
   const systemInstruction = `You are the PakLingo Study Notes Summarizer.
-Your goal is to summarize the provided educational text into clear, simple, high-yield bullet points.
+Summarize the provided educational topic or text into clear, high-yield study notes and bullet points.
 Highlight core definitions, key facts, essential formulas, and exam takeaways.
-If the student asks for Urdu or English translation, provide the summary in the requested target language cleanly.
-${getEducationLanguageInstruction(effectiveLang)}`;
+${getEducationLanguageInstruction(language)}`;
 
-  const prompt = `Subject: ${subject || 'General'}\nGrade Level: ${grade || 'Matric'}\n\nOriginal Text to Summarize:\n"""\n${text}\n"""\n\nSummarize into simple points.`;
+  const prompt = `Subject: ${subject}\nGrade Level: ${grade}\n\nTopic / Text to Summarize:\n"""\n${text}\n"""\n\nProvide structured study notes and summary points.`;
+  const cacheKey = `teacher_sum_${language}_${subject}_${grade}_${text.slice(0, 200).toLowerCase()}`;
 
-  try {
-    const response = await callWithCandidateModels(
-      'Teacher Summarize',
-      (modelName) =>
-        ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: { systemInstruction },
-        }),
-      22000
-    );
-    const summary = response.text || '';
-    if (summary) {
-      return res.json({ summary });
-    }
-    return res.status(503).json({ error: 'Unable to summarize text right now.' });
-  } catch (err: any) {
-    console.error('Teacher Summarize Error:', err?.message || err);
-    return res.status(503).json({ error: 'Unable to summarize text right now.' });
-  }
+  return handleTeacherTextGeneration(req, res, {
+    actionName: 'Teacher Summarize',
+    cacheKey,
+    systemInstruction,
+    prompt,
+    responseField: 'summary',
+    stream,
+  });
 });
 
 // 4. AI Teacher: Generate Quiz
 teacherRouter.post('/api/teacher/quiz', async (req: Request, res: Response) => {
-  const { subject = 'General Science', grade = 'Matric (Class 9-10)', topic, numQuestions = 4, difficulty = 'Intermediate', language = 'en' } = req.body;
-  const effectiveTopic = (topic && typeof topic === 'string' && topic.trim()) ? topic.trim() : subject;
+  const {
+    subject = 'General Science',
+    grade = 'Matric (Class 9-10)',
+    gradeLevel,
+    topic,
+    query,
+    numQuestions = 4,
+    language = 'ur',
+  } = req.body;
+  const effectiveGrade = gradeLevel || grade;
+  const rawTopic = topic || query || subject;
+  const effectiveTopic = typeof rawTopic === 'string' && rawTopic.trim() ? rawTopic.trim() : subject;
 
   const ai = getGemini();
   if (!ai) {
     return res.status(503).json({ error: 'AI_UNAVAILABLE', message: 'Gemini API not configured.' });
   }
 
-  const count = Math.min(Math.max(parseInt(numQuestions, 10) || 4, 2), 10);
-  const visualInfo = getSubjectVisual(subject);
+  const count = Math.min(Math.max(parseInt(String(numQuestions), 10) || 4, 1), 8);
+  const cacheKey = `teacher_quiz_${language}_${subject}_${effectiveGrade}_${count}_${effectiveTopic.toLowerCase()}`;
 
-  const systemInstruction = `You are an expert examiner for Pakistani boards (FBISE, Punjab, Sindh, KPK, Balochistan) specializing in ${subject}.
+  const cached = teacherJsonCache.get(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
 
-CRITICAL SUBJECT RULE:
-All questions MUST be strictly, 100% within the chosen SUBJECT: "${subject}" at ACADEMIC LEVEL: "${grade}".
-Under NO circumstance generate questions from unrelated subjects (e.g. if subject is Computer Science, do NOT create questions about biology, chemistry, physics, or history).
-
-Generate an interactive multiple choice practice quiz of exactly ${count} questions on "${effectiveTopic}".
-Each question MUST have exactly 4 distinct options and a correctIndex (0, 1, 2, or 3).
-Include a clear, concise explanation explaining why the correct answer is right without raw markdown symbols.
-Output strictly valid JSON with this exact schema:
+  const systemInstruction = `You are an expert examiner for Pakistani education boards (FBISE, Punjab, Sindh, KPK, Balochistan) specializing in ${subject}.
+Generate an interactive multiple-choice practice quiz of ${count} question(s) on "${effectiveTopic}" for ${effectiveGrade}.
+Each question MUST have 4 distinct options and a correctIndex (0, 1, 2, or 3), plus a brief explanation.
+Output strictly valid JSON with this schema:
 {
   "quizzes": [
     {
@@ -408,43 +441,57 @@ Output strictly valid JSON with this exact schema:
 ${getEducationLanguageInstruction(language)}`;
 
   const prompt = `SUBJECT: ${subject}
-ACADEMIC LEVEL: ${grade}
+ACADEMIC LEVEL: ${effectiveGrade}
 TOPIC: "${effectiveTopic}"
 NUMBER OF QUESTIONS: ${count}
+LANGUAGE: ${getLanguageName(language)}
 
-Generate multiple choice questions strictly for ${subject}.`;
+Generate ${count} multiple-choice question(s) in ${getLanguageName(language)}.`;
 
   try {
-    const response = await callWithCandidateModels(
-      'Teacher Generate Quiz',
-      (modelName) =>
-        ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: {
-            systemInstruction,
-            responseMimeType: 'application/json',
-          },
-        }),
-      25000
-    );
+    const payload = await deduplicateRequest(`inflight_${cacheKey}`, async () => {
+      const response = await callWithCandidateModels(
+        'Teacher Generate Quiz',
+        (modelName) =>
+          ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: getFastModelConfig(modelName, {
+              systemInstruction,
+              responseMimeType: 'application/json',
+              temperature: 0.3,
+            }),
+          }),
+        16000
+      );
 
-    const rawText = response.text || '';
-    let parsed: any = null;
-    try {
-      parsed = JSON.parse(rawText);
-    } catch {
-      const match = rawText.match(/\{[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(match[0]);
+      const rawText = response.text || '';
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(rawText);
+      } catch {
+        const match = rawText.match(/\{[\s\S]*\}/);
+        if (match) {
+          parsed = JSON.parse(match[0]);
+        }
       }
-    }
 
-    if (parsed && Array.isArray(parsed.quizzes) && parsed.quizzes.length > 0) {
-      return res.json({ quizzes: parsed.quizzes, questions: parsed.quizzes });
-    }
+      if (parsed && Array.isArray(parsed.quizzes) && parsed.quizzes.length > 0) {
+        const first = parsed.quizzes[0];
+        return {
+          quizzes: parsed.quizzes,
+          questions: parsed.quizzes,
+          question: first.question,
+          options: first.options,
+          correctIndex: first.correctIndex ?? 0,
+          explanation: first.explanation || '',
+        };
+      }
+      throw new Error('Invalid quiz JSON structure');
+    });
 
-    return res.status(503).json({ error: 'Unable to parse generated quiz. Please retry.' });
+    teacherJsonCache.set(cacheKey, payload);
+    return res.json(payload);
   } catch (err: any) {
     console.error('Teacher Quiz Error:', err?.message || err);
     return res.status(503).json({ error: 'Unable to generate quiz right now.' });
@@ -453,8 +500,20 @@ Generate multiple choice questions strictly for ${subject}.`;
 
 // 5. AI Teacher: Flashcards Generator
 teacherRouter.post('/api/teacher/flashcards', async (req: Request, res: Response) => {
-  const { topic, sourceText, subject = 'General Science', grade = 'Matric (Class 9-10)', numCards = 5, count: rawCount, language = 'en' } = req.body;
-  const effectiveTopic = (topic && typeof topic === 'string' && topic.trim()) ? topic.trim() : subject;
+  const {
+    topic,
+    query,
+    sourceText,
+    subject = 'General Science',
+    grade = 'Matric (Class 9-10)',
+    gradeLevel,
+    numCards = 5,
+    count: rawCount,
+    language = 'ur',
+  } = req.body;
+  const effectiveGrade = gradeLevel || grade;
+  const rawTopic = topic || query || subject;
+  const effectiveTopic = typeof rawTopic === 'string' && rawTopic.trim() ? rawTopic.trim() : subject;
 
   const ai = getGemini();
   if (!ai) {
@@ -462,21 +521,22 @@ teacherRouter.post('/api/teacher/flashcards', async (req: Request, res: Response
   }
 
   const requestedCount = rawCount || numCards;
-  const count = Math.min(Math.max(parseInt(requestedCount, 10) || 5, 3), 10);
+  const count = Math.min(Math.max(parseInt(String(requestedCount), 10) || 5, 3), 8);
+  const cacheKey = `teacher_cards_${language}_${subject}_${effectiveGrade}_${count}_${effectiveTopic.toLowerCase()}`;
+
+  const cached = teacherJsonCache.get(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
 
   const systemInstruction = `You are the PakLingo Flashcard Maker for Pakistani students specializing in ${subject}.
-
-CRITICAL SUBJECT RULE:
-All flashcards MUST be strictly, 100% within the chosen SUBJECT: "${subject}" at ACADEMIC LEVEL: "${grade}".
-Never generate flashcards from unrelated subjects.
-
-Generate ${count} high-yield revision flashcards on "${effectiveTopic}".
+Generate ${count} high-yield revision flashcards on "${effectiveTopic}" for ${effectiveGrade}.
 Each flashcard has:
-- front: Key term, formula, or question strictly in ${subject}
-- back: Concise, clear definition, formula, or answer
-- notes: Optional memory mnemonic, board exam tip, or practical example
+- front: Key term, formula, or question in ${getLanguageName(language)}
+- back: Concise, clear definition, formula, or answer in ${getLanguageName(language)}
+- notes: Short exam tip or practical example in ${getLanguageName(language)}
 - category: "${subject}"
-Output strictly valid JSON with this exact schema:
+Output strictly valid JSON:
 {
   "flashcards": [
     {
@@ -490,43 +550,46 @@ Output strictly valid JSON with this exact schema:
 ${getEducationLanguageInstruction(language)}`;
 
   const prompt = `SUBJECT: ${subject}
-ACADEMIC LEVEL: ${grade}
+ACADEMIC LEVEL: ${effectiveGrade}
 TOPIC: "${effectiveTopic}"
-${sourceText ? `Provided Text:\n"""\n${sourceText}\n"""\n` : ''}Number of Flashcards: ${count}
-
-Generate flashcards strictly for ${subject}.`;
+${sourceText ? `Provided Text:\n"""\n${sourceText}\n"""\n` : ''}Number of Flashcards: ${count}`;
 
   try {
-    const response = await callWithCandidateModels(
-      'Teacher Generate Flashcards',
-      (modelName) =>
-        ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: {
-            systemInstruction,
-            responseMimeType: 'application/json',
-          },
-        }),
-      25000
-    );
+    const payload = await deduplicateRequest(`inflight_${cacheKey}`, async () => {
+      const response = await callWithCandidateModels(
+        'Teacher Generate Flashcards',
+        (modelName) =>
+          ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: getFastModelConfig(modelName, {
+              systemInstruction,
+              responseMimeType: 'application/json',
+              temperature: 0.3,
+            }),
+          }),
+        16000
+      );
 
-    const rawText = response.text || '';
-    let parsed: any = null;
-    try {
-      parsed = JSON.parse(rawText);
-    } catch {
-      const match = rawText.match(/\{[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(match[0]);
+      const rawText = response.text || '';
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(rawText);
+      } catch {
+        const match = rawText.match(/\{[\s\S]*\}/);
+        if (match) {
+          parsed = JSON.parse(match[0]);
+        }
       }
-    }
 
-    if (parsed && Array.isArray(parsed.flashcards) && parsed.flashcards.length > 0) {
-      return res.json({ flashcards: parsed.flashcards });
-    }
+      if (parsed && Array.isArray(parsed.flashcards) && parsed.flashcards.length > 0) {
+        return { flashcards: parsed.flashcards };
+      }
+      throw new Error('Invalid flashcards JSON');
+    });
 
-    return res.status(503).json({ error: 'Unable to parse flashcards. Please retry.' });
+    teacherJsonCache.set(cacheKey, payload);
+    return res.json(payload);
   } catch (err: any) {
     console.error('Teacher Flashcards Error:', err?.message || err);
     return res.status(503).json({ error: 'Unable to generate flashcards right now.' });
@@ -535,94 +598,62 @@ Generate flashcards strictly for ${subject}.`;
 
 // 6. AI Teacher: Homework step-by-step solver endpoint
 teacherRouter.post('/api/teacher/solve', async (req: Request, res: Response) => {
-  const { subject, grade, problem, language = 'en' } = req.body;
-  if (!problem || typeof problem !== 'string') {
+  const rawProblem = req.body.problem || req.body.question || req.body.query || '';
+  const problem = typeof rawProblem === 'string' ? rawProblem.trim() : '';
+  const subject = req.body.subject || 'Mathematics';
+  const grade = req.body.grade || req.body.gradeLevel || 'Matric';
+  const language = req.body.language || 'ur';
+  const stream = Boolean(req.body.stream);
+
+  if (!problem) {
     return res.status(400).json({ error: 'Problem statement is required.' });
   }
 
-  const ai = getGemini();
-  if (!ai) {
-    return res.status(503).json({ error: 'AI_UNAVAILABLE', message: 'Gemini API not configured.' });
-  }
-
   const systemInstruction = `You are the PakLingo AI Homework Tutor for Pakistani students.
-CRITICAL PEDAGOGICAL MANDATE:
-Do NOT simply give an unexplained final answer! Your purpose is to help the student LEARN and understand how to solve the problem step-by-step.
-Structure your solution:
-1. **Given Data & Objective**: What values or conditions are given, and what must be found?
-2. **Formula / Rule Used**: State the governing principle or equation clearly.
-3. **Step-by-Step Calculation**: Show full arithmetic and algebraic steps clearly so the student can follow each operation without skips.
-4. **Final Answer**: Clearly highlight the final answer with appropriate SI units (e.g. m/s², Joules, etc.).
-5. **Key Concept / Verification Tip**: How the student can quickly check their answer or avoid common errors.
+Help the student understand how to solve the problem step-by-step:
+- \`### 📋 Given Data & Objective\`
+- \`### 📐 Formula / Principle Used\`
+- \`### 🔢 Step-by-Step Solution\`
+- \`### ✅ Final Answer\`
+- \`### 💡 Verification & Exam Tip\`
 
 ${getEducationLanguageInstruction(language)}`;
 
-  const prompt = `Subject: ${subject || 'General'}\nGrade Level: ${grade || 'Matric'}\nProblem to solve:\n"${problem}"`;
+  const prompt = `Subject: ${subject}\nGrade Level: ${grade}\nProblem to solve:\n"${problem}"`;
+  const cacheKey = `teacher_solve_${language}_${subject}_${grade}_${problem.toLowerCase()}`;
 
-  try {
-    const response = await callWithCandidateModels(
-      'Teacher Solve',
-      (modelName) =>
-        ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: { systemInstruction },
-        }),
-      25000
-    );
-    const solution = response.text || '';
-    if (solution) {
-      return res.json({ solution });
-    }
-    return res.status(503).json({ error: 'Unable to solve homework problem right now.' });
-  } catch (err: any) {
-    console.error('Teacher Solve Error:', err?.message || err);
-    return res.status(503).json({ error: 'Unable to solve homework problem right now.' });
-  }
+  return handleTeacherTextGeneration(req, res, {
+    actionName: 'Teacher Solve',
+    cacheKey,
+    systemInstruction,
+    prompt,
+    responseField: 'solution',
+    stream,
+  });
 });
 
 // 7. AI Teacher: Study Plan Generator
 teacherRouter.post('/api/teacher/study-plan', async (req: Request, res: Response) => {
-  const { subject, grade, availableTime, target, language = 'en' } = req.body;
-  if (!subject && !target) {
-    return res.status(400).json({ error: 'Subject or Target is required.' });
-  }
-
-  const ai = getGemini();
-  if (!ai) {
-    return res.status(503).json({ error: 'AI_UNAVAILABLE', message: 'Gemini API not configured.' });
-  }
+  const { subject = 'All Core Subjects', grade = 'Matric', availableTime = '2 hours daily', target = 'Board Exam Preparation', language = 'ur', stream = false } = req.body;
 
   const systemInstruction = `You are the PakLingo Academic Study Mentor.
-Generate a realistic, balanced, and highly motivating study plan for Pakistani students preparing for board exams, semester tests, or daily homework.
-Structure the study plan with:
-1. **Target & Strategy Blueprint**: Summary of goal, syllabus scope, and milestone timeline.
-2. **Daily / Weekly Study Schedule**: Realistic time slots, recommended Pomodoro intervals (e.g. 45 min study + 10 min break), and specific topics.
-3. **Active Recall & Self-Testing Days**: Days dedicated to solving past board papers or flashcards.
-4. **Stress Management & High-Score Exam Tips**: Practical guidance to maximize retention and stay confident.
+Generate a realistic, motivating study plan for Pakistani students:
+- \`### 🎯 Target & Strategy Blueprint\`
+- \`### 📅 Daily / Weekly Study Schedule\`
+- \`### 🧠 Active Recall & Past Paper Practice\`
+- \`### ✅ High-Score Exam Tips\`
 
 ${getEducationLanguageInstruction(language)}`;
 
-  const prompt = `Subject: ${subject || 'All Core Subjects'}\nGrade Level: ${grade || 'Matric'}\nAvailable Study Time: "${availableTime || '2 hours daily'}"\nTarget / Exam Goal: "${target || 'Score 90%+ in Board Exams'}"`;
+  const prompt = `Subject: ${subject}\nGrade Level: ${grade}\nAvailable Study Time: "${availableTime}"\nTarget / Exam Goal: "${target}"`;
+  const cacheKey = `teacher_plan_${language}_${subject}_${grade}_${availableTime}_${target}`;
 
-  try {
-    const response = await callWithCandidateModels(
-      'Teacher Study Plan',
-      (modelName) =>
-        ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: { systemInstruction },
-        }),
-      25000
-    );
-    const plan = response.text || '';
-    if (plan) {
-      return res.json({ plan });
-    }
-    return res.status(503).json({ error: 'Unable to generate study plan right now.' });
-  } catch (err: any) {
-    console.error('Teacher Study Plan Error:', err?.message || err);
-    return res.status(503).json({ error: 'Unable to generate study plan right now.' });
-  }
+  return handleTeacherTextGeneration(req, res, {
+    actionName: 'Teacher Study Plan',
+    cacheKey,
+    systemInstruction,
+    prompt,
+    responseField: 'plan',
+    stream: Boolean(stream),
+  });
 });

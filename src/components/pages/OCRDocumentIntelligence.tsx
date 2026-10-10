@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { AudioControlBar } from '../AudioControlBar';
 
 interface OCRDocumentIntelligenceProps {
   selectedLanguage: LanguageCode;
@@ -77,11 +78,11 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
 
   return (
     <div
-      className="max-w-4xl mx-auto space-y-6 py-4"
+      className="w-full space-y-6 py-4"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-500/20">
+        <div className="w-12 h-12 rounded-2xl bg-[var(--accent-subtle)] text-[var(--accent-text)] flex items-center justify-center border border-[var(--accent-border)]">
           <FileText className="w-6 h-6" />
         </div>
         <div>
@@ -89,7 +90,7 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
             <h1 className="text-xl font-bold text-[var(--text-primary)]">
               {t('ocr.title', 'Document OCR & Form Intelligence')}
             </h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-subtle)] text-[var(--accent-text)] font-bold">
               {currentLanguage.nativeName}
             </span>
           </div>
@@ -103,12 +104,12 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
       </div>
 
       {/* Upload Dropzone */}
-      <div className="p-8 rounded-3xl bg-[var(--surface)] border-2 border-dashed border-[var(--border)] hover:border-purple-500/50 transition-all text-center flex flex-col items-center justify-center space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+      <div className="p-8 rounded-3xl bg-[var(--surface)] border-2 border-dashed border-[var(--border)] hover:border-[var(--accent)] transition-all text-center flex flex-col items-center justify-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-[var(--accent-subtle)] text-[var(--accent-text)] flex items-center justify-center">
           <Upload className="w-8 h-8" />
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-bold text-purple-600 hover:text-purple-700 cursor-pointer block">
+          <label className="text-sm font-bold text-[var(--accent-text)] hover:underline cursor-pointer block">
             <span>{t('ocr.uploadBox', 'Drag & Drop your document here, or click to browse')}</span>
             <input
               type="file"
@@ -123,7 +124,7 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
         </div>
 
         {fileName && (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-semibold">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent-text)] text-xs font-semibold">
             <FileCheck className="w-4 h-4" />
             <span>{fileName}</span>
           </div>
@@ -147,7 +148,7 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
           <button
             onClick={handleAnalyze}
             disabled={(!imageBase64 && !documentText.trim()) || isLoading}
-            className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-[var(--button-primary-bg)] hover:bg-[var(--accent-hover)] text-[var(--button-primary-text)] disabled:opacity-40 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
           >
             {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
             <span>{t('ocr.scanBtn', 'Extract Document Data')}</span>
@@ -166,7 +167,7 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
       {result && (
         <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
-            <div className="flex items-center gap-2 text-xs font-bold text-purple-600">
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--accent-text)]">
               <CheckCircle2 className="w-4 h-4" />
               <span>{t('ocr.extractionComplete', 'Document Extraction Complete')}</span>
             </div>
@@ -174,10 +175,16 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
               onClick={() => handleCopy(JSON.stringify(result, null, 2))}
               className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="keep-emerald w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? t('common.copied', 'Copied!') : t('common.copy', 'Copy Data')}</span>
             </button>
           </div>
+
+          <AudioControlBar
+            text={result.summary || result.analysis || JSON.stringify(result, null, 2)}
+            language={selectedLanguage}
+            label={`${currentLanguage.nativeName} Document Audio Summary`}
+          />
 
           <div className="space-y-2">
             <h3 className="text-sm font-bold text-[var(--text-primary)]">

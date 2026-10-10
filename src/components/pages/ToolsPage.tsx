@@ -50,7 +50,7 @@ export const ToolsPage: React.FC<ToolsPageProps> = ({ onSelectPage }) => {
 
   return (
     <div
-      className="max-w-6xl mx-auto space-y-8 py-4"
+      className="w-full space-y-8 py-4"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <div className="text-center max-w-2xl mx-auto space-y-2">

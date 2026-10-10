@@ -347,14 +347,14 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onSelectPage }) => {
 
   return (
     <div
-      className="w-full min-h-[calc(100vh-4rem)] bg-[var(--background)] text-[var(--text-primary)] py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-200"
+      className="w-full max-w-full min-w-0 py-4 text-[var(--text-primary)] transition-colors duration-200"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="w-full min-w-0 space-y-8">
         {/* Full Article Reader Modal / View */}
         {activeArticle ? (
-          <article className="p-6 sm:p-10 rounded-3xl bg-[var(--surface)] border border-[var(--border)] shadow-md space-y-6">
-            <div className="flex items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
+          <article className="p-5 sm:p-8 lg:p-10 rounded-3xl bg-[var(--surface)] border border-[var(--border)] shadow-md space-y-6 min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
               <button
                 type="button"
                 onClick={() => {

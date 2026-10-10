@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getGemini, callWithCandidateModels } from '../geminiService.js';
+import { getGemini, callWithCandidateModels, getFastModelConfig } from '../geminiService.js';
 import { getGlobalLanguageDirective } from '../languageDirectives.js';
 
 export const medicalRouter = Router();
@@ -44,9 +44,9 @@ ${getMedicalLanguageInstruction(language)}`;
         ai.models.generateContent({
           model: modelName,
           contents: prompt,
-          config: { systemInstruction },
+          config: getFastModelConfig(modelName, { systemInstruction }),
         }),
-      22000
+      16000
     );
     const answer = response.text || '';
     if (answer) {

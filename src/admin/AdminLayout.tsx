@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { AdminPageId } from './types';
 import { useAdminAuth } from './context/AdminAuthContext';
+import { PakLingoMark } from '../components/PakLingoLogo';
 
 interface AdminLayoutProps {
   currentPage: AdminPageId;
@@ -87,9 +88,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       {/* Mobile Header Bar */}
       <div className="md:hidden flex items-center justify-between p-4 bg-[var(--surface)] border-b border-[var(--border)] sticky top-0 z-40">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)]">
-            <Shield className="w-4 h-4" />
-          </div>
+          <PakLingoMark size="sm" />
           <div>
             <div className="font-bold text-sm tracking-tight text-[var(--text-primary)]">PakLingo Admin</div>
             <div className="text-[10px] text-[var(--text-muted)]">Enterprise Operations</div>
@@ -115,9 +114,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         {/* Sidebar Brand Header */}
         <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)] shadow-sm">
-              <Shield className="w-5 h-5" />
-            </div>
+            <PakLingoMark size="md" />
             <div>
               <div className="font-bold text-sm text-[var(--text-primary)] tracking-tight">PakLingo Admin</div>
               <div className="text-[11px] text-[var(--text-muted)] font-medium">Enterprise Control</div>

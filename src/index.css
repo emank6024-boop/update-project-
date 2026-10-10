@@ -4,45 +4,57 @@
 
 /*
   ======================================================================
-  GLOBAL THEME DEFINITIONS — TWO-COLOR CONTRAST DESIGN SYSTEM
+  GLOBAL THEME DEFINITIONS — CONTRAST-SAFE SEMANTIC DESIGN SYSTEM
   ======================================================================
-  Semantic Tokens:
+  Surface & Text Tokens (Strictly separated from Accent Color):
   --background
   --surface
   --surface-secondary
+  --surface-hover
   --text-primary
   --text-secondary
   --text-muted
   --border
-  --accent
-  --accent-hover
-  --button-primary-bg
-  --button-primary-text
-  --button-secondary-bg
-  --button-secondary-text
+  --border-subtle
   --input-bg
   --input-text
   --input-placeholder
+
+  Dynamic Accent Tokens (Contrast-Validated in ThemeContext):
+  --accent
+  --accent-hover
+  --accent-foreground
+  --accent-text
+  --accent-subtle
+  --accent-border
+  --button-primary-bg
+  --button-primary-text
   --focus-ring
-  --success
-  --warning
-  --error
+
+  Semantic Status Tokens (Independent of Accent Color):
+  --success: #10b981
+  --warning: #d97706
+  --error: #ef4444
 */
 
-/* Default :root (Modern Pakistani AI Super-App: Clean White, Mint-Green & Navy Text) */
-:root {
-  --background: #ffffff;
+/* Default :root & Light Mode: Crisp White Surfaces + Deep Navy Text */
+:root,
+html[data-theme="light"] {
+  --background: #f8fafc;
   --surface: #ffffff;
-  --surface-secondary: #f0fdf4;
-  --surface-hover: #e6fcf5;
-  --text-primary: #0a192f; /* Deep navy text */
-  --text-secondary: #1e3a5f;
-  --text-muted: #536b85;
-  --border: #d1fae5; /* Mint green border */
-  --border-subtle: #ecfdf5;
-  --accent: #059669; /* Refined Pakistani emerald */
+  --surface-secondary: color-mix(in srgb, var(--accent, #059669) 5%, #f1f5f9);
+  --surface-hover: color-mix(in srgb, var(--accent, #059669) 9%, #e2e8f0);
+  --text-primary: #0a192f; /* Deep navy text (17.4:1 on white) */
+  --text-secondary: #1e3a5f; /* Rich slate-navy (10.6:1 on white) */
+  --text-muted: #475569; /* Accessible muted slate (7.0:1 on white) */
+  --border: color-mix(in srgb, var(--accent, #059669) 16%, #cbd5e1);
+  --border-subtle: color-mix(in srgb, var(--accent, #059669) 8%, #e2e8f0);
+
+  /* Default Emerald Accent Fallbacks (Overridden dynamically by ThemeContext) */
+  --accent: #059669;
   --accent-hover: #047857;
   --accent-foreground: #ffffff;
+  --accent-text: #047857;
   --accent-subtle: #ecfdf5;
   --accent-border: #a7f3d0;
   --button-background: #059669;
@@ -51,17 +63,21 @@
   --button-primary-text: #ffffff;
   --button-secondary-bg: #ffffff;
   --button-secondary-text: #0a192f;
+
   --input-background: #ffffff;
   --input-foreground: #0a192f;
   --input-bg: #ffffff;
   --input-text: #0a192f;
-  --input-placeholder: #8899ac;
-  --focus-ring: #10b981;
+  --input-placeholder: #64748b;
+  --focus-ring: #059669;
+
+  /* Semantic Status Colors (Always distinct from accent) */
   --success: #10b981;
   --warning: #d97706;
   --error: #ef4444;
+
   --header-bg: #ffffff;
-  --header-border: #e1f0e9;
+  --header-border: var(--border);
   --header-text: #0a192f;
   --dropdown-bg: #ffffff;
   --dropdown-text: #0a192f;
@@ -70,140 +86,54 @@
   --app-bg: var(--background);
   --surface-bg: var(--surface);
   --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #f0fdf4;
+  --surface-subtle: var(--surface-secondary);
   --border-strong: var(--border);
   --accent-color: var(--accent);
   color-scheme: light;
 }
 
-/* 0. FLAGSHIP THEME: Modern Pakistani Emerald & Mint SaaS (Light) */
-html[data-theme="light"],
-html[data-theme="emerald"] {
-  --background: #ffffff;
-  --surface: #ffffff;
-  --surface-secondary: #f0fdf4;
-  --surface-hover: #e6fcf5;
-  --text-primary: #0a192f;
-  --text-secondary: #1e3a5f;
-  --text-muted: #536b85;
-  --border: #d1fae5;
-  --border-subtle: #ecfdf5;
-  --accent: #059669;
-  --accent-hover: #047857;
-  --accent-foreground: #ffffff;
-  --accent-subtle: #ecfdf5;
-  --accent-border: #a7f3d0;
-  --button-background: #059669;
-  --button-foreground: #ffffff;
-  --button-primary-bg: #059669;
-  --button-primary-text: #ffffff;
-  --button-secondary-bg: #ffffff;
-  --button-secondary-text: #0a192f;
-  --input-background: #ffffff;
-  --input-foreground: #0a192f;
-  --input-bg: #ffffff;
-  --input-text: #0a192f;
-  --input-placeholder: #8899ac;
-  --focus-ring: #10b981;
-  --success: #10b981;
-  --warning: #d97706;
-  --error: #ef4444;
-  --header-bg: #ffffff;
-  --header-border: #e1f0e9;
-  --header-text: #0a192f;
-  --dropdown-bg: #ffffff;
-  --dropdown-text: #0a192f;
-
-  --app-bg: var(--background);
-  --surface-bg: var(--surface);
-  --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #f0fdf4;
-  --border-strong: var(--border);
-  --accent-color: var(--accent);
-  color-scheme: light;
-}
-
-/* 0B. NAVY GOLD: Deep Navy + Warm Pakistani Gold */
-html[data-theme="navy-gold"] {
-  --background: #f8f9fa;
-  --surface: #ffffff;
-  --surface-secondary: #f1f3f7;
-  --surface-hover: #e8ebf1;
-  --text-primary: #0a1128;
-  --text-secondary: #1e293b;
-  --text-muted: #475569;
-  --border: #e2e8f0;
-  --border-subtle: #f1f5f9;
-  --accent: #d97706;
-  --accent-hover: #b45309;
-  --accent-foreground: #ffffff;
-  --button-background: #0a1128;
-  --button-foreground: #ffffff;
-  --button-primary-bg: #0a1128;
-  --button-primary-text: #ffffff;
-  --button-secondary-bg: #ffffff;
-  --button-secondary-text: #0a1128;
-  --input-background: #ffffff;
-  --input-foreground: #0a1128;
-  --input-bg: #ffffff;
-  --input-text: #0a1128;
-  --input-placeholder: #64748b;
-  --focus-ring: #d97706;
-  --success: #10b981;
-  --warning: #d97706;
-  --error: #ef4444;
-  --header-bg: #0a1128;
-  --header-border: #18284f;
-  --header-text: #ffffff;
-  --dropdown-bg: #ffffff;
-  --dropdown-text: #0a1128;
-
-  --app-bg: var(--background);
-  --surface-bg: var(--surface);
-  --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #f8f9fa;
-  --border-strong: var(--border);
-  --accent-color: var(--accent);
-  color-scheme: light;
-}
-
-/* 1. DARK THEME: Navy/Black Backgrounds + Emerald-Green Accents */
+/* Dark Mode: Deep Midnight Navy Surfaces + Crisp Light Text */
 html[data-theme="dark"],
 html.dark {
   --background: #080f1d;
   --surface: #0f1d33;
-  --surface-secondary: #162947;
-  --surface-hover: #1e365c;
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #8899ac;
-  --border: #1d365a;
-  --border-subtle: #162a47;
+  --surface-secondary: color-mix(in srgb, var(--accent, #10b981) 8%, #162947);
+  --surface-hover: color-mix(in srgb, var(--accent, #10b981) 14%, #1e365c);
+  --text-primary: #f8fafc; /* Crisp off-white (16.5:1 on #0f1d33) */
+  --text-secondary: #cbd5e1; /* Light slate (11.2:1 on #0f1d33) */
+  --text-muted: #94a3b8; /* Readable muted slate (5.8:1 on #0f1d33) */
+  --border: color-mix(in srgb, var(--accent, #10b981) 20%, #1d365a);
+  --border-subtle: color-mix(in srgb, var(--accent, #10b981) 10%, #162a47);
+
   --accent: #10b981;
   --accent-hover: #059669;
-  --accent-foreground: #ffffff;
+  --accent-foreground: #0a192f;
+  --accent-text: #34d399;
   --accent-subtle: rgba(16, 185, 129, 0.15);
-  --accent-border: #10b981;
+  --accent-border: rgba(16, 185, 129, 0.4);
   --button-background: #10b981;
-  --button-foreground: #ffffff;
+  --button-foreground: #0a192f;
   --button-primary-bg: #10b981;
-  --button-primary-text: #ffffff;
+  --button-primary-text: #0a192f;
   --button-secondary-bg: #162947;
-  --button-secondary-text: #ffffff;
+  --button-secondary-text: #f8fafc;
+
   --input-background: #0b1526;
-  --input-foreground: #ffffff;
+  --input-foreground: #f8fafc;
   --input-bg: #0b1526;
-  --input-text: #ffffff;
-  --input-placeholder: #8899ac;
+  --input-text: #f8fafc;
+  --input-placeholder: #94a3b8;
   --focus-ring: #10b981;
+
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
+
   --header-bg: #080f1d;
-  --header-border: #1d365a;
-  --header-text: #ffffff;
+  --header-border: var(--border);
+  --header-text: #f8fafc;
   --dropdown-bg: #0f1d33;
-  --dropdown-text: #ffffff;
+  --dropdown-text: #f8fafc;
 
   --app-bg: var(--background);
   --surface-bg: var(--surface);
@@ -214,274 +144,9 @@ html.dark {
   color-scheme: dark;
 }
 
-/* 2. LIGHT THEME: Clean White, Mint-Green and Emerald-Green with Navy Text */
-html[data-theme="light"] {
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --surface-secondary: #f0fdf4;
-  --surface-hover: #e6fcf5;
-  --text-primary: #0a192f;
-  --text-secondary: #1e3a5f;
-  --text-muted: #536b85;
-  --border: #d1fae5;
-  --border-subtle: #ecfdf5;
-  --accent: #059669;
-  --accent-hover: #047857;
-  --accent-foreground: #ffffff;
-  --button-background: #059669;
-  --button-foreground: #ffffff;
-  --button-primary-bg: #059669;
-  --button-primary-text: #ffffff;
-  --button-secondary-bg: #f0fdf4;
-  --button-secondary-text: #0a192f;
-  --input-background: #ffffff;
-  --input-foreground: #0a192f;
-  --input-bg: #ffffff;
-  --input-text: #0a192f;
-  --input-placeholder: #8899ac;
-  --focus-ring: #10b981;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --header-bg: #ffffff;
-  --header-border: #d1fae5;
-  --header-text: #0a192f;
-  --dropdown-bg: #ffffff;
-  --dropdown-text: #0a192f;
-
-  --app-bg: var(--background);
-  --surface-bg: var(--surface);
-  --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #f0fdf4;
-  --border-strong: var(--border);
-  --accent-color: var(--accent);
-  color-scheme: light;
-}
-
-/* 3. PINK THEME: Soft Rose + Deep Plum/Navy */
-html[data-theme="pink"] {
-  --background: #fff1f4;
-  --surface: #ffffff;
-  --surface-secondary: #ffe4e8;
-  --surface-hover: #fed7df;
-  --text-primary: #1c0710;
-  --text-secondary: #3f1122;
-  --text-muted: #5b2638;
-  --border: #fecdd3;
-  --border-subtle: #ffe4e8;
-  --accent: #e11d48;
-  --accent-hover: #be123c;
-  --accent-foreground: #ffffff;
-  --button-background: #e11d48;
-  --button-foreground: #ffffff;
-  --button-primary-bg: #e11d48;
-  --button-primary-text: #ffffff;
-  --button-secondary-bg: #ffffff;
-  --button-secondary-text: #be123c;
-  --input-background: #ffffff;
-  --input-foreground: #1c0710;
-  --input-bg: #ffffff;
-  --input-text: #1c0710;
-  --input-placeholder: #5b2638;
-  --focus-ring: #e11d48;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --header-bg: #1c0710;
-  --header-border: #3f1122;
-  --header-text: #ffffff;
-  --dropdown-bg: #ffffff;
-  --dropdown-text: #1c0710;
-
-  --app-bg: var(--background);
-  --surface-bg: var(--surface);
-  --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #fff1f4;
-  --border-strong: var(--border);
-  --accent-color: var(--accent);
-  color-scheme: light;
-}
-
-/* 4. YELLOW THEME: Warm Cream + Dark Bronze/Charcoal */
-html[data-theme="yellow"] {
-  --background: #fefce8;
-  --surface: #ffffff;
-  --surface-secondary: #fef3c7;
-  --surface-hover: #fde68a;
-  --text-primary: #1c1503;
-  --text-secondary: #29210c;
-  --text-muted: #574822;
-  --border: #fcd34d;
-  --border-subtle: #fef08a;
-  --accent: #b45309;
-  --accent-hover: #92400e;
-  --accent-foreground: #ffffff;
-  --button-background: #b45309;
-  --button-foreground: #ffffff;
-  --button-primary-bg: #b45309;
-  --button-primary-text: #ffffff;
-  --button-secondary-bg: #ffffff;
-  --button-secondary-text: #78350f;
-  --input-background: #ffffff;
-  --input-foreground: #1c1503;
-  --input-bg: #ffffff;
-  --input-text: #1c1503;
-  --input-placeholder: #574822;
-  --focus-ring: #b45309;
-  --success: #10b981;
-  --warning: #b45309;
-  --error: #ef4444;
-  --header-bg: #1c1503;
-  --header-border: #3a2e0a;
-  --header-text: #ffffff;
-  --dropdown-bg: #ffffff;
-  --dropdown-text: #1c1503;
-
-  --app-bg: var(--background);
-  --surface-bg: var(--surface);
-  --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #fefce8;
-  --border-strong: var(--border);
-  --accent-color: var(--accent);
-  color-scheme: light;
-}
-
-/* 5. BLUE THEME: Soft Ice Blue + Deep Navy */
-html[data-theme="blue"] {
-  --background: #f0f7ff;
-  --surface: #ffffff;
-  --surface-secondary: #e0f2fe;
-  --surface-hover: #bae6fd;
-  --text-primary: #061128;
-  --text-secondary: #1e293b;
-  --text-muted: #334155;
-  --border: #bfdbfe;
-  --border-subtle: #dbeafe;
-  --accent: #1d4ed8;
-  --accent-hover: #1e40af;
-  --accent-foreground: #ffffff;
-  --button-background: #1d4ed8;
-  --button-foreground: #ffffff;
-  --button-primary-bg: #1d4ed8;
-  --button-primary-text: #ffffff;
-  --button-secondary-bg: #ffffff;
-  --button-secondary-text: #1d4ed8;
-  --input-background: #ffffff;
-  --input-foreground: #061128;
-  --input-bg: #ffffff;
-  --input-text: #061128;
-  --input-placeholder: #475569;
-  --focus-ring: #1d4ed8;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --header-bg: #061128;
-  --header-border: #18284f;
-  --header-text: #ffffff;
-  --dropdown-bg: #ffffff;
-  --dropdown-text: #061128;
-
-  --app-bg: var(--background);
-  --surface-bg: var(--surface);
-  --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #f0f7ff;
-  --border-strong: var(--border);
-  --accent-color: var(--accent);
-  color-scheme: light;
-}
-
-/* 6. PURPLE THEME: Soft Lavender + Deep Violet/Navy */
-html[data-theme="purple"] {
-  --background: #f8f5ff;
-  --surface: #ffffff;
-  --surface-secondary: #f3e8ff;
-  --surface-hover: #e9d5ff;
-  --text-primary: #150d2a;
-  --text-secondary: #2e1065;
-  --text-muted: #581c87;
-  --border: #e9d5ff;
-  --border-subtle: #f3e8ff;
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-foreground: #ffffff;
-  --button-background: #7c3aed;
-  --button-foreground: #ffffff;
-  --button-primary-bg: #7c3aed;
-  --button-primary-text: #ffffff;
-  --button-secondary-bg: #ffffff;
-  --button-secondary-text: #5b21b6;
-  --input-background: #ffffff;
-  --input-foreground: #150d2a;
-  --input-bg: #ffffff;
-  --input-text: #150d2a;
-  --input-placeholder: #581c87;
-  --focus-ring: #7c3aed;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --header-bg: #150d2a;
-  --header-border: #2e1065;
-  --header-text: #ffffff;
-  --dropdown-bg: #ffffff;
-  --dropdown-text: #150d2a;
-
-  --app-bg: var(--background);
-  --surface-bg: var(--surface);
-  --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #f8f5ff;
-  --border-strong: var(--border);
-  --accent-color: var(--accent);
-  color-scheme: light;
-}
-
-/* 7. GREY THEME: Executive Slate + Slate Charcoal */
-html[data-theme="grey"] {
-  --background: #f1f5f9;
-  --surface: #ffffff;
-  --surface-secondary: #e2e8f0;
-  --surface-hover: #cbd5e1;
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #475569;
-  --border: #cbd5e1;
-  --border-subtle: #e2e8f0;
-  --accent: #334155;
-  --accent-hover: #1e293b;
-  --accent-foreground: #ffffff;
-  --button-background: #0f172a;
-  --button-foreground: #ffffff;
-  --button-primary-bg: #0f172a;
-  --button-primary-text: #ffffff;
-  --button-secondary-bg: #ffffff;
-  --button-secondary-text: #0f172a;
-  --input-background: #ffffff;
-  --input-foreground: #0f172a;
-  --input-bg: #ffffff;
-  --input-text: #0f172a;
-  --input-placeholder: #475569;
-  --focus-ring: #334155;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --header-bg: #0f172a;
-  --header-border: #1e293b;
-  --header-text: #ffffff;
-  --dropdown-bg: #ffffff;
-  --dropdown-text: #0f172a;
-
-  --app-bg: var(--background);
-  --surface-bg: var(--surface);
-  --surface-elevated: var(--surface-secondary);
-  --surface-subtle: #f1f5f9;
-  --border-strong: var(--border);
-  --accent-color: var(--accent);
-  color-scheme: light;
-}
-
 /*
   ======================================================================
-  UNIVERSAL REVOLUTIONARY OVERRIDES: ALL EXISTING HARDCODED COLORS
-  ARE MAPPED TO DYNAMIC SEMANTIC TOKENS
+  SURFACE & READABLE TEXT PROTECTION RULES
   ======================================================================
 */
 
@@ -517,7 +182,7 @@ html[data-theme] .bg-\[\#182a57\]:not(#main-navbar *) {
   color: var(--text-primary);
 }
 
-/* 4. Hover states on surfaces and buttons */
+/* 4. Hover states on surfaces */
 html[data-theme] .hover\:bg-\[\#1a2d5a\]:hover,
 html[data-theme] .hover\:bg-\[\#101b3b\]:hover,
 html[data-theme] .hover\:bg-\[\#181c22\]:hover,
@@ -592,31 +257,135 @@ html[data-theme="dark"] .bg-gray-200 {
   color: var(--text-primary);
 }
 
-/* 8. Light & Color Themes: Headings & High-contrast Text */
-html[data-theme]:not([data-theme="dark"]) .text-white:not(.keep-white):not(#main-navbar *):not(.btn-primary *):not([class*="bg-[var(--accent)]"] *):not([class*="bg-[var(--button-primary-bg)]"] *):not([class*="bg-emerald"] *):not([class*="bg-rose"] *):not([class*="bg-red"] *):not([class*="bg-amber"] *):not([class*="bg-blue"] *):not([class*="bg-violet"] *):not([class*="bg-purple"] *):not([class*="bg-sky"] *):not([class*="bg-teal"] *):not(button[type="submit"] *):not([class*="rounded-full bg-[var(--accent)]"] *),
-html[data-theme]:not([data-theme="dark"]) .text-neutral-100:not(.keep-white):not(#main-navbar *),
-html[data-theme]:not([data-theme="dark"]) .text-slate-100:not(.keep-white):not(#main-navbar *) {
-  color: var(--text-primary) !important;
+/*
+  ======================================================================
+  DYNAMIC ACCENT COLOR MAPPING (CONTRAST-VALIDATED)
+  Maps theme accent utilities across all pages to --button-primary-bg,
+  --button-primary-text, --accent-text, --accent-subtle, --accent-border.
+  Elements with .keep-emerald or .status-success retain semantic green.
+  ======================================================================
+*/
+
+/* A. Solid Accent Buttons, Active Tabs, Badges, and Switches (Across All Modules) */
+html[data-theme] .bg-emerald-600:not(.keep-emerald):not(.status-success),
+html[data-theme] .bg-emerald-500:not(.keep-emerald):not(.status-success),
+html[data-theme] .bg-teal-600:not(.keep-emerald):not(.status-success),
+html[data-theme] .bg-indigo-600:not(.keep-emerald):not(.status-success),
+html[data-theme] .bg-cyan-600:not(.keep-emerald):not(.status-success),
+html[data-theme] .bg-lime-600:not(.keep-emerald):not(.status-success),
+html[data-theme] .bg-amber-600:not(.keep-emerald):not(.status-success),
+html[data-theme] .bg-gradient-to-r.from-emerald-600:not(.keep-emerald),
+html[data-theme] .bg-gradient-to-tr.from-emerald-600:not(.keep-emerald) {
+  background-image: none !important;
+  background-color: var(--button-primary-bg) !important;
+  color: var(--button-primary-text) !important;
+  border-color: var(--accent-border) !important;
 }
 
-/* 9. Light & Color Themes: Secondary Text */
-html[data-theme]:not([data-theme="dark"]) .text-neutral-200:not(.keep-white):not(#main-navbar *),
-html[data-theme]:not([data-theme="dark"]) .text-neutral-300:not(.keep-white):not(#main-navbar *),
-html[data-theme]:not([data-theme="dark"]) .text-slate-200:not(.keep-white):not(#main-navbar *),
-html[data-theme]:not([data-theme="dark"]) .text-slate-300:not(.keep-white):not(#main-navbar *) {
-  color: var(--text-secondary) !important;
+html[data-theme] .bg-emerald-600:not(.keep-emerald):not(.status-success) *,
+html[data-theme] .bg-emerald-500:not(.keep-emerald):not(.status-success) *,
+html[data-theme] .bg-teal-600:not(.keep-emerald):not(.status-success) *,
+html[data-theme] .bg-indigo-600:not(.keep-emerald):not(.status-success) *,
+html[data-theme] .bg-cyan-600:not(.keep-emerald):not(.status-success) *,
+html[data-theme] .bg-lime-600:not(.keep-emerald):not(.status-success) *,
+html[data-theme] .bg-amber-600:not(.keep-emerald):not(.status-success) *,
+html[data-theme] .bg-gradient-to-r.from-emerald-600:not(.keep-emerald) *,
+html[data-theme] .bg-gradient-to-tr.from-emerald-600:not(.keep-emerald) * {
+  color: var(--button-primary-text) !important;
 }
 
-/* 10. Light & Color Themes: Muted / Subtle Text */
-html[data-theme]:not([data-theme="dark"]) .text-neutral-400:not(#main-navbar *),
-html[data-theme]:not([data-theme="dark"]) .text-neutral-500:not(#main-navbar *),
-html[data-theme]:not([data-theme="dark"]) .text-slate-400:not(#main-navbar *),
-html[data-theme]:not([data-theme="dark"]) .text-slate-500:not(#main-navbar *) {
-  color: var(--text-muted) !important;
+html[data-theme] .hover\:bg-emerald-700:not(.keep-emerald):hover,
+html[data-theme] .hover\:bg-emerald-600:not(.keep-emerald):hover,
+html[data-theme] .hover\:bg-teal-700:not(.keep-emerald):hover,
+html[data-theme] .hover\:bg-indigo-700:not(.keep-emerald):hover,
+html[data-theme] .hover\:bg-cyan-700:not(.keep-emerald):hover,
+html[data-theme] .hover\:bg-lime-700:not(.keep-emerald):hover,
+html[data-theme] .hover\:bg-amber-700:not(.keep-emerald):hover,
+html[data-theme] .hover\:from-emerald-500:not(.keep-emerald):hover {
+  background-image: none !important;
+  background-color: var(--accent-hover) !important;
+  color: var(--button-primary-text) !important;
 }
 
-/* 11. Universal Form Inputs, Selects, and Textareas */
-html[data-theme] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not(.keep-custom),
+html[data-theme] .hover\:bg-emerald-700:not(.keep-emerald):hover *,
+html[data-theme] .hover\:bg-emerald-600:not(.keep-emerald):hover *,
+html[data-theme] .hover\:bg-teal-700:not(.keep-emerald):hover *,
+html[data-theme] .hover\:bg-indigo-700:not(.keep-emerald):hover *,
+html[data-theme] .hover\:bg-cyan-700:not(.keep-emerald):hover *,
+html[data-theme] .hover\:bg-lime-700:not(.keep-emerald):hover *,
+html[data-theme] .hover\:bg-amber-700:not(.keep-emerald):hover *,
+html[data-theme] .hover\:from-emerald-500:not(.keep-emerald):hover * {
+  color: var(--button-primary-text) !important;
+}
+
+/* B. Subtle Accent Containers, Icon Boxes, Active Dropdown Rows & Chips */
+html[data-theme] .bg-emerald-500\/10:not(.keep-emerald):not(.status-success),
+html[data-theme] .bg-emerald-500\/15:not(.keep-emerald):not(.status-success),
+html[data-theme] .bg-emerald-500\/20:not(.keep-emerald):not(.status-success),
+html[data-theme] .bg-emerald-50:not(.keep-emerald):not(.status-success),
+html[data-theme] .bg-emerald-100:not(.keep-emerald):not(.status-success) {
+  background-color: var(--accent-subtle) !important;
+}
+
+/* C. Readable Accent Text, Links, and Icons (Guaranteed >= 4.5:1 on surfaces) */
+html[data-theme] .text-emerald-400:not(.keep-emerald):not(.status-success *),
+html[data-theme] .text-emerald-500:not(.keep-emerald):not(.status-success *),
+html[data-theme] .text-emerald-600:not(.keep-emerald):not(.status-success *),
+html[data-theme] .text-emerald-700:not(.keep-emerald):not(.status-success *),
+html[data-theme] .text-emerald-800:not(.keep-emerald):not(.status-success *),
+html[data-theme].dark .dark\:text-emerald-400:not(.keep-emerald):not(.status-success *),
+html[data-theme].dark .dark\:text-emerald-300:not(.keep-emerald):not(.status-success *),
+html[data-theme].dark .dark\:text-emerald-200:not(.keep-emerald):not(.status-success *),
+html[data-theme] .hover\:text-emerald-600:not(.keep-emerald):hover,
+html[data-theme] .hover\:text-emerald-500:not(.keep-emerald):hover,
+html[data-theme] .group:hover .group-hover\:text-emerald-600:not(.keep-emerald) {
+  color: var(--accent-text) !important;
+}
+
+/* Ensure subtle buttons that turn solid on hover switch their text to --button-primary-text on hover */
+html[data-theme] .bg-emerald-500\/10.hover\:bg-emerald-600:not(.keep-emerald):hover,
+html[data-theme] .bg-emerald-500\/10.hover\:bg-emerald-600:not(.keep-emerald):hover * {
+  background-color: var(--accent-hover) !important;
+  color: var(--button-primary-text) !important;
+}
+
+/* D. Accent Borders, Outlines, Shadows & Focus Rings */
+html[data-theme] .border-emerald-600:not(.keep-emerald):not(.status-success),
+html[data-theme] .border-emerald-500:not(.keep-emerald):not(.status-success),
+html[data-theme] .focus\:border-emerald-500:focus {
+  border-color: var(--accent) !important;
+}
+
+html[data-theme] .border-emerald-500\/20:not(.keep-emerald):not(.status-success),
+html[data-theme] .border-emerald-500\/30:not(.keep-emerald):not(.status-success),
+html[data-theme] .border-emerald-400\/30:not(.keep-emerald):not(.status-success),
+html[data-theme] .border-emerald-400\/40:not(.keep-emerald):not(.status-success),
+html[data-theme] .border-emerald-200:not(.keep-emerald):not(.status-success),
+html[data-theme] .border-emerald-200\/60:not(.keep-emerald):not(.status-success),
+html[data-theme] .hover\:border-emerald-500\/40:not(.keep-emerald):hover,
+html[data-theme] .hover\:border-emerald-500\/50:not(.keep-emerald):hover,
+html[data-theme] .hover\:border-emerald-500\/60:not(.keep-emerald):hover {
+  border-color: var(--accent-border) !important;
+}
+
+html[data-theme] .ring-emerald-500\/20:not(.keep-emerald),
+html[data-theme] .focus\:ring-emerald-500:focus {
+  --tw-ring-color: color-mix(in srgb, var(--focus-ring) 30%, transparent) !important;
+}
+
+html[data-theme] .shadow-emerald-600\/25,
+html[data-theme] .shadow-emerald-500\/30 {
+  --tw-shadow-color: color-mix(in srgb, var(--accent) 25%, transparent) !important;
+}
+
+/*
+  ======================================================================
+  FORM INPUTS, FOCUS RINGS & INTERACTIVE CONTROLS
+  ======================================================================
+*/
+
+/* Universal Form Inputs, Selects, and Textareas */
+html[data-theme] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="submit"]):not([type="button"]):not(.keep-custom),
 html[data-theme] select:not(.keep-custom),
 html[data-theme] textarea:not(.keep-custom) {
   background-color: var(--input-bg) !important;
@@ -635,7 +404,7 @@ html[data-theme] select option {
   color: var(--dropdown-text) !important;
 }
 
-html[data-theme] input:focus,
+html[data-theme] input:not([type="color"]):focus,
 html[data-theme] select:focus,
 html[data-theme] textarea:focus {
   border-color: var(--focus-ring) !important;
@@ -643,24 +412,25 @@ html[data-theme] textarea:focus {
   outline: none;
 }
 
-/* 11b. Universal Focus Rings for Accessible Buttons & Links */
+/* Universal Focus Rings for Accessible Buttons & Links */
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible,
+input[type="color"]:focus-visible,
 summary:focus-visible {
   outline: 2px solid var(--focus-ring) !important;
   outline-offset: 2px !important;
 }
 
-/* 12. Checkboxes & Radio Buttons */
+/* Checkboxes, Radio Buttons & Range Sliders */
 html[data-theme] input[type="checkbox"],
-html[data-theme] input[type="radio"] {
+html[data-theme] input[type="radio"],
+html[data-theme] input[type="range"] {
   accent-color: var(--accent) !important;
-  border-color: var(--border) !important;
   cursor: pointer;
 }
 
-/* 13. Disabled & Loading states */
+/* Disabled & Loading states */
 html[data-theme] button:disabled,
 html[data-theme] input:disabled,
 html[data-theme] select:disabled,
@@ -669,48 +439,62 @@ html[data-theme] textarea:disabled {
   cursor: not-allowed !important;
 }
 
-/* 14. Suggested prompts & quick chips */
-html[data-theme]:not([data-theme="dark"]) .suggested-pill,
-html[data-theme]:not([data-theme="dark"]) .navy-hero .px-3\.5 {
-  background-color: var(--surface) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border) !important;
-}
-
-/* 15. Main Navigation Bar: Consistent Two-Color Navy Bar Across All Themes */
+/* Main Navigation Bar: Readable in both Light and Dark Modes */
 html[data-theme] header#main-navbar {
   background-color: var(--header-bg) !important;
   border-color: var(--header-border) !important;
-  color: #ffffff !important;
+  color: var(--header-text) !important;
 }
 
-html[data-theme] header#main-navbar .text-white,
-html[data-theme] header#main-navbar .text-neutral-100 {
-  color: #ffffff !important;
-}
-
-html[data-theme] header#main-navbar .text-neutral-300,
-html[data-theme] header#main-navbar .text-neutral-400,
-html[data-theme] header#main-navbar .text-slate-300,
-html[data-theme] header#main-navbar .text-slate-400 {
-  color: #94a3b8 !important;
-}
-
-/* 16. Primary and Secondary Action Buttons */
+/* Primary and Secondary Action Buttons — Stable (No Vertical Shift on Hover) */
 .btn-primary,
-button.btn-primary {
+button.btn-primary,
+.pak-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
   background-color: var(--button-primary-bg) !important;
   color: var(--button-primary-text) !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.pak-btn-primary:hover,
+.btn-primary:hover {
+  background-color: var(--accent-hover) !important;
+  color: var(--button-primary-text) !important;
+  box-shadow: 0 3px 10px -2px rgba(0, 0, 0, 0.12);
 }
 
 .btn-secondary,
-button.btn-secondary {
-  background-color: var(--button-secondary-bg) !important;
-  color: var(--button-secondary-text) !important;
+button.btn-secondary,
+.pak-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  background-color: var(--surface) !important;
+  color: var(--text-primary) !important;
   border: 1px solid var(--border) !important;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-/* 17. Font Size Scaling (Small / Medium / Large) */
+.pak-btn-secondary:hover,
+.btn-secondary:hover {
+  background-color: var(--surface-hover) !important;
+  border-color: var(--accent-border) !important;
+}
+
+/* Font Size Scaling (Small / Medium / Large) */
 html[data-font-size="small"] {
   font-size: 14px;
 }
@@ -721,12 +505,70 @@ html[data-font-size="large"] {
   font-size: 18px;
 }
 
-/* 14. Theme Transition Smoothing */
-html[data-theme] {
+/* High Contrast Accessibility Aid */
+html.high-contrast-mode {
+  --border: var(--accent) !important;
+}
+
+/* Global Viewport, Box-Sizing & Scroll Stability */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-/* 15. Custom Scrollbars */
+body,
+#root {
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+pre,
+code,
+table {
+  max-width: 100%;
+}
+
+/* Prevent active/hover scale or translate transforms from making UI buttons & cards jump */
+button.active\:scale-95:active,
+button.active\:scale-\[0\.99\]:active,
+.group:hover .group-hover\:scale-105,
+.group\/btn:hover .group-hover\/btn\:translate-x-1,
+.group\/btn:hover .group-hover\/btn\:-translate-x-1 {
+  transform: none !important;
+}
+
+/* Hide scrollbars utility for horizontal pill strips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom Scrollbars */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -742,7 +584,7 @@ html[data-theme] {
   background: rgba(100, 116, 139, 0.5);
 }
 
-/* 16. Pakistani Regional Scripts Font Support */
+/* Pakistani Regional Scripts Font Support — Scoped so headers & buttons never shift height */
 [dir="rtl"] {
   font-family: 'Noto Sans Arabic', 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', system-ui, sans-serif;
 }
@@ -750,22 +592,31 @@ html[data-theme] {
 html[data-language="ur"] [dir="rtl"],
 html[data-language="pa"] [dir="rtl"] {
   font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', system-ui, sans-serif;
-  line-height: 1.75;
+  line-height: 1.65;
 }
 
 html[data-language="sd"] [dir="rtl"],
 html[data-language="ps"] [dir="rtl"],
 html[data-language="bal"] [dir="rtl"] {
   font-family: 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
-  line-height: 1.7;
+  line-height: 1.6;
+}
+
+/* Keep navbar and subnav control heights consistent across all scripts */
+header#main-navbar button,
+header#main-navbar a,
+header#main-navbar span,
+#module-subnav button,
+#module-subnav span {
+  line-height: 1.25 !important;
 }
 
 .font-urdu {
   font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
-  line-height: 1.8;
+  line-height: 1.75;
 }
 
-/* 17. Shimmer Animation for Skeletons & Placeholders */
+/* Shimmer Animation for Skeletons & Placeholders */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -786,13 +637,13 @@ html[data-language="bal"] [dir="rtl"] {
   animation: shimmer 1.75s ease-in-out infinite;
 }
 
-/* 18. Micro-interactions and Elevated Card Utilities */
+/* Stable Card Utilities (No Transform Jumps on Hover) */
 .pak-card {
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: 1rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .pak-card-interactive {
@@ -800,88 +651,108 @@ html[data-language="bal"] [dir="rtl"] {
   border: 1px solid var(--border);
   border-radius: 1rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 .pak-card-interactive:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1.5px);
-}
-
-.pak-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.75rem;
-  background-color: var(--button-primary-bg);
-  color: var(--button-primary-text);
-  font-weight: 600;
-  font-size: 0.875rem;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-.pak-btn-primary:hover {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.12);
-}
-
-.pak-btn-primary:active {
-  transform: translateY(0);
-  filter: brightness(0.96);
-}
-
-.pak-btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.75rem;
-  background-color: var(--surface);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  font-weight: 500;
-  font-size: 0.875rem;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.pak-btn-secondary:hover {
-  background-color: var(--surface-hover);
-  border-color: var(--border-strong, var(--border));
-}
-
-.pak-btn-secondary:active {
-  transform: translateY(0);
+  border-color: var(--accent-border);
+  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.08);
 }
 
 /* ======================================================================
-   PAKLINGO AI INTERACTIVE LAMP ANIMATIONS
+   PREMIUM ARCHITECTURAL GLASS & CARD SURFACES (LIGHT & DARK MODES)
+   Ensures crystal-clear text readability (>= 14:1 contrast) over the
+   Pakistani geometric & calligraphic background while preserving depth.
    ====================================================================== */
-@keyframes lampBlink {
-  0%, 42%, 46%, 92%, 96%, 100% {
-    transform: scaleY(1);
-  }
-  44%, 94% {
-    transform: scaleY(0.08);
+.pak-glass-card {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, rgba(148, 163, 184, 0.65)) !important;
+  box-shadow:
+    0 12px 32px -10px rgba(10, 25, 47, 0.08),
+    0 2px 6px -1px rgba(10, 25, 47, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.98);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.pak-glass-card:hover {
+  background-color: rgba(255, 255, 255, 0.99) !important;
+  border-color: var(--accent) !important;
+  box-shadow:
+    0 14px 34px -10px color-mix(in srgb, var(--accent) 16%, rgba(10, 25, 47, 0.12)),
+    inset 0 1px 0 0 #ffffff;
+}
+
+html[data-theme="dark"] .pak-glass-card,
+html.dark .pak-glass-card {
+  background-color: rgba(13, 25, 44, 0.94) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, rgba(255, 255, 255, 0.18)) !important;
+  box-shadow:
+    0 14px 34px -10px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
+}
+
+html[data-theme="dark"] .pak-glass-card:hover,
+html.dark .pak-glass-card:hover {
+  background-color: rgba(16, 31, 54, 0.98) !important;
+  border-color: var(--accent) !important;
+  box-shadow:
+    0 16px 36px -10px color-mix(in srgb, var(--accent) 24%, rgba(0, 0, 0, 0.68)),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+}
+
+.pak-glass-panel {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border-color: color-mix(in srgb, var(--accent) 22%, rgba(148, 163, 184, 0.60)) !important;
+}
+
+html[data-theme="dark"] .pak-glass-panel,
+html.dark .pak-glass-panel {
+  background-color: rgba(13, 25, 44, 0.92) !important;
+  border-color: color-mix(in srgb, var(--accent) 28%, rgba(255, 255, 255, 0.16)) !important;
+}
+
+/* Guarantee WCAG AA contrast for semantic module icon badges in both Light and Dark modes */
+html[data-theme="light"] .text-lime-600 { color: #3f6212 !important; }
+html[data-theme="light"] .text-amber-600 { color: #b45309 !important; }
+html[data-theme="light"] .text-cyan-600 { color: #0e7490 !important; }
+html[data-theme="light"] .text-teal-600 { color: #0f766e !important; }
+html[data-theme="light"] .text-orange-600 { color: #c2410c !important; }
+
+html[data-theme="dark"] .text-lime-600,
+html[data-theme="dark"] .dark\:text-lime-400 { color: #a3e635 !important; }
+html[data-theme="dark"] .text-amber-600,
+html[data-theme="dark"] .dark\:text-amber-400 { color: #fbbf24 !important; }
+html[data-theme="dark"] .text-cyan-600,
+html[data-theme="dark"] .dark\:text-cyan-400 { color: #22d3ee !important; }
+html[data-theme="dark"] .text-teal-600,
+html[data-theme="dark"] .dark\:text-teal-400 { color: #2dd4bf !important; }
+html[data-theme="dark"] .text-orange-600,
+html[data-theme="dark"] .dark\:text-orange-400 { color: #fb923c !important; }
+html[data-theme="dark"] .text-indigo-600,
+html[data-theme="dark"] .dark\:text-indigo-400 { color: #818cf8 !important; }
+html[data-theme="dark"] .text-purple-600,
+html[data-theme="dark"] .dark\:text-purple-400 { color: #c084fc !important; }
+html[data-theme="dark"] .text-blue-600,
+html[data-theme="dark"] .dark\:text-blue-400 { color: #60a5fa !important; }
+html[data-theme="dark"] .text-rose-600:not(.bg-rose-600 *),
+html[data-theme="dark"] .dark\:text-rose-400 { color: #fb7185 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-.animate-lampBlink {
-  transform-origin: 160px 108px;
-  animation: lampBlink 4.2s infinite ease-in-out;
-}
-
-@keyframes floatBadge {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-8px) rotate(1.5deg);
-  }
-}
 

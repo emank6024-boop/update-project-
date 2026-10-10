@@ -5,10 +5,6 @@ import {
   MessageSquare,
   Search,
   RefreshCw,
-  ExternalLink,
-  ChevronRight,
-  ChevronLeft,
-  AlertCircle,
 } from 'lucide-react';
 import { PageId } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -17,13 +13,22 @@ import {
   getUserConversations,
   deleteUserConversation,
   ConversationDocument,
+  loadLocalChatConversations,
+  deleteLocalChatConversation,
+  saveLocalChatConversation,
+  buildConversationFromFirestoreDoc,
+  getLocalChatConversationById,
 } from '../../lib/firestoreService';
 
 interface HistoryPageProps {
   onSelectPage: (page: PageId) => void;
+  onOpenConversation?: (conversationId: string) => void;
 }
 
-export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectPage }) => {
+export const HistoryPage: React.FC<HistoryPageProps> = ({
+  onSelectPage,
+  onOpenConversation,
+}) => {
   const { user } = useAuth();
   const { isRTL, t } = useLanguage();
   const [conversations, setConversations] = useState<ConversationDocument[]>([]);
@@ -31,14 +36,42 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectPage }) => {
   const [search, setSearch] = useState('');
 
   const loadHistory = async () => {
-    if (!user?.id) {
-      setIsLoading(false);
-      return;
-    }
     setIsLoading(true);
     try {
-      const data = await getUserConversations(user.id);
-      setConversations(data);
+      const localConvs = loadLocalChatConversations(user?.id);
+      const localDocs: ConversationDocument[] = localConvs.map((c) => ({
+        id: c.id,
+        userId: user?.id || 'guest',
+        title: c.title,
+        subtitle: c.subtitle,
+        category: c.category || 'AI Assistant',
+        language: c.language,
+        createdAt: c.updatedAt || c.createdAt,
+        targetPage: 'chat',
+      }));
+
+      if (!user?.id) {
+        setConversations(localDocs);
+        setIsLoading(false);
+        return;
+      }
+
+      const remoteDocs = await getUserConversations(user.id);
+      const mergedMap = new Map<string, ConversationDocument>();
+      for (const docItem of localDocs) {
+        if (docItem.id) mergedMap.set(docItem.id, docItem);
+      }
+      for (const docItem of remoteDocs) {
+        if (docItem.id && !mergedMap.has(docItem.id)) {
+          mergedMap.set(docItem.id, docItem);
+        }
+      }
+
+      const merged = Array.from(mergedMap.values()).sort(
+        (a, b) =>
+          new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      setConversations(merged);
     } catch (err) {
       console.warn('Failed to load history:', err);
     } finally {
@@ -52,10 +85,26 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectPage }) => {
 
   const handleDelete = async (id?: string) => {
     if (!id) return;
-    const ok = await deleteUserConversation(id);
-    if (ok) {
-      setConversations((prev) => prev.filter((c) => c.id !== id));
+    deleteLocalChatConversation(id, user?.id);
+    if (user?.id) {
+      await deleteUserConversation(id);
     }
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const handleOpenItem = (item: ConversationDocument) => {
+    if (item.id) {
+      const existingLocal = getLocalChatConversationById(item.id, user?.id);
+      if (!existingLocal) {
+        const reconstructed = buildConversationFromFirestoreDoc(item);
+        saveLocalChatConversation(reconstructed, user?.id);
+      }
+      if (onOpenConversation) {
+        onOpenConversation(item.id);
+        return;
+      }
+    }
+    onSelectPage('chat');
   };
 
   const filtered = conversations.filter(
@@ -67,7 +116,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectPage }) => {
 
   return (
     <div
-      className="max-w-4xl mx-auto space-y-6 py-4"
+      className="w-full space-y-6 py-4"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -155,7 +204,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectPage }) => {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => onSelectPage('chat')}
+                  onClick={() => handleOpenItem(item)}
                   className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-600 hover:text-white text-emerald-600 text-xs font-medium transition-colors cursor-pointer"
                 >
                   {t('history.view', 'Open')}
@@ -176,3 +225,4 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectPage }) => {
     </div>
   );
 };
+

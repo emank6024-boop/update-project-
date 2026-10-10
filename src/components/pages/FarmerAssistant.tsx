@@ -13,6 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { AudioControlBar } from '../AudioControlBar';
 
 interface FarmerAssistantProps {
   selectedLanguage: LanguageCode;
@@ -64,7 +65,7 @@ export const FarmerAssistant: React.FC<FarmerAssistantProps> = ({ selectedLangua
 
   return (
     <div
-      className="max-w-4xl mx-auto space-y-6 py-4"
+      className="w-full space-y-6 py-4"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <div className="flex items-center gap-3">
@@ -148,6 +149,11 @@ export const FarmerAssistant: React.FC<FarmerAssistantProps> = ({ selectedLangua
       {/* Result Card */}
       {result && (
         <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
+          <AudioControlBar
+            text={result.guidance || result.advice || result.answer || result.text || ''}
+            language={selectedLanguage}
+            label={`${currentLanguage.nativeName} Kissan Audio Advisory`}
+          />
           <div className="prose prose-xs sm:prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {result.guidance || result.advice || result.answer || result.text || ''}

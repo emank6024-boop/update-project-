@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Shield, Lock, Mail, AlertCircle, ArrowRight, CheckCircle2, ArrowLeft, Key } from 'lucide-react';
 import { useAdminAuth } from './context/AdminAuthContext';
 import { motion } from 'motion/react';
+import { PakLingoMark } from '../components/PakLingoLogo';
 
 export const AdminLogin: React.FC = () => {
   const { login, isLoading } = useAdminAuth();
@@ -52,8 +53,8 @@ export const AdminLogin: React.FC = () => {
       >
         {/* Header Badge */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] shadow-md mb-3 text-[var(--accent)]">
-            <Shield className="w-7 h-7" />
+          <div className="inline-flex items-center justify-center mb-3">
+            <PakLingoMark size="xl" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
             Administrative Gateway

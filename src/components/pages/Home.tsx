@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Languages,
   Bot,
@@ -16,415 +16,716 @@ import {
   Sparkles,
   Globe2,
   Mic,
+  MicOff,
+  Image as ImageIcon,
+  Paperclip,
+  Send,
+  Search,
+  Square,
+  X,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
-import { PageId, LanguageCode } from '../../types';
+import { PageId, LanguageCode, ChatAttachment } from '../../types';
 import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import { useLanguage } from '../../context/LanguageContext';
+import { getLanguageBCP47 } from '../../i18n';
+import { PakLingoLogo } from '../PakLingoLogo';
 
 interface HomeProps {
   onSelectPage: (page: PageId) => void;
   selectedLanguage: LanguageCode;
   onSelectLanguage: (lang: LanguageCode) => void;
-  onStartChatWithPrompt?: (prompt: string) => void;
+  onStartChatWithPrompt?: (prompt: string, attachments?: ChatAttachment[]) => void;
   onOpenAuthModal?: () => void;
   simpleMode?: boolean;
-}
-
-interface FeatureCard {
-  id: PageId;
-  titleKey: string;
-  defaultTitle: string;
-  descKey: string;
-  defaultDesc: string;
-  icon: React.ComponentType<{ className?: string }>;
-  iconBg: string;
-  btnLabelKey: string;
-  defaultBtnLabel: string;
 }
 
 export const Home: React.FC<HomeProps> = ({
   onSelectPage,
   selectedLanguage,
   onSelectLanguage,
+  onStartChatWithPrompt,
 }) => {
   const { isRTL, t, setSelectedLanguage: setGlobalLanguage, currentLanguage } = useLanguage();
+
+  // Professional Multimodal Hero Search & Assistant Bar state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchAttachments, setSearchAttachments] = useState<ChatAttachment[]>([]);
+  const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [searchNotice, setSearchNotice] = useState<string | null>(null);
+
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const handleLanguageClick = (langCode: LanguageCode) => {
     onSelectLanguage(langCode);
     setGlobalLanguage(langCode);
   };
 
-  const featureCards: FeatureCard[] = [
+  const stopHeroVoiceSession = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.stop();
+      } catch {}
+      recognitionRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {}
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((tr) => tr.stop());
+      mediaStreamRef.current = null;
+    }
+    setIsListening(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopHeroVoiceSession();
+    };
+  }, [stopHeroVoiceSession]);
+
+  const startHeroCloudRecording = useCallback(async () => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setSearchNotice('Microphone access is not supported in this browser.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      audioChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      setIsListening(true);
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach((tr) => tr.stop());
+          mediaStreamRef.current = null;
+        }
+        setIsListening(false);
+        const chunks = audioChunksRef.current;
+        if (!chunks.length) return;
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        if (blob.size < 400) return;
+
+        setIsTranscribing(true);
+        try {
+          const base64Audio = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(String(reader.result || ''));
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+
+          const res = await fetch('/api/chat/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              audioBase64: base64Audio,
+              mimeType: blob.type || 'audio/webm',
+              language: selectedLanguage,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.transcript?.trim()) {
+            setSearchQuery((prev) => `${prev ? prev + ' ' : ''}${data.transcript.trim()}`);
+            setSearchNotice(null);
+          } else {
+            setSearchNotice('Could not detect clear speech. Please try again or type your query.');
+          }
+        } catch {
+          setSearchNotice('Voice transcription failed. Please type your query.');
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      recorder.start(250);
+    } catch (err: any) {
+      setIsListening(false);
+      if (err?.name === 'NotAllowedError') {
+        setSearchNotice('Microphone permission was denied. Please allow microphone access in browser settings.');
+      } else {
+        setSearchNotice('Unable to access microphone.');
+      }
+    }
+  }, [selectedLanguage]);
+
+  const toggleHeroVoiceInput = async () => {
+    setSearchNotice(null);
+    if (isListening) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+        return;
+      }
+      stopHeroVoiceSession();
+      return;
+    }
+
+    const SpeechRecognition =
+      typeof window !== 'undefined'
+        ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        : null;
+
+    const cloudOnlyLangs: LanguageCode[] = ['bal', 'sd', 'ps', 'skr', 'hnd', 'ks', 'brh'];
+    if (!SpeechRecognition || cloudOnlyLangs.includes(selectedLanguage)) {
+      await startHeroCloudRecording();
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      recognition.lang = getLanguageBCP47(selectedLanguage);
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => setIsListening(true);
+      recognition.onresult = (event: any) => {
+        const transcript = event.results?.[0]?.[0]?.transcript || '';
+        if (transcript) {
+          setSearchQuery((prev) => `${prev ? prev + ' ' : ''}${transcript}`.trim());
+        }
+      };
+      recognition.onerror = (event: any) => {
+        setIsListening(false);
+        if (event?.error === 'language-not-supported') {
+          startHeroCloudRecording();
+        } else if (event?.error === 'not-allowed') {
+          setSearchNotice('Microphone permission denied. Please allow microphone access.');
+        }
+      };
+      recognition.onend = () => setIsListening(false);
+      recognition.start();
+    } catch {
+      await startHeroCloudRecording();
+    }
+  };
+
+  const handleHeroImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !files.length) return;
+    setSearchNotice(null);
+
+    const file = files[0];
+    if (!file.type.startsWith('image/')) {
+      setSearchNotice('Please select a valid image file (PNG, JPG, WEBP).');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setSearchNotice('Image size must be under 10 MB.');
+      e.target.value = '';
+      return;
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    setSearchAttachments((prev) => [
+      ...prev,
+      {
+        id: `hero_img_${Date.now()}`,
+        type: 'image',
+        name: file.name,
+        mimeType: file.type || 'image/jpeg',
+        size: file.size,
+        dataBase64: dataUrl,
+        previewUrl: dataUrl,
+      },
+    ]);
+    e.target.value = '';
+  };
+
+  const handleHeroFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !files.length) return;
+    setSearchNotice(null);
+
+    const file = files[0];
+    if (file.size > 12 * 1024 * 1024) {
+      setSearchNotice('Document size must be under 12 MB.');
+      e.target.value = '';
+      return;
+    }
+
+    const isText = file.type.startsWith('text/') || /\.(txt|md|csv|json)$/i.test(file.name);
+    if (isText) {
+      const textContent = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+      setSearchAttachments((prev) => [
+        ...prev,
+        {
+          id: `hero_file_${Date.now()}`,
+          type: 'file',
+          name: file.name,
+          mimeType: file.type || 'text/plain',
+          size: file.size,
+          textContent,
+        },
+      ]);
+    } else {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      setSearchAttachments((prev) => [
+        ...prev,
+        {
+          id: `hero_file_${Date.now()}`,
+          type: file.type.startsWith('image/') ? 'image' : 'file',
+          name: file.name,
+          mimeType: file.type || 'application/pdf',
+          size: file.size,
+          dataBase64: dataUrl,
+          previewUrl: file.type.startsWith('image/') ? dataUrl : undefined,
+        },
+      ]);
+    }
+    e.target.value = '';
+  };
+
+  const handleHeroSearchSubmit = (e?: React.FormEvent, customPrompt?: string) => {
+    if (e) e.preventDefault();
+    if (isListening) stopHeroVoiceSession();
+
+    const promptText = (customPrompt !== undefined ? customPrompt : searchQuery).trim();
+    if (!promptText && searchAttachments.length === 0) {
+      onSelectPage('ai-assistant');
+      return;
+    }
+
+    if (onStartChatWithPrompt) {
+      onStartChatWithPrompt(promptText, searchAttachments.length > 0 ? searchAttachments : undefined);
+      setSearchQuery('');
+      setSearchAttachments([]);
+    } else {
+      onSelectPage('ai-assistant');
+    }
+  };
+
+  const quickSearchPrompts = [
     {
-      id: 'translate',
-      titleKey: 'feature.translator.title',
-      defaultTitle: 'Regional Language Translator',
-      descKey: 'feature.translator.desc',
-      defaultDesc: 'Real-time bidirectional translation across Urdu, Punjabi, Sindhi, Pashto, Balochi, English, and more.',
-      icon: Languages,
-      iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-      btnLabelKey: 'feature.translator.btn',
-      defaultBtnLabel: 'Explore Feature',
+      label: t('hero.promptNadra', 'NADRA Smart NIC'),
+      prompt: t(
+        'hero.promptNadraQuery',
+        'NADRA Smart NIC renewal procedure, fees, and required documents in Pakistan'
+      ),
     },
     {
-      id: 'voice-assistant',
-      titleKey: 'feature.voice.title',
-      defaultTitle: 'Voice Assistant',
-      descKey: 'feature.voice.desc',
-      defaultDesc: 'Hands-free spoken conversations with natural speech recognition and localized dialect responses.',
-      icon: Volume2,
-      iconBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-      btnLabelKey: 'feature.voice.btn',
-      defaultBtnLabel: 'Explore Feature',
+      label: t('hero.promptBill', 'Electricity Bill Taxes'),
+      prompt: t(
+        'hero.promptBillQuery',
+        'Explain fuel price adjustment (FPA), taxes, and surcharges in Pakistani electricity bills'
+      ),
     },
     {
-      id: 'tts-stt',
-      titleKey: 'feature.tts.title',
-      defaultTitle: 'Text-to-Speech & Speech-to-Text',
-      descKey: 'feature.tts.desc',
-      defaultDesc: 'High-quality regional voice synthesis, audio speed adjustments, and live microphone audio transcription.',
-      icon: Mic,
-      iconBg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
-      btnLabelKey: 'feature.tts.btn',
-      defaultBtnLabel: 'Get Started',
+      label: t('hero.promptWheat', 'Wheat Crop Diseases'),
+      prompt: t(
+        'hero.promptWheatQuery',
+        'Wheat crop yellow rust disease symptoms and organic treatment in Pakistan'
+      ),
     },
     {
-      id: 'documents',
-      titleKey: 'feature.ocr.title',
-      defaultTitle: 'OCR Document Intelligence',
-      descKey: 'feature.ocr.desc',
-      defaultDesc: 'Extract and translate printed or handwritten text from Pakistani CNICs, utility bills, and official records.',
-      icon: FileText,
-      iconBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-      btnLabelKey: 'feature.ocr.btn',
-      defaultBtnLabel: 'Explore Feature',
-    },
-    {
-      id: 'medical',
-      titleKey: 'feature.medical.title',
-      defaultTitle: 'Medical Tools & Health Guidance',
-      descKey: 'feature.medical.desc',
-      defaultDesc: 'Multilingual symptom checker, first-aid advice, and healthcare triage with safety disclaimers.',
-      icon: HeartPulse,
-      iconBg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
-      btnLabelKey: 'feature.medical.btn',
-      defaultBtnLabel: 'Explore Feature',
-    },
-    {
-      id: 'legal',
-      titleKey: 'feature.legal.title',
-      defaultTitle: 'Legal Information & Rights Tools',
-      descKey: 'feature.legal.desc',
-      defaultDesc: 'Citizen legal guidance, tenancy agreements, consumer rights, and labor law procedures in plain language.',
-      icon: Scale,
-      iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-      btnLabelKey: 'feature.legal.btn',
-      defaultBtnLabel: 'Explore Feature',
-    },
-    {
-      id: 'student',
-      titleKey: 'feature.student.title',
-      defaultTitle: 'Student Dashboard',
-      descKey: 'feature.student.desc',
-      defaultDesc: 'Interactive regional-language tutoring, Pakistani board exam practice quizzes, and subject study guides.',
-      icon: GraduationCap,
-      iconBg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
-      btnLabelKey: 'feature.student.btn',
-      defaultBtnLabel: 'Get Started',
-    },
-    {
-      id: 'faculty',
-      titleKey: 'feature.faculty.title',
-      defaultTitle: 'Faculty & Educator Dashboard',
-      descKey: 'feature.faculty.desc',
-      defaultDesc: 'Bilingual lesson plan generation, grading rubric authoring, and board-standard exam question banks.',
-      icon: Presentation,
-      iconBg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
-      btnLabelKey: 'feature.faculty.btn',
-      defaultBtnLabel: 'Explore Feature',
-    },
-    {
-      id: 'government',
-      titleKey: 'feature.gov.title',
-      defaultTitle: 'Civic & Government Services',
-      descKey: 'feature.gov.desc',
-      defaultDesc: 'Step-by-step citizen assistance for NADRA, BISP 8171, passport applications, and utility bills.',
-      icon: Building2,
-      iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-      btnLabelKey: 'feature.gov.btn',
-      defaultBtnLabel: 'Explore Feature',
-    },
-    {
-      id: 'farmer',
-      titleKey: 'feature.farmer.title',
-      defaultTitle: 'Farmer Agricultural Advisory',
-      descKey: 'feature.farmer.desc',
-      defaultDesc: 'Crop disease diagnosis, pesticide recommendations, mandi rate updates, and weather advisories.',
-      icon: Sprout,
-      iconBg: 'bg-lime-500/10 text-lime-600 dark:text-lime-400',
-      btnLabelKey: 'feature.farmer.btn',
-      defaultBtnLabel: 'Explore Feature',
-    },
-    {
-      id: 'blog',
-      titleKey: 'feature.blog.title',
-      defaultTitle: 'Blog & Linguistic Knowledge',
-      descKey: 'feature.blog.desc',
-      defaultDesc: 'In-depth articles exploring Pakistani linguistic heritage, regional dialects, and AI innovation.',
-      icon: BookOpen,
-      iconBg: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
-      btnLabelKey: 'feature.blog.btn',
-      defaultBtnLabel: 'Explore Feature',
-    },
-    {
-      id: 'settings',
-      titleKey: 'feature.settings.title',
-      defaultTitle: 'Profile & Accessibility Settings',
-      descKey: 'feature.settings.desc',
-      defaultDesc: 'Personalize language preferences, toggle dark/light theme, adjust font sizes, and screen reader modes.',
-      icon: SettingsIcon,
-      iconBg: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
-      btnLabelKey: 'feature.settings.btn',
-      defaultBtnLabel: 'Get Started',
+      label: t('hero.promptBisp', 'BISP 8171 Eligibility'),
+      prompt: t(
+        'hero.promptBispQuery',
+        'How to check BISP 8171 financial assistance eligibility and verification process'
+      ),
     },
   ];
 
   return (
     <div
-      className="w-full min-h-[calc(100vh-4rem)] flex flex-col bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-200"
+      className="relative w-full max-w-full min-w-0 min-h-[calc(100dvh-4rem)] flex flex-col justify-between bg-transparent text-[var(--text-primary)] transition-colors duration-200 overflow-x-hidden"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
-      {/* 1. PROFESSIONAL HERO SECTION */}
-      <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 pb-10 sm:pb-14 text-center flex flex-col items-center">
+      {/* 1. HIGH-CLARITY HERO & MULTIMODAL SEARCH SECTION */}
+      <section className="relative z-10 w-full max-w-5xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-9 pb-5 sm:pb-7 text-center flex flex-col items-center justify-center flex-1">
         {/* Brand Tagline Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-semibold mb-5 shadow-xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>{t('hero.badge', 'AI for Pakistan’s Languages & People')}</span>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--surface)] border border-[var(--accent-border)] text-[var(--accent-text)] text-xs font-semibold mb-4 shadow-2xs max-w-full">
+          <span className="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" />
+          <span className="truncate">{t('hero.badge', 'AI for Pakistan’s Languages & People')}</span>
         </div>
 
-        {/* Headline */}
-        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--text-primary)] max-w-4xl mx-auto leading-tight sm:leading-tight mb-4">
-          {t('hero.title', 'Empowering Every Pakistani Through AI, Language, and Accessibility')}
+        {/* Main Headline — Balanced Size, Generous Line Height & High Contrast */}
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.5rem] font-extrabold tracking-tight text-[var(--text-primary)] max-w-3xl w-full mx-auto leading-[1.24] mb-3.5 break-words">
+          {t(
+            'hero.title',
+            'Empowering Every Pakistani Through AI, Language, and Accessibility'
+          )}
         </h1>
 
-        {/* Short, Clear Description */}
-        <p className="text-sm sm:text-base md:text-lg text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed mb-8 font-normal">
+        {/* Supporting Paragraph — Clear Readability & Comfortable Width */}
+        <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed mb-6 font-normal">
           {t(
             'hero.description',
-            'PakLingo AI connects Pakistan’s diverse linguistic heritage with cutting-edge artificial intelligence. Access dedicated tools for regional translation, voice assistance, document scanning, education, healthcare, and citizen guidance.'
+            'PakLingo AI connects Pakistan’s diverse linguistic heritage with cutting-edge artificial intelligence. Ask questions by voice, upload images or documents, or translate across regional languages.'
           )}
         </p>
 
-        {/* Action Buttons */}
+        {/* PROFESSIONAL MULTIMODAL AI SEARCH & ASSISTANT HUB */}
+        <div className="w-full max-w-3xl mx-auto mb-5">
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            onChange={handleHeroImageSelect}
+            className="hidden"
+            aria-label="Upload image for AI search"
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.txt,.md,.csv,.json,application/pdf,text/*"
+            onChange={handleHeroFileSelect}
+            className="hidden"
+            aria-label="Attach document for AI search"
+          />
+
+          <form
+            onSubmit={handleHeroSearchSubmit}
+            className="pak-glass-card rounded-2xl p-3 sm:p-4 border-2 border-[var(--border-strong)] shadow-lg transition-all duration-200 focus-within:border-[var(--accent)]"
+          >
+            {/* Attached Image/File Preview Tray inside Search Bar */}
+            {searchAttachments.length > 0 && (
+              <div className="flex items-center gap-2 px-2 pb-2.5 mb-2.5 border-b border-[var(--border)] overflow-x-auto">
+                {searchAttachments.map((att) => (
+                  <div
+                    key={att.id}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border-strong)] text-xs shrink-0"
+                  >
+                    {att.type === 'image' && att.previewUrl ? (
+                      <img
+                        src={att.previewUrl}
+                        alt={att.name}
+                        className="w-7 h-7 rounded-lg object-cover shrink-0"
+                      />
+                    ) : (
+                      <FileText className="w-4 h-4 text-[var(--accent-text)] shrink-0" />
+                    )}
+                    <span className="font-semibold text-[var(--text-primary)] truncate max-w-[150px]">
+                      {att.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSearchAttachments((prev) => prev.filter((item) => item.id !== att.id))
+                      }
+                      className="p-0.5 rounded-full hover:bg-rose-600 hover:text-white text-[var(--text-secondary)] cursor-pointer"
+                      aria-label={`Remove ${att.name}`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Main Search Input Row */}
+            <div className="flex items-center gap-3 px-2 py-1.5 min-w-0">
+              <Search className="w-5 h-5 text-[var(--accent-text)] shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t(
+                  'hero.searchPlaceholder',
+                  `Ask PakLingo AI anything in ${currentLanguage.nativeName} (${currentLanguage.name}), speak, or upload an image...`
+                )}
+                className="flex-1 min-w-0 bg-transparent text-sm sm:text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:opacity-80 focus:outline-none font-medium"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="p-1.5 rounded-full hover:bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer shrink-0"
+                  aria-label="Clear search query"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Bottom Action Bar inside Search Box: Mic, Upload Image, Attach File, Language, Ask AI Button */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 mt-2 border-t border-[var(--border)] px-1">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Voice Input Button */}
+                <button
+                  type="button"
+                  onClick={toggleHeroVoiceInput}
+                  disabled={isTranscribing}
+                  className={`h-9 px-3.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                    isListening
+                      ? 'bg-rose-600 text-white border-rose-600'
+                      : 'bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] hover:text-[var(--accent-text)] border-[var(--border-strong)]'
+                  }`}
+                  title={isListening ? 'Stop voice recording' : 'Speak your question'}
+                >
+                  {isListening ? (
+                    <>
+                      <Square className="w-3.5 h-3.5 fill-current shrink-0" />
+                      <span>Listening... (Stop)</span>
+                    </>
+                  ) : isTranscribing ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                      <span>Transcribing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0" />
+                      <span>Voice</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Upload Image Button */}
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="h-9 px-3.5 rounded-xl bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] hover:text-[var(--accent-text)] border border-[var(--border-strong)] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Attach an image (CNIC, bill, crop photo, textbook)"
+                >
+                  <ImageIcon className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0" />
+                  <span>Image</span>
+                </button>
+
+                {/* Attach File Button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-9 px-3.5 rounded-xl bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] hover:text-[var(--accent-text)] border border-[var(--border-strong)] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Attach a document (PDF, TXT, CSV)"
+                >
+                  <Paperclip className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0" />
+                  <span>Document</span>
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold bg-[var(--surface-secondary)] text-[var(--text-primary)] border border-[var(--border-strong)]">
+                  <span>{currentLanguage.flag}</span>
+                  <span>{currentLanguage.nativeName}</span>
+                </span>
+
+                <button
+                  type="submit"
+                  className="h-9 px-4 rounded-xl bg-[var(--button-primary-bg)] hover:bg-[var(--accent-hover)] text-[var(--button-primary-text)] text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span>{t('common.askAI', 'Ask PakLingo AI')}</span>
+                  <Send className={`w-3.5 h-3.5 shrink-0 ${isRTL ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {/* Voice / Upload Notice inside Hero */}
+          {searchNotice && (
+            <div className="mt-2.5 px-3.5 py-2 rounded-xl bg-[var(--surface)] border border-amber-500/40 text-[var(--text-primary)] text-xs flex items-center justify-between gap-2 shadow-xs">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>{searchNotice}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSearchNotice(null)}
+                className="p-1 rounded hover:bg-[var(--surface-secondary)] cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Quick Prompt Suggestion Chips */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <span className="text-xs font-semibold text-[var(--text-secondary)] px-1">
+              {t('hero.tryPrompt', 'Popular queries:')}
+            </span>
+            {quickSearchPrompts.map((item, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleHeroSearchSubmit(undefined, item.prompt)}
+                className="h-8 px-3.5 rounded-full bg-[var(--surface)] hover:bg-[var(--accent-subtle)] border border-[var(--border-strong)] hover:border-[var(--accent)] text-xs font-semibold text-[var(--text-primary)] hover:text-[var(--accent-text)] transition-colors cursor-pointer shadow-2xs"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Primary & Secondary Action Buttons — Stable Height & High Contrast */}
         <div className="flex flex-wrap items-center justify-center gap-3">
           <button
             type="button"
-            onClick={() => onSelectPage('translate')}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer"
+            onClick={() => onSelectPage('ai-assistant')}
+            className="h-10 inline-flex items-center gap-2 px-5 rounded-xl bg-[var(--button-primary-bg)] hover:bg-[var(--accent-hover)] text-[var(--button-primary-text)] text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer"
           >
-            <Languages className="w-4 h-4" />
-            <span>{t('hero.getStarted', 'Launch Translator')}</span>
-            <ArrowRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+            <Bot className="w-4 h-4 shrink-0" />
+            <span>{t('nav.aiAssistant', 'Open Full AI Assistant')}</span>
+            <ArrowRight className={`w-4 h-4 shrink-0 ${isRTL ? 'rotate-180' : ''}`} />
           </button>
 
           <button
             type="button"
-            onClick={() => {
-              const el = document.getElementById('features-section');
-              el?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-hover)] active:scale-95 border border-[var(--border)] text-[var(--text-primary)] text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer"
+            onClick={() => onSelectPage('translate')}
+            className="h-10 inline-flex items-center gap-2 px-5 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border-strong)] text-[var(--text-primary)] text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer"
           >
-            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>{t('hero.exploreFeatures', 'Explore Features')}</span>
+            <Languages className="w-4 h-4 text-[var(--accent-text)] shrink-0" />
+            <span>{t('hero.getStarted', 'Launch Translator')}</span>
           </button>
         </div>
       </section>
 
-      {/* 2. ATTRACTIVE FEATURE CARDS SECTION */}
-      <section id="features-section" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{t('features.badge', 'Dedicated Feature Hub')}</span>
+      {/* 2. SUPPORTED PAKISTANI LANGUAGES SECTION */}
+      <section className="relative z-10 w-full max-w-5xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+        <div className="pak-glass-card w-full px-4 sm:px-6 lg:px-8 py-5 rounded-2xl border transition-colors">
+          <div className="text-center max-w-2xl mx-auto mb-3.5 space-y-1">
+            <div className="flex items-center justify-center gap-2 text-xs font-bold text-[var(--accent-text)]">
+              <Globe2 className="w-4 h-4 shrink-0" />
+              <span>{t('languages.heading', 'Supported Pakistani Languages')}</span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)]">
+              {t(
+                'languages.subheading',
+                'Built natively for Pakistan’s national and regional languages with full right-to-left (RTL) support.'
+              )}
+            </p>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
-            {t('features.heading', 'Specialized AI & Language Features')}
-          </h2>
-          <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
-            {t(
-              'features.subheading',
-              'Each tool has its own dedicated page with complete interactive controls, settings, and privacy guarantees.'
-            )}
-          </p>
-        </div>
 
-        {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featureCards.map((card) => {
-            const Icon = card.icon;
-            const title = t(card.titleKey, card.defaultTitle);
-            const desc = t(card.descKey, card.defaultDesc);
-            const btnLabel = t(card.btnLabelKey, card.defaultBtnLabel);
-
-            return (
-              <div
-                key={card.id}
-                className="p-6 rounded-3xl bg-[var(--surface)] border border-[var(--border)] hover:border-emerald-500/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-5 group"
-              >
-                <div className="space-y-3.5">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 ${card.iconBg}`}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-
-                  <h3 className="text-base sm:text-lg font-bold text-[var(--text-primary)] group-hover:text-emerald-600 transition-colors">
-                    {title}
-                  </h3>
-
-                  <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                    {desc}
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-[var(--border)]">
-                  <button
-                    type="button"
-                    onClick={() => onSelectPage(card.id)}
-                    className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 hover:text-white text-xs font-semibold transition-all cursor-pointer group/btn"
-                  >
-                    <span>{btnLabel}</span>
-                    <ArrowRight className={`w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1 ${isRTL ? 'rotate-180 group-hover/btn:-translate-x-1' : ''}`} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          <div className="flex flex-wrap items-center justify-center gap-2 max-w-4xl mx-auto">
+            {SUPPORTED_LANGUAGES.map((lang) => {
+              const isSelected = selectedLanguage === lang.code;
+              return (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => handleLanguageClick(lang.code)}
+                  className={`h-9 px-3.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-2 border ${
+                    isSelected
+                      ? 'bg-[var(--button-primary-bg)] text-[var(--button-primary-text)] border-transparent shadow-xs'
+                      : 'bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] hover:text-[var(--accent-text)] border-[var(--border-strong)]'
+                  }`}
+                  title={`Switch interface language to ${lang.name}`}
+                >
+                  <span>{lang.flag}</span>
+                  <span className="font-bold">{lang.nativeName}</span>
+                  <span className="text-[11px] opacity-85">({lang.name})</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* 3. BRIEF SUPPORTED-LANGUAGES SECTION */}
-      <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 my-4 border-y border-[var(--border)] bg-[var(--surface)] transition-colors">
-        <div className="text-center max-w-2xl mx-auto mb-6 space-y-1.5">
-          <div className="flex items-center justify-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-            <Globe2 className="w-4 h-4" />
-            <span>{t('languages.heading', 'Supported Pakistani Languages')}</span>
-          </div>
-          <p className="text-xs text-[var(--text-secondary)]">
-            {t(
-              'languages.subheading',
-              'Built natively for Pakistan’s national and regional languages with full right-to-left (RTL) support.'
-            )}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-2 max-w-4xl mx-auto">
-          {SUPPORTED_LANGUAGES.map((lang) => {
-            const isSelected = selectedLanguage === lang.code;
-            return (
-              <button
-                key={lang.code}
-                type="button"
-                onClick={() => handleLanguageClick(lang.code)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-                  isSelected
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-                title={`Switch interface language to ${lang.name}`}
-              >
-                <span>{lang.flag}</span>
-                <span className="font-bold">{lang.nativeName}</span>
-                <span className="text-[11px] opacity-75">({lang.name})</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 4. SMALL FOOTER WITH USEFUL LINKS */}
-      <footer className="w-full bg-[var(--surface)] border-t border-[var(--border)] py-8 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+      {/* 3. COMPACT FOOTER WITH USEFUL LINKS */}
+      <footer className="pak-glass-panel relative z-10 w-full border-t py-4 mt-auto">
+        <div className="max-w-7xl w-full min-w-0 mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Logo and brief intro */}
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M14.5 4.5a8 8 0 1 0 0 15 8.5 8.5 0 1 1 0-15z" />
-                  <polygon points="17,7 18,9 20.2,9 18.5,10.5 19.1,12.7 17,11.3 14.9,12.7 15.5,10.5 13.8,9 16,9" />
-                </svg>
-              </div>
-              <div className="text-start">
-                <span className="font-bold text-sm text-[var(--text-primary)]">
-                  PakLingo <span className="text-emerald-600 dark:text-emerald-400">AI</span>
-                </span>
-                <p className="text-[11px] text-[var(--text-muted)]">
-                  {t('brand.tagline', 'AI for Pakistan’s Languages')}
-                </p>
-              </div>
+              <PakLingoLogo
+                size="sm"
+                showTagline={true}
+                taglineText={t('brand.tagline', "AI for Pakistan's Languages")}
+              />
             </div>
 
             {/* Useful Navigation Links */}
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium text-[var(--text-secondary)]">
               <button
                 type="button"
+                onClick={() => onSelectPage('ai-assistant')}
+                className="hover:text-[var(--accent-text)] cursor-pointer transition-colors"
+              >
+                {t('nav.aiAssistant', 'AI Assistant')}
+              </button>
+              <button
+                type="button"
                 onClick={() => onSelectPage('translate')}
-                className="hover:text-emerald-600 cursor-pointer transition-colors"
+                className="hover:text-[var(--accent-text)] cursor-pointer transition-colors"
               >
                 {t('nav.translator', 'Translator')}
               </button>
               <button
                 type="button"
                 onClick={() => onSelectPage('voice-assistant')}
-                className="hover:text-emerald-600 cursor-pointer transition-colors"
+                className="hover:text-[var(--accent-text)] cursor-pointer transition-colors"
               >
                 {t('nav.voiceAssistant', 'Voice Assistant')}
               </button>
               <button
                 type="button"
                 onClick={() => onSelectPage('documents')}
-                className="hover:text-emerald-600 cursor-pointer transition-colors"
+                className="hover:text-[var(--accent-text)] cursor-pointer transition-colors"
               >
                 {t('nav.documents', 'OCR Documents')}
               </button>
               <button
                 type="button"
                 onClick={() => onSelectPage('medical')}
-                className="hover:text-emerald-600 cursor-pointer transition-colors"
+                className="hover:text-[var(--accent-text)] cursor-pointer transition-colors"
               >
                 {t('module.medical.title', 'Medical Tools')}
               </button>
               <button
                 type="button"
                 onClick={() => onSelectPage('legal')}
-                className="hover:text-emerald-600 cursor-pointer transition-colors"
+                className="hover:text-[var(--accent-text)] cursor-pointer transition-colors"
               >
                 {t('module.legal.title', 'Legal Tools')}
               </button>
               <button
                 type="button"
                 onClick={() => onSelectPage('student')}
-                className="hover:text-emerald-600 cursor-pointer transition-colors"
+                className="hover:text-[var(--accent-text)] cursor-pointer transition-colors"
               >
                 {t('nav.studentDashboard', 'Student Hub')}
               </button>
               <button
                 type="button"
                 onClick={() => onSelectPage('blog')}
-                className="hover:text-emerald-600 cursor-pointer transition-colors"
+                className="hover:text-[var(--accent-text)] cursor-pointer transition-colors"
               >
                 {t('nav.blog', 'Blog')}
               </button>
               <button
                 type="button"
                 onClick={() => onSelectPage('settings')}
-                className="hover:text-emerald-600 cursor-pointer transition-colors"
+                className="hover:text-[var(--accent-text)] cursor-pointer transition-colors"
               >
                 {t('nav.accessibility', 'Settings')}
               </button>
             </div>
 
             {/* Copyright */}
-            <div className="text-[11px] text-[var(--text-muted)]">
+            <div className="text-[11px] text-[var(--text-secondary)]">
               <span>© 2026 PakLingo AI. {t('footer.rights', 'Engineered for Pakistan.')}</span>
             </div>
           </div>

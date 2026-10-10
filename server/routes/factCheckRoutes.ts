@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getGemini, callWithCandidateModels } from '../geminiService.js';
+import { getGemini, callWithCandidateModels, getFastModelConfig } from '../geminiService.js';
 import { getGlobalLanguageDirective } from '../languageDirectives.js';
 
 export const factCheckRouter = Router();
@@ -68,12 +68,12 @@ Ensure all JSON string values (verdictTitle, summary, evidence, redFlags, verifi
         ai.models.generateContent({
           model: modelName,
           contents,
-          config: {
+          config: getFastModelConfig(modelName, {
             systemInstruction,
             responseMimeType: 'application/json',
-          },
+          }),
         }),
-      25000
+      20000
     );
 
     const parsed = JSON.parse(response.text || '{}');
@@ -82,10 +82,22 @@ Ensure all JSON string values (verdictTitle, summary, evidence, redFlags, verifi
     const credibilityScore = typeof parsed.credibilityScore === 'number'
       ? parsed.credibilityScore
       : (isTrue ? rawConf : Math.max(10, 100 - rawConf));
+    const fullExplanation = [
+      parsed.summary,
+      Array.isArray(parsed.evidence) && parsed.evidence.length > 0
+        ? `\n\nKey Findings:\n• ${parsed.evidence.join('\n• ')}`
+        : '',
+      parsed.verificationAdvice ? `\n\nRecommended Action: ${parsed.verificationAdvice}` : '',
+    ]
+      .filter(Boolean)
+      .join('');
 
     return res.json({
       ...parsed,
+      explanation: fullExplanation || parsed.summary || '',
+      analysis: fullExplanation || parsed.summary || '',
       credibilityScore,
+      confidenceScore: rawConf,
       confidence: rawConf,
       recommendedAction: parsed.recommendedAction || parsed.verificationAdvice || 'Cross-check with verified official gazettes before sharing.',
       verificationAdvice: parsed.verificationAdvice || parsed.recommendedAction || 'Cross-check with verified official gazettes before sharing.',

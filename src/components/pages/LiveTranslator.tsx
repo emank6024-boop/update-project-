@@ -108,16 +108,16 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
 
   return (
     <div
-      className="max-w-4xl mx-auto space-y-6 py-4"
+      className="w-full max-w-full min-w-0 space-y-6 py-4"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       {/* Title */}
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
           <Languages className="w-6 h-6" />
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-[var(--text-primary)] break-words">
             {t('translator.title', 'Regional Live Translator')}
           </h1>
           <p className="text-xs text-[var(--text-secondary)]">
@@ -130,9 +130,9 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
       </div>
 
       {/* Notice about independent language selectors */}
-      <div className="p-3.5 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-muted)] flex items-start gap-2.5">
+      <div className="p-3.5 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-muted)] flex items-start gap-2.5 min-w-0">
         <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-        <span>
+        <span className="min-w-0 break-words">
           {t(
             'translator.independentNotice',
             'Interface language and translation targets operate independently. You can translate between any supported languages without changing your menu language.'
@@ -141,15 +141,15 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
       </div>
 
       {/* Language Selector Bar */}
-      <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-[var(--text-muted)]">
+      <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs flex flex-wrap items-center justify-between gap-3 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1 sm:flex-initial">
+          <span className="text-xs font-semibold text-[var(--text-muted)] shrink-0">
             {t('translator.sourceLang', 'Source Language')}:
           </span>
           <select
             value={sourceLang}
             onChange={(e) => setSourceLang(e.target.value as LanguageCode)}
-            className="px-3 py-1.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] cursor-pointer min-w-0 max-w-full"
           >
             {SUPPORTED_LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>
@@ -162,20 +162,20 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
         <button
           type="button"
           onClick={handleSwap}
-          className="p-2 rounded-xl border border-[var(--border)] hover:bg-[var(--surface-secondary)] text-[var(--text-secondary)] transition-colors cursor-pointer"
+          className="p-2 rounded-xl border border-[var(--border)] hover:bg-[var(--surface-secondary)] text-[var(--text-secondary)] transition-colors cursor-pointer shrink-0"
           title={t('translator.swap', 'Swap Languages')}
         >
           <ArrowRightLeft className="w-4 h-4 text-emerald-600" />
         </button>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-[var(--text-muted)]">
+        <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1 sm:flex-initial">
+          <span className="text-xs font-semibold text-[var(--text-muted)] shrink-0">
             {t('translator.targetLang', 'Target Language')}:
           </span>
           <select
             value={targetLang}
             onChange={(e) => setTargetLang(e.target.value as LanguageCode)}
-            className="px-3 py-1.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] cursor-pointer min-w-0 max-w-full"
           >
             {SUPPORTED_LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>
@@ -187,26 +187,26 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
       </div>
 
       {errorNotice && (
-        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2 min-w-0">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{errorNotice}</span>
+          <span className="min-w-0 break-words">{errorNotice}</span>
         </div>
       )}
 
       {audioNotice && (
-        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
+        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2 min-w-0">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <span className="font-semibold block">Audio Notice</span>
-            <span>{audioNotice}</span>
+            <span className="break-words">{audioNotice}</span>
           </div>
         </div>
       )}
 
       {/* Translation Workspace */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
         {/* Source Box */}
-        <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] flex flex-col justify-between space-y-3">
+        <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] flex flex-col justify-between space-y-3 min-w-0">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-medium">
               <span>{SUPPORTED_LANGUAGES.find((l) => l.code === sourceLang)?.nativeName}</span>

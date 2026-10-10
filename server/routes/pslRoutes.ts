@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getGemini, callWithCandidateModels } from '../geminiService.js';
+import { getGemini, callWithCandidateModels, getFastModelConfig } from '../geminiService.js';
 import { getGlobalLanguageDirective } from '../languageDirectives.js';
 
 export const pslRouter = Router();
@@ -73,12 +73,12 @@ OUTPUT FORMAT (Respond with valid JSON only):
         ai.models.generateContent({
           model: modelName,
           contents: `Translate and break down into Pakistan Sign Language (PSL):\n"${text}"`,
-          config: {
+          config: getFastModelConfig(modelName, {
             systemInstruction,
             responseMimeType: 'application/json',
-          },
+          }),
         }),
-      22000
+      16000
     );
 
     const parsed = JSON.parse(response.text || '{}');

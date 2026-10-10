@@ -2,25 +2,23 @@ import React, { useState } from 'react';
 import {
   GraduationCap,
   BookOpen,
-  Award,
   Sparkles,
-  CheckCircle2,
   Users,
   FileSpreadsheet,
-  PlusCircle,
   ArrowRight,
   ClipboardList,
   Layers,
-  Settings,
-  Download,
   Loader2,
   Copy,
   Presentation,
   Check,
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { PageId, LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { AudioControlBar } from '../AudioControlBar';
 
 interface FacultyDashboardProps {
   onSelectPage: (page: PageId) => void;
@@ -65,16 +63,16 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
     },
     {
       label: t('faculty.languagesSupported', 'Classroom Languages'),
-      value: 'Multilingual (UR/EN/SD)',
+      value: 'UR / PA / SD / PS / BAL / EN',
       icon: BookOpen,
       color: 'bg-amber-500/10 text-amber-600',
     },
   ];
 
   const handleGenerate = async (type: 'lesson' | 'rubric' | 'questions') => {
-    if (!topic.trim()) return;
+    if (!topic.trim() || isGenerating) return;
     setIsGenerating(true);
-    setGeneratedOutput(null);
+    setGeneratedOutput('');
 
     let promptText = '';
     if (type === 'lesson') {
@@ -90,55 +88,86 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          question: promptText,
           query: promptText,
           language: selectedLanguage,
           subject,
-          gradeLevel: targetClass,
+          grade: targetClass,
+          stream: true,
         }),
       });
 
       if (!res.ok) throw new Error('Generation failed');
-      const data = await res.json();
-      setGeneratedOutput(data.explanation || data.reply || data.answer || 'Faculty curriculum resource generated successfully.');
+
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('text/event-stream') && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let fullText = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split('\n\n');
+          buffer = events.pop() || '';
+          for (const evt of events) {
+            const line = evt.trim();
+            if (!line.startsWith('data:')) continue;
+            try {
+              const parsed = JSON.parse(line.replace(/^data:\s*/, ''));
+              if (parsed.chunk) {
+                fullText += parsed.chunk;
+                setGeneratedOutput(fullText);
+              }
+              if (parsed.done && parsed.answer) {
+                fullText = parsed.answer;
+                setGeneratedOutput(fullText);
+              }
+            } catch {
+              // ignore partial json
+            }
+          }
+        }
+      } else {
+        const data = await res.json();
+        setGeneratedOutput(
+          data.explanation ||
+            data.reply ||
+            data.answer ||
+            'Faculty curriculum resource generated successfully.'
+        );
+      }
     } catch {
-      // Fallback structured educational plan
       if (type === 'lesson') {
         setGeneratedOutput(
-          `# 📋 Lesson Plan: ${topic}\n` +
+          `### 📋 Lesson Plan: ${topic}\n` +
             `**Subject:** ${subject} | **Grade:** ${targetClass} | **Duration:** 45 Minutes\n\n` +
-            `### 1. Student Learning Objectives (SLOs)\n` +
+            `#### 1. Student Learning Objectives (SLOs)\n` +
             `- Define and explain the primary principles of ${topic}.\n` +
             `- Differentiate between theoretical models and real-world Pakistani applications.\n` +
             `- Formulate accurate answers to board past-paper questions.\n\n` +
-            `### 2. Lesson Phases\n` +
+            `#### 2. Lesson Phases\n` +
             `- **00-05 min (Warm-up):** Real-world hook and inquiry question in ${currentLanguage.nativeName}.\n` +
             `- **05-25 min (Instruction):** Conceptual breakdown on the board with diagrams.\n` +
             `- **25-35 min (Guided Practice):** Paired student activity solving 2 sample problems.\n` +
-            `- **35-45 min (Wrap-up):** Quick exit slip and homework assigned.\n\n` +
-            `### 3. Bilingual Terminology\n` +
-            `- Aligned with textbook glossary for FBISE / Punjab / Sindh boards.`
+            `- **35-45 min (Wrap-up):** Quick exit slip and homework assigned.`
         );
       } else if (type === 'rubric') {
         setGeneratedOutput(
-          `# 📊 Assessment Rubric: ${topic}\n\n` +
+          `### 📊 Assessment Rubric: ${topic}\n\n` +
             `| Criteria | Exemplary (4) | Proficient (3) | Developing (2) | Novice (1) |\n` +
             `| :--- | :--- | :--- | :--- | :--- |\n` +
             `| **Concept Mastery** | Flawless definitions and derivations | Clear understanding with minor slips | Partial grasp of core concepts | Misconceptions present |\n` +
-            `| **Problem Solving** | Systematic steps with units & proofs | Accurate answer, minor notation errors | Partial method shown | Incorrect formula used |\n` +
-            `| **Clarity & Language** | Crisp presentation in Urdu/English | Understandable explanation | Disorganized structure | Incomplete response |`
+            `| **Problem Solving** | Systematic steps with units & proofs | Accurate answer, minor notation errors | Partial method shown | Incorrect formula used |`
         );
       } else {
         setGeneratedOutput(
-          `# 📝 Question Paper: ${topic} (${subject})\n\n` +
-            `### Section A: Multiple Choice Questions (4 Marks)\n` +
+          `### 📝 Question Paper: ${topic} (${subject})\n\n` +
+            `#### Section A: Multiple Choice Questions (4 Marks)\n` +
             `1. What is the standard definition of the core phenomenon in ${topic}?\n` +
-            `   A) Option A    B) Option B    C) Option C    D) Option D [Answer: A]\n\n` +
-            `### Section B: Short Response Questions (9 Marks)\n` +
-            `1. State two differences related to ${topic}.\n` +
-            `2. Give the SI unit and dimensional formula.\n` +
-            `3. Why is this principle critical in everyday industrial systems in Pakistan?\n\n` +
-            `### Section C: Detailed Analytical Question (7 Marks)\n` +
-            `1. Derive the comprehensive formula for ${topic} with a neat labelled diagram.`
+            `   A) Option A    B) Option B    C) Option C    D) Option D [Answer: A]`
         );
       }
     } finally {
@@ -154,36 +183,35 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
   };
 
   return (
-    <div
-      className="max-w-6xl mx-auto space-y-8 py-4 px-2"
-      dir={isRTL ? 'rtl' : 'ltr'}
-    >
+    <div className="w-full space-y-6 py-2" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* 1. WELCOME HEADER */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-[var(--surface)] border border-[var(--border)] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+      <div className="p-6 sm:p-7 rounded-3xl bg-[var(--surface)] border border-[var(--border)] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-md shrink-0">
             <Presentation className="w-8 h-8" />
           </div>
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-extrabold text-[var(--text-primary)]">
-                {t('faculty.welcome', 'Faculty & Educator Dashboard')}
+                {t('faculty.welcome', 'Faculty & Educator Lesson Plan Studio')}
               </h1>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
                 <Sparkles className="w-3 h-3" />
-                <span>{facultyName}</span>
+                <span>
+                  {facultyName} • {currentLanguage.nativeName}
+                </span>
               </span>
             </div>
             <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
               {t(
                 'faculty.subtitle',
-                'Curriculum authoring, bilingual lesson plan generation, and assessment tools for Pakistani teachers'
+                'Curriculum authoring, multilingual lesson plan streaming, audio playback, and assessment tools for Pakistani teachers'
               )}
             </p>
           </div>
         </div>
 
-        {/* Quick Return to Main Dashboard */}
+        {/* Quick Return to Student Portal */}
         <button
           type="button"
           onClick={() => onSelectPage('student')}
@@ -204,7 +232,9 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
               key={idx}
               className="p-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-2xs flex items-center gap-3.5"
             >
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${item.color}`}>
+              <div
+                className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${item.color}`}
+              >
                 <Icon className="w-5 h-5" />
               </div>
               <div>
@@ -221,7 +251,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
       </div>
 
       {/* 3. TABS NAVIGATION */}
-      <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-2">
         <button
           type="button"
           onClick={() => setActiveTab('lessonPlan')}
@@ -263,13 +293,14 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
       </div>
 
       {/* 4. CONTENT GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Configuration Column */}
-        <div className="lg:col-span-1 p-6 rounded-3xl bg-[var(--surface)] border border-[var(--border)] space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Configuration Column (4 cols) */}
+        <div className="lg:col-span-4 p-6 rounded-3xl bg-[var(--surface)] border border-[var(--border)] space-y-4">
           <h3 className="text-sm font-bold text-[var(--text-primary)]">
             {activeTab === 'lessonPlan' && t('faculty.configLesson', 'Configure Lesson Plan')}
             {activeTab === 'rubric' && t('faculty.configRubric', 'Configure Grading Rubric')}
-            {activeTab === 'questionBank' && t('faculty.configQuestions', 'Configure Question Paper')}
+            {activeTab === 'questionBank' &&
+              t('faculty.configQuestions', 'Configure Question Paper')}
           </h3>
 
           <div className="space-y-1.5">
@@ -279,7 +310,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
             <select
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-indigo-500"
+              className="w-full px-3 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-indigo-500"
             >
               <option value="Physics">Physics</option>
               <option value="Mathematics">Mathematics</option>
@@ -299,12 +330,16 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
             <select
               value={targetClass}
               onChange={(e) => setTargetClass(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-indigo-500"
+              className="w-full px-3 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-indigo-500"
             >
               <option value="Class 9 (Matric Part 1)">Class 9 (Matric Part 1)</option>
               <option value="Class 10 (Matric Part 2)">Class 10 (Matric Part 2)</option>
-              <option value="Class 11 (FSc / Intermediate Part 1)">Class 11 (FSc / Intermediate Part 1)</option>
-              <option value="Class 12 (FSc / Intermediate Part 2)">Class 12 (FSc / Intermediate Part 2)</option>
+              <option value="Class 11 (FSc / Intermediate Part 1)">
+                Class 11 (FSc / Intermediate Part 1)
+              </option>
+              <option value="Class 12 (FSc / Intermediate Part 2)">
+                Class 12 (FSc / Intermediate Part 2)
+              </option>
               <option value="University Undergraduate">University Undergraduate</option>
             </select>
           </div>
@@ -317,8 +352,15 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (activeTab === 'lessonPlan') handleGenerate('lesson');
+                  else if (activeTab === 'rubric') handleGenerate('rubric');
+                  else handleGenerate('questions');
+                }
+              }}
               placeholder="e.g., Electromagnetic Induction, Cell Division, Quadratic Formula"
-              className="w-full px-3 py-2 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-indigo-500"
+              className="w-full px-3 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-indigo-500"
             />
           </div>
 
@@ -335,46 +377,60 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
             {isGenerating ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>{t('faculty.generating', 'Authoring Content...')}</span>
+                <span>{t('faculty.generating', 'Streaming Curriculum Material...')}</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>{t('faculty.generateBtn', 'Generate Material')}</span>
+                <span>{t('faculty.generateBtn', 'Generate Lesson Plan / Material')}</span>
               </>
             )}
           </button>
         </div>
 
-        {/* Output Column */}
-        <div className="lg:col-span-2 p-6 rounded-3xl bg-[var(--surface)] border border-[var(--border)] space-y-4">
-          <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-            <h3 className="text-sm font-bold text-[var(--text-primary)]">
-              {t('faculty.outputHeading', 'Curriculum Output & Teaching Resource')}
+        {/* Output Column (8 cols) */}
+        <div className="lg:col-span-8 p-6 sm:p-7 rounded-3xl bg-[var(--surface)] border border-[var(--border)] space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
+            <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)]">
+              {t('faculty.outputHeading', 'Curriculum Output & Teaching Resource')} (
+              {currentLanguage.nativeName})
             </h3>
             {generatedOutput && (
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="px-2.5 py-1 rounded-lg bg-[var(--surface-secondary)] hover:bg-[var(--border)] text-[11px] font-semibold text-[var(--text-secondary)] transition-colors cursor-pointer flex items-center gap-1.5"
-              >
-                {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                <span>{copied ? t('common.copied', 'Copied!') : t('common.copy', 'Copy Content')}</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <AudioControlBar
+                  text={generatedOutput}
+                  language={selectedLanguage}
+                  label="Listen to Lesson Plan"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="px-3 py-1.5 rounded-xl bg-[var(--surface-secondary)] hover:bg-[var(--border)] border border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  {copied ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                  <span>
+                    {copied ? t('common.copied', 'Copied!') : t('common.copy', 'Copy Content')}
+                  </span>
+                </button>
+              </div>
             )}
           </div>
 
           {generatedOutput ? (
-            <div className="text-xs sm:text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap font-mono p-4 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)]">
-              {generatedOutput}
+            <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-[var(--text-primary)] leading-relaxed p-5 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)]">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{generatedOutput}</ReactMarkdown>
             </div>
           ) : (
             <div className="py-20 text-center space-y-3">
               <Presentation className="w-10 h-10 text-[var(--text-muted)] mx-auto opacity-40" />
-              <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] max-w-md mx-auto">
                 {t(
                   'faculty.emptyPrompt',
-                  'Select a subject and enter your classroom chapter to produce lesson plans, rubrics, and SLO questions in Urdu and English.'
+                  'Select a subject and enter your classroom chapter to stream lesson plans, rubrics, and SLO questions with audio playback in your chosen language.'
                 )}
               </p>
             </div>

@@ -25,19 +25,25 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ isDark =
       {/* 1. Subtle Ambient Atmosphere Gradients */}
       <div className="absolute inset-0">
         <div
-          className={`absolute -top-32 -left-32 w-96 h-96 rounded-full blur-3xl transition-opacity duration-700 ${
-            isDark ? 'bg-emerald-500/15' : 'bg-emerald-300/25'
-          }`}
+          className="absolute -top-32 -left-32 w-96 h-96 rounded-full blur-3xl transition-opacity duration-700"
+          style={{
+            backgroundColor: 'var(--accent)',
+            opacity: isDark ? 0.14 : 0.16,
+          }}
         />
         <div
-          className={`absolute top-1/2 -right-32 w-[32rem] h-[32rem] rounded-full blur-3xl transition-opacity duration-700 ${
-            isDark ? 'bg-teal-500/15' : 'bg-teal-200/30'
-          }`}
+          className="absolute top-1/2 -right-32 w-[32rem] h-[32rem] rounded-full blur-3xl transition-opacity duration-700"
+          style={{
+            backgroundColor: 'var(--accent-hover)',
+            opacity: isDark ? 0.14 : 0.14,
+          }}
         />
         <div
-          className={`absolute -bottom-32 left-1/3 w-[30rem] h-[30rem] rounded-full blur-3xl transition-opacity duration-700 ${
-            isDark ? 'bg-emerald-600/12' : 'bg-emerald-200/25'
-          }`}
+          className="absolute -bottom-32 left-1/3 w-[30rem] h-[30rem] rounded-full blur-3xl transition-opacity duration-700"
+          style={{
+            backgroundColor: 'var(--accent)',
+            opacity: isDark ? 0.11 : 0.13,
+          }}
         />
       </div>
 
@@ -45,15 +51,15 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ isDark =
       <div className="hidden md:block absolute right-0 lg:right-4 top-1/2 -translate-y-1/2 w-[460px] lg:w-[560px] xl:w-[640px] pointer-events-none opacity-25 dark:opacity-30 transition-opacity">
         <svg
           viewBox="0 0 750 720"
-          className="w-full h-auto text-emerald-500 drop-shadow-[0_0_18px_rgba(16,185,129,0.3)]"
+          className="w-full h-auto text-[var(--accent-text)]"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
             <linearGradient id="bgMapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.45" />
-              <stop offset="50%" stopColor="#059669" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#047857" stopOpacity="0.15" />
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.45" />
+              <stop offset="50%" stopColor="var(--accent)" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="var(--accent-hover)" stopOpacity="0.15" />
             </linearGradient>
             <filter id="bgMapGlow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="3.5" result="blur" />

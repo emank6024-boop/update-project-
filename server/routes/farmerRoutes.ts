@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getGemini, callWithCandidateModels } from '../geminiService.js';
+import { getGemini, callWithCandidateModels, getFastModelConfig } from '../geminiService.js';
 import { getGlobalLanguageDirective } from '../languageDirectives.js';
 
 export const farmerRouter = Router();
@@ -16,8 +16,10 @@ ADDITIONAL AGRICULTURAL INSTRUCTION:
 
 // 1. Farmer Assistant: Ask an Agricultural Question
 farmerRouter.post('/api/farmer/ask', async (req: Request, res: Response) => {
-  const { question, crop, province, season, language = 'ur' } = req.body;
-  if (!question || typeof question !== 'string') {
+  const { question: rawQ, query, crop, cropType, province, season, language = 'ur' } = req.body;
+  const question = (typeof rawQ === 'string' && rawQ.trim()) || (typeof query === 'string' && query.trim()) || '';
+  const effectiveCrop = crop || cropType || 'General / Multi-crop';
+  if (!question) {
     return res.status(400).json({ error: 'Agricultural question is required.' });
   }
 
@@ -35,7 +37,7 @@ CORE ADVISORY PRINCIPLES:
 5. Emphasize: "Consult your local Agriculture Extension Officer (محکمہ زراعت توسیع) or verified field specialist before large-scale pesticide applications."
 ${getFarmerLanguageInstruction(language)}`;
 
-  const prompt = `Crop: ${crop || 'General / Multi-crop'}\nProvince/Zone: ${province || 'Punjab / Sindh / KP / Balochistan'}\nSeason: ${season || 'Current Season'}\nFarmer Question: "${question}"`;
+  const prompt = `Crop: ${effectiveCrop}\nProvince/Zone: ${province || 'Punjab / Sindh / KP / Balochistan'}\nSeason: ${season || 'Current Season'}\nFarmer Question: "${question}"`;
 
   try {
     const response = await callWithCandidateModels(
@@ -44,13 +46,13 @@ ${getFarmerLanguageInstruction(language)}`;
         ai.models.generateContent({
           model: modelName,
           contents: prompt,
-          config: { systemInstruction },
+          config: getFastModelConfig(modelName, { systemInstruction }),
         }),
-      22000
+      16000
     );
     const answer = response.text || '';
     if (answer) {
-      return res.json({ answer });
+      return res.json({ answer, guidance: answer, advice: answer, text: answer });
     }
     return res.status(503).json({ error: 'Unable to process farming question right now.' });
   } catch (err: any) {

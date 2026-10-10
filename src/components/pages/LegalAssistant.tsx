@@ -13,6 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { AudioControlBar } from '../AudioControlBar';
 
 interface LegalAssistantProps {
   selectedLanguage: LanguageCode;
@@ -61,11 +62,11 @@ export const LegalAssistant: React.FC<LegalAssistantProps> = ({ selectedLanguage
 
   return (
     <div
-      className="max-w-4xl mx-auto space-y-6 py-4"
+      className="w-full space-y-6 py-4"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/20">
+        <div className="w-12 h-12 rounded-2xl bg-[var(--accent-subtle)] text-[var(--accent-text)] flex items-center justify-center border border-[var(--accent-border)]">
           <Scale className="w-6 h-6" />
         </div>
         <div>
@@ -73,7 +74,7 @@ export const LegalAssistant: React.FC<LegalAssistantProps> = ({ selectedLanguage
             <h1 className="text-xl font-bold text-[var(--text-primary)]">
               {t('legal.title', 'Legal Rights & Citizen Awareness')}
             </h1>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-subtle)] text-[var(--accent-text)] font-bold">
               {currentLanguage.nativeName}
             </span>
           </div>
@@ -120,7 +121,7 @@ export const LegalAssistant: React.FC<LegalAssistantProps> = ({ selectedLanguage
           <button
             onClick={() => handleAsk()}
             disabled={!query.trim() || isLoading}
-            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-[var(--button-primary-bg)] hover:bg-[var(--accent-hover)] text-[var(--button-primary-text)] disabled:opacity-40 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
           >
             {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
             <span>{t('legal.inquireBtn', 'Check Legal Information')}</span>
@@ -138,6 +139,11 @@ export const LegalAssistant: React.FC<LegalAssistantProps> = ({ selectedLanguage
       {/* Result Card */}
       {result && (
         <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
+          <AudioControlBar
+            text={result.guidance || result.answer || result.text || ''}
+            language={selectedLanguage}
+            label={`${currentLanguage.nativeName} Legal Audio Guide`}
+          />
           <div className="prose prose-xs sm:prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {result.guidance || result.answer || result.text || ''}

@@ -1,19 +1,35 @@
 import { Router, Request, Response } from 'express';
-import { getGemini, callWithCandidateModels, ServerLRUCache } from '../geminiService.js';
+import {
+  getGemini,
+  callWithCandidateModels,
+  getFastModelConfig,
+  ServerLRUCache,
+  deduplicateRequest,
+} from '../geminiService.js';
 import { getLanguageName } from '../languageDirectives.js';
 
 export const translateRouter = Router();
 
-const serverTranslationCache = new ServerLRUCache<any>(300, 24 * 60 * 60 * 1000);
+const serverTranslationCache = new ServerLRUCache<any>(500, 24 * 60 * 60 * 1000);
 
 // Live Translator endpoint
 translateRouter.post('/api/translate', async (req: Request, res: Response) => {
   const { text, sourceLang = 'en', targetLang = 'ur' } = req.body;
-  if (!text || typeof text !== 'string') {
+  if (!text || typeof text !== 'string' || !text.trim()) {
     return res.status(400).json({ error: 'Text is required.' });
   }
 
-  const cacheKey = `${sourceLang}_${targetLang}_${text.trim().toLowerCase()}`;
+  const trimmed = text.trim();
+
+  // Short-circuit if source and target language are identical
+  if (sourceLang === targetLang) {
+    return res.json({
+      translatedText: trimmed,
+      phoneticText: trimmed,
+    });
+  }
+
+  const cacheKey = `${sourceLang}_${targetLang}_${trimmed.toLowerCase()}`;
   const cached = serverTranslationCache.get(cacheKey);
   if (cached) {
     res.setHeader('X-Cache-Status', 'HIT');
@@ -32,7 +48,7 @@ translateRouter.post('/api/translate', async (req: Request, res: Response) => {
 Translate the following text accurately, preserving nuance and natural cultural idiom.
 Source Language: ${sLang}
 Target Language: ${tLang}
-Input text: "${text}"
+Input text: "${trimmed}"
 
 Respond in valid JSON format only:
 {
@@ -41,30 +57,43 @@ Respond in valid JSON format only:
 }`;
 
   try {
-    const response = await callWithCandidateModels(
-      'Live Translate',
-      (modelName) =>
-        ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-          },
-        }),
-      20000
-    );
+    const translationResult = await deduplicateRequest(`trans_${cacheKey}`, async () => {
+      const response = await callWithCandidateModels(
+        'Live Translate',
+        (modelName) =>
+          ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: getFastModelConfig(modelName, {
+              responseMimeType: 'application/json',
+              temperature: 0.15,
+            }),
+          }),
+        14000
+      );
 
-    const parsed = JSON.parse(response.text || '{}');
-    if (parsed.translatedText) {
-      const translationResult = {
-        translatedText: parsed.translatedText,
-        phoneticText: parsed.phoneticText || parsed.translatedText,
-      };
-      serverTranslationCache.set(cacheKey, translationResult);
-      return res.json(translationResult);
-    }
-    return res.status(503).json({ error: 'Translation could not be completed.' });
+      const rawText = response.text || '{}';
+      let parsed: any = {};
+      try {
+        parsed = JSON.parse(rawText);
+      } catch {
+        const match = rawText.match(/\{[\s\S]*\}/);
+        if (match) parsed = JSON.parse(match[0]);
+      }
+
+      if (parsed.translatedText) {
+        return {
+          translatedText: parsed.translatedText,
+          phoneticText: parsed.phoneticText || parsed.translatedText,
+        };
+      }
+      throw new Error('Empty translation response');
+    });
+
+    serverTranslationCache.set(cacheKey, translationResult);
+    return res.json(translationResult);
   } catch (err: any) {
+    console.error('Translation Error:', err?.message || err);
     return res.status(503).json({ error: 'Translation could not be completed.' });
   }
 });

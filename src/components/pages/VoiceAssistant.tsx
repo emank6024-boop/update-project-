@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Mic,
-  MicOff,
   Volume2,
-  RefreshCw,
-  Sparkles,
   Bot,
   User,
   AlertCircle,
@@ -13,15 +10,14 @@ import {
   RotateCcw,
   Square,
   CheckCircle2,
-  Sliders,
   Copy,
   Trash2,
   Radio,
-  FileAudio,
 } from 'lucide-react';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
-import { useVoiceSettings } from '../../context/VoiceSettingsContext';
+import { useVoiceSettings, detectSpeechLanguage } from '../../context/VoiceSettingsContext';
+import { getLanguageConfig } from '../../config/languageConfig';
 
 interface VoiceAssistantProps {
   selectedLanguage: LanguageCode;
@@ -42,6 +38,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     stopSpeaking,
     replaySpeaking,
     checkVoiceSupport,
+    updateSettings,
   } = useVoiceSettings();
 
   const [activeTab, setActiveTab] = useState<'assistant' | 'tts' | 'stt'>(initialMode);
@@ -63,25 +60,197 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   const [isDictating, setIsDictating] = useState(false);
   const [sttCopied, setSttCopied] = useState(false);
 
+  const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
   const voiceSupport = checkVoiceSupport(selectedLanguage);
+  const langMeta = getLanguageConfig(selectedLanguage);
+
+  const cleanupRecording = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        // ignore
+      }
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((tr) => tr.stop());
+      mediaStreamRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cleanupRecording();
+    };
+  }, [cleanupRecording]);
+
+  const handleSendVoiceQuery = useCallback(
+    async (queryText: string) => {
+      if (!queryText.trim()) return;
+
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: queryText,
+            language: selectedLanguage,
+          }),
+        });
+
+        if (!res.ok) throw new Error('Voice assistant response failed.');
+        const data = await res.json();
+        const replyText = data.reply || '';
+        setResponse(replyText);
+
+        if (replyText) {
+          const replyLang = detectSpeechLanguage(replyText, selectedLanguage);
+          await speak(replyText, replyLang);
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to process voice query.');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [selectedLanguage, speak]
+  );
+
+  // Cloud AI Audio Recording helper for Pashto, Balochi, Sindhi, Punjabi, or browsers without Web Speech API
+  const startCloudAudioCapture = useCallback(
+    async (mode: 'assistant' | 'stt') => {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+        setError('Microphone access is not supported in this browser environment.');
+        return;
+      }
+
+      try {
+        stopSpeaking();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamRef.current = stream;
+        audioChunksRef.current = [];
+
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : '';
+
+        const recorder = mimeType
+          ? new MediaRecorder(stream, { mimeType })
+          : new MediaRecorder(stream);
+
+        mediaRecorderRef.current = recorder;
+        if (mode === 'assistant') setIsListening(true);
+        else setIsDictating(true);
+
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach((tr) => tr.stop());
+            mediaStreamRef.current = null;
+          }
+          if (mode === 'assistant') setIsListening(false);
+          else setIsDictating(false);
+
+          const chunks = audioChunksRef.current;
+          if (!chunks.length) return;
+          const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+          if (blob.size < 300) return;
+
+          setIsLoading(true);
+          try {
+            const base64Audio = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(String(reader.result || ''));
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+
+            const res = await fetch('/api/chat/transcribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                audioBase64: base64Audio,
+                mimeType: blob.type || 'audio/webm',
+                language: selectedLanguage,
+              }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Could not transcribe audio.');
+
+            const text = (data.transcript || '').trim();
+            if (text) {
+              if (mode === 'assistant') {
+                setTranscript(text);
+                await handleSendVoiceQuery(text);
+              } else {
+                setDictatedText((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+              }
+            } else {
+              setError('No clear speech was detected. Please speak clearly and try again.');
+            }
+          } catch (err: any) {
+            setError(err.message || 'Audio transcription failed.');
+          } finally {
+            setIsLoading(false);
+          }
+        };
+
+        recorder.start(250);
+      } catch (err: any) {
+        setIsListening(false);
+        setIsDictating(false);
+        setError(
+          err?.name === 'NotAllowedError'
+            ? 'Microphone permission was denied. Please allow microphone access in your browser.'
+            : err?.message || 'Could not access microphone.'
+        );
+      }
+    },
+    [selectedLanguage, stopSpeaking, handleSendVoiceQuery]
+  );
 
   const startListening = () => {
     setError(null);
-    if (typeof window === 'undefined') return;
+    if (isListening) {
+      cleanupRecording();
+      setIsListening(false);
+      return;
+    }
 
+    if (typeof window === 'undefined') return;
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
-      setError(
-        'Speech recognition is not supported in this browser. Please use Chrome, Edge, or an Android browser, or type your query in the Assistant module.'
-      );
+    if (!SpeechRecognition || langMeta.browserSttSupport === 'cloud-fallback') {
+      startCloudAudioCapture('assistant');
       return;
     }
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.lang = bcp47;
+      recognitionRef.current = recognition;
+      recognition.lang = langMeta.speechRecognitionCode || bcp47;
       recognition.continuous = false;
       recognition.interimResults = false;
 
@@ -101,10 +270,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         if (event.error === 'not-allowed') {
           setError('Microphone permission was denied. Please allow microphone access in your browser settings.');
         } else if (event.error === 'language-not-supported') {
-          setError(
-            `Browser speech recognition does not support ${currentLanguage.name} directly on this device. You can type in the Assistant tab.`
-          );
-        } else {
+          startCloudAudioCapture('assistant');
+        } else if (event.error !== 'aborted') {
           setError(`Microphone error: ${event.error || 'unknown'}`);
         }
       };
@@ -114,39 +281,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
       };
 
       recognition.start();
-    } catch (err: any) {
-      setIsListening(false);
-      setError(err.message || 'Could not start voice recognition.');
-    }
-  };
-
-  const handleSendVoiceQuery = async (queryText: string) => {
-    if (!queryText.trim()) return;
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: queryText,
-          language: selectedLanguage,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Voice assistant response failed.');
-      const data = await res.json();
-      const replyText = data.reply || '';
-      setResponse(replyText);
-
-      if (voiceSupport.isSupported) {
-        await speak(replyText, selectedLanguage);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to process voice query.');
-    } finally {
-      setIsLoading(false);
+    } catch {
+      startCloudAudioCapture('assistant');
     }
   };
 
@@ -155,30 +291,40 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
     if (isPaused) {
       resumeSpeaking();
     } else {
-      speak(response, selectedLanguage);
+      const replyLang = detectSpeechLanguage(response, selectedLanguage);
+      speak(response, replyLang);
     }
   };
 
   const handlePlayTTS = () => {
     if (!ttsInput.trim()) return;
-    speak(ttsInput.trim(), selectedLanguage);
+    updateSettings({ rate: speechRate, pitch: ttsPitch });
+    const detected = detectSpeechLanguage(ttsInput.trim(), selectedLanguage);
+    speak(ttsInput.trim(), detected);
   };
 
   // STT Dictation Handler
   const startSTTDictation = () => {
-    if (typeof window === 'undefined') return;
+    setError(null);
+    if (isDictating) {
+      cleanupRecording();
+      setIsDictating(false);
+      return;
+    }
 
+    if (typeof window === 'undefined') return;
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
-      setError('Speech recognition not supported in this browser.');
+    if (!SpeechRecognition || langMeta.browserSttSupport === 'cloud-fallback') {
+      startCloudAudioCapture('stt');
       return;
     }
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.lang = bcp47;
+      recognitionRef.current = recognition;
+      recognition.lang = langMeta.speechRecognitionCode || bcp47;
       recognition.continuous = true;
       recognition.interimResults = true;
 
@@ -198,8 +344,11 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         }
       };
 
-      recognition.onerror = () => {
+      recognition.onerror = (event: any) => {
         setIsDictating(false);
+        if (event.error === 'language-not-supported') {
+          startCloudAudioCapture('stt');
+        }
       };
 
       recognition.onend = () => {
@@ -208,22 +357,22 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
       recognition.start();
     } catch {
-      setIsDictating(false);
+      startCloudAudioCapture('stt');
     }
   };
 
   return (
     <div
-      className="max-w-4xl mx-auto space-y-6 py-4 px-2"
+      className="w-full max-w-full min-w-0 space-y-6 py-4"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       {/* Title */}
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
           <Volume2 className="w-6 h-6" />
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-[var(--text-primary)] break-words">
             {t('voice.title', 'PakLingo Regional Voice & Audio Studio')}
           </h1>
           <p className="text-xs text-[var(--text-secondary)]">
@@ -237,7 +386,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
       {/* Honest Capability & Engine Notice Banner */}
       <div
-        className={`p-4 rounded-2xl border text-xs flex items-start gap-3 ${
+        className={`p-4 rounded-2xl border text-xs flex items-start gap-3 min-w-0 ${
           voiceSupport.isSupported
             ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-800 dark:text-emerald-200'
             : 'bg-amber-500/10 border-amber-500/25 text-amber-800 dark:text-amber-200'
@@ -248,8 +397,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
         ) : (
           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
         )}
-        <div className="space-y-1">
-          <div className="font-semibold flex items-center gap-2">
+        <div className="space-y-1 min-w-0">
+          <div className="font-semibold flex flex-wrap items-center gap-2">
             <span>
               {voiceSupport.isSupported
                 ? `Active Speech Profile: ${currentLanguage.nativeName} (${currentLanguage.name})`
@@ -259,12 +408,12 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
               BCP-47: {bcp47}
             </span>
           </div>
-          <p className="text-[11px] opacity-90">{voiceSupport.message}</p>
+          <p className="text-[11px] opacity-90 break-words">{voiceSupport.message}</p>
         </div>
       </div>
 
       {/* Sub-Tabs: Assistant vs TTS vs STT */}
-      <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-2">
         <button
           type="button"
           onClick={() => setActiveTab('assistant')}
@@ -274,7 +423,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
               : 'bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] border border-[var(--border)]'
           }`}
         >
-          <Radio className="w-3.5 h-3.5" />
+          <Radio className="w-3.5 h-3.5 shrink-0" />
           <span>{t('voice.tabAssistant', 'Voice Conversation')}</span>
         </button>
 
@@ -287,7 +436,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
               : 'bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] border border-[var(--border)]'
           }`}
         >
-          <Volume2 className="w-3.5 h-3.5" />
+          <Volume2 className="w-3.5 h-3.5 shrink-0" />
           <span>{t('voice.tabTTS', 'Text-to-Speech (TTS)')}</span>
         </button>
 
@@ -316,22 +465,22 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
               <button
                 type="button"
                 onClick={startListening}
-                disabled={isListening || isLoading}
-                className={`relative w-24 h-24 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-lg active:scale-95 ${
+                disabled={isLoading}
+                className={`relative w-24 h-24 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-lg ${
                   isListening
-                    ? 'bg-rose-600 text-white shadow-rose-500/30'
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/30'
                     : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
                 } disabled:opacity-50`}
-                aria-label="Activate microphone"
+                aria-label={isListening ? 'Stop recording and send' : 'Activate microphone'}
               >
-                {isListening ? <Mic className="w-10 h-10 animate-pulse" /> : <Mic className="w-10 h-10" />}
+                {isListening ? <Square className="w-9 h-9 fill-current" /> : <Mic className="w-10 h-10" />}
               </button>
             </div>
 
             <div className="space-y-1">
               <h3 className="text-base font-bold text-[var(--text-primary)]">
                 {isListening
-                  ? t('voice.listening', 'Listening to your voice...')
+                  ? t('voice.listening', 'Listening... (Click button again when finished)')
                   : isLoading
                   ? t('voice.processing', 'Analyzing and generating response...')
                   : t('voice.clickToSpeak', 'Press to Speak')}

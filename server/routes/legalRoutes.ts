@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getGemini, callWithCandidateModels } from '../geminiService.js';
+import { getGemini, callWithCandidateModels, getFastModelConfig } from '../geminiService.js';
 import { getGlobalLanguageDirective } from '../languageDirectives.js';
 
 export const legalRouter = Router();
@@ -16,8 +16,9 @@ ADDITIONAL LEGAL INSTRUCTION:
 
 // 1. Legal Assistant: Ask a Legal Question
 legalRouter.post('/api/legal/ask', async (req: Request, res: Response) => {
-  const { question, category, context, province, language = 'ur' } = req.body;
-  if (!question || typeof question !== 'string') {
+  const { question: rawQ, query, category, context, province, language = 'ur' } = req.body;
+  const question = (typeof rawQ === 'string' && rawQ.trim()) || (typeof query === 'string' && query.trim()) || '';
+  if (!question) {
     return res.status(400).json({ error: 'Legal question is required.' });
   }
 
@@ -52,13 +53,18 @@ ${getLegalLanguageInstruction(language)}`;
         ai.models.generateContent({
           model: modelName,
           contents: prompt,
-          config: { systemInstruction },
+          config: getFastModelConfig(modelName, { systemInstruction }),
         }),
-      22000
+      16000
     );
     const legalResponse = response.text || '';
     if (legalResponse) {
-      return res.json({ legalResponse });
+      return res.json({
+        legalResponse,
+        guidance: legalResponse,
+        answer: legalResponse,
+        text: legalResponse,
+      });
     }
     return res.status(503).json({ error: 'Unable to process legal question right now.' });
   } catch (err: any) {

@@ -39,10 +39,14 @@ export const LANGUAGE_BCP47_MAP: Record<string, string> = {
   en: 'en-US',
   pa: 'pa-PK',
   sd: 'sd-PK',
-  ps: 'ps-AF',
+  ps: 'ps-PK',
   bal: 'bal-PK',
-  roman_ur: 'ur-Latn',
-  roman: 'ur-Latn',
+  skr: 'ur-PK',
+  hnd: 'ur-PK',
+  ks: 'ur-PK',
+  brh: 'ur-PK',
+  roman_ur: 'ur-PK',
+  roman: 'ur-PK',
 };
 
 export function getLanguageBCP47(lang: string): string {

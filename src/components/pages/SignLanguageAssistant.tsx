@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { AudioControlBar } from '../AudioControlBar';
 
 interface SignLanguageAssistantProps {
   selectedLanguage: LanguageCode;
@@ -59,7 +60,7 @@ export const SignLanguageAssistant: React.FC<SignLanguageAssistantProps> = ({ se
 
   return (
     <div
-      className="max-w-4xl mx-auto space-y-6 py-4"
+      className="w-full space-y-6 py-4"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <div className="flex items-center gap-3">
@@ -136,6 +137,11 @@ export const SignLanguageAssistant: React.FC<SignLanguageAssistantProps> = ({ se
       {/* Result Card */}
       {result && (
         <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
+          <AudioControlBar
+            text={result.explanation || result.breakdown || result.answer || result.text || ''}
+            language={selectedLanguage}
+            label={`${currentLanguage.nativeName} PSL Audio Guide`}
+          />
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-[var(--text-primary)]">
               {t('psl.breakdownHeading', 'PSL Gesture Breakdown & Description')}

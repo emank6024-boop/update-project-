@@ -22,9 +22,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme, ACCENT_PRESETS } from '../../context/ThemeContext';
 import { signInWithGooglePopup } from '../../lib/firebase';
 import { AnimatedBackground } from './AnimatedBackground';
+import { PakLingoLogo } from '../PakLingoLogo';
 
 // Official multi-color Google G icon
 const GoogleIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
@@ -79,7 +80,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     isRTL,
     t,
   } = useLanguage();
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, toggleTheme, accentId, setAccentPreset } = useTheme();
 
   const currentLanguage = propSelectedLanguage || ctxSelectedLanguage;
   const handleLanguageChange = (lang: any) => {
@@ -440,29 +441,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 shrink-0 flex items-center justify-between relative z-20">
         {/* Brand Logo & Name */}
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 border border-emerald-400/30">
-            <svg
-              viewBox="0 0 24 24"
-              className="w-4.5 h-4.5 fill-current"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M14.5 4.5a8 8 0 1 0 0 15 8.5 8.5 0 1 1 0-15z" />
-              <polygon points="17,7 18,9 20.2,9 18.5,10.5 19.1,12.7 17,11.3 14.9,12.7 15.5,10.5 13.8,9 16,9" />
-            </svg>
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-base sm:text-lg tracking-tight text-[var(--text-primary)]">
-                PakLingo
-              </span>
-              <span className="text-[10px] font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-2xs">
-                AI
-              </span>
-            </div>
-            <span className="hidden sm:block text-[10px] text-[var(--text-muted)] font-medium">
-              AI for Pakistan's Languages
-            </span>
-          </div>
+          <PakLingoLogo
+            size="md"
+            showTagline={true}
+            taglineText="AI for Pakistan's Languages"
+          />
         </div>
 
         {/* Right Header Controls */}
@@ -486,6 +469,30 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 <option value="bal">بلوچی (Balochi)</option>
               </select>
             </div>
+          </div>
+
+          {/* Quick Accent Color Swatches */}
+          <div
+            role="group"
+            aria-label="Select Accent Color"
+            className="hidden md:flex items-center gap-1 bg-[var(--surface)] border border-[var(--border)] rounded-xl px-2 py-1 shadow-2xs"
+          >
+            {ACCENT_PRESETS.slice(0, 6).map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => setAccentPreset(preset.id)}
+                title={`${preset.name} theme color`}
+                aria-label={`${preset.name} accent color`}
+                aria-pressed={accentId === preset.id}
+                className={`theme-swatch keep-white w-4 h-4 rounded-full border transition-transform cursor-pointer ${
+                  accentId === preset.id
+                    ? 'scale-115 ring-2 ring-[var(--focus-ring)] border-white'
+                    : 'border-black/20 hover:scale-110'
+                }`}
+                style={{ backgroundColor: preset.hex }}
+              />
+            ))}
           </div>
 
           {/* Functional Dark/Light Mode Toggle */}
@@ -589,9 +596,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             {authSuccess && (
               <div
                 id="auth-success-banner"
-                className="mb-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-600 dark:text-emerald-300 flex items-start gap-2 text-left animate-in fade-in"
+                className="keep-emerald status-success mb-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300 flex items-start gap-2 text-left animate-in fade-in"
               >
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <CheckCircle2 className="keep-emerald w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <span className="font-medium leading-tight text-[11px] flex-1">{authSuccess}</span>
               </div>
             )}

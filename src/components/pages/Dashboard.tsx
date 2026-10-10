@@ -77,7 +77,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectPage }) => {
 
   return (
     <div
-      className="max-w-6xl mx-auto space-y-8 py-4 px-2"
+      className="w-full space-y-8 py-4"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       {/* 1. WELCOME HEADER */}
