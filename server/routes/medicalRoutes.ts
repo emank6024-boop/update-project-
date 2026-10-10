@@ -14,8 +14,9 @@ Provide empathetic, clear public health advice. You may include common clinical 
 
 // Medical Assistant 1: Ask a Health Question
 medicalRouter.post('/api/medical/ask', async (req: Request, res: Response) => {
-  const { question, language = 'en' } = req.body;
-  if (!question || typeof question !== 'string') {
+  const { question, query: queryParam, language = 'en' } = req.body;
+  const targetQuestion = (typeof question === 'string' && question.trim()) || (typeof queryParam === 'string' && queryParam.trim());
+  if (!targetQuestion) {
     return res.status(400).json({ error: 'Question is required.' });
   }
 
@@ -34,7 +35,7 @@ CRITICAL MEDICAL EDUCATION MANDATES:
 "Notice: Educational information — not a diagnosis or a substitute for a healthcare professional."
 ${getMedicalLanguageInstruction(language)}`;
 
-  const prompt = `Health Question: "${question}"`;
+  const prompt = `Health Question: "${targetQuestion}"`;
 
   try {
     const response = await callWithCandidateModels(

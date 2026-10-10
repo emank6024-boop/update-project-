@@ -16,21 +16,20 @@ interface SignLanguageAssistantProps {
   selectedLanguage: LanguageCode;
 }
 
-const COMMON_PSL_SIGNS = [
-  'السلام علیکم (Greetings)',
-  'شکریہ (Thank you)',
-  'میرا نام علی ہے (My name is Ali)',
-  'پانی چاہیے (Want water)',
-  'ہسپتال کہاں ہے؟ (Where is hospital?)',
-  'مدد چاہیے (Need help)',
-];
-
 export const SignLanguageAssistant: React.FC<SignLanguageAssistantProps> = ({ selectedLanguage }) => {
-  const { isRTL } = useLanguage();
+  const { isRTL, t, currentLanguage } = useLanguage();
   const [text, setText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const commonSigns = [
+    'السلام علیکم (Greetings)',
+    'شکریہ (Thank you)',
+    'پانی چاہیے (Want water)',
+    'ہسپتال کہاں ہے؟ (Where is hospital?)',
+    'مدد چاہیے (Need help)',
+  ];
 
   const handleLookup = async (inputSign?: string) => {
     const query = (inputSign || text).trim();
@@ -59,49 +58,61 @@ export const SignLanguageAssistant: React.FC<SignLanguageAssistantProps> = ({ se
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div
+      className="max-w-4xl mx-auto space-y-6 py-4"
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-600 flex items-center justify-center border border-teal-500/20">
+        <div className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-500/20">
           <HandHelping className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">
-            {isRTL ? 'پاکستان اشاروں کی زبان (Pakistan Sign Language - PSL)' : 'Pakistan Sign Language (PSL) Assistant'}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">
+              {t('psl.title', 'Pakistan Sign Language (PSL) Assistant')}
+            </h1>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-700 dark:text-teal-300 font-bold">
+              {currentLanguage.nativeName}
+            </span>
+          </div>
           <p className="text-xs text-[var(--text-secondary)]">
-            Standardized Deaf Reach & FESF Pakistani Sign Language gestures, hand shapes, and grammar gloss
+            {t(
+              'psl.subtitle',
+              'Interactive PSL dictionary, fingerspelling alphabet, and visual accessibility communication tools'
+            )}
           </p>
         </div>
       </div>
 
-      <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-[var(--text-muted)]">Common Phrases:</span>
-          {COMMON_PSL_SIGNS.map((s, idx) => (
-            <button
-              key={idx}
-              onClick={() => {
-                setText(s);
-                handleLookup(s);
-              }}
-              className="text-xs px-2.5 py-1 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-teal-600 transition-colors"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+      {/* Suggested Signs Strip */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold text-[var(--text-muted)]">
+          {t('psl.commonPhrases', 'Common Phrases')}:
+        </span>
+        {commonSigns.map((sign, idx) => (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => {
+              setText(sign);
+              handleLookup(sign);
+            }}
+            className="px-3 py-1.5 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-secondary)] font-medium transition-all cursor-pointer shadow-2xs"
+          >
+            {sign}
+          </button>
+        ))}
+      </div>
 
+      {/* Search Input */}
+      <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
-            placeholder={
-              isRTL
-                ? 'اردو یا انگریزی میں جملہ یا لفظ درج کریں...'
-                : 'Type any phrase or word to see its PSL physical sign execution...'
-            }
+            placeholder={t('psl.searchPlaceholder', 'Search word or phrase in PSL...')}
             className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden"
           />
           <button
@@ -109,82 +120,30 @@ export const SignLanguageAssistant: React.FC<SignLanguageAssistantProps> = ({ se
             disabled={!text.trim() || isLoading}
             className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
           >
-            <Search className="w-3.5 h-3.5" />
-            <span>{isRTL ? 'اشارہ دیکھیں' : 'Show Signs'}</span>
+            {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            <span>{t('common.search', 'Lookup')}</span>
           </button>
         </div>
       </div>
 
       {error && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {isLoading && (
-        <div className="p-12 text-center text-xs text-[var(--text-muted)]">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-teal-600" />
-          <span>Formulating Pakistani Sign Language hand postures and motion dynamics...</span>
-        </div>
-      )}
-
-      {result && !isLoading && (
-        <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-6">
-          <div className="pb-3 border-b border-[var(--border)]">
-            <span className="text-[10px] uppercase font-bold text-teal-600 tracking-wider">PSL Gloss Order</span>
-            <h3 className="text-base font-bold text-[var(--text-primary)] mt-0.5">{result.pslGloss}</h3>
-            {result.meaning && (
-              <p className="text-xs text-[var(--text-secondary)] mt-1">{result.meaning}</p>
-            )}
+      {/* Result Card */}
+      {result && (
+        <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-[var(--text-primary)]">
+              {t('psl.breakdownHeading', 'PSL Gesture Breakdown & Description')}
+            </h3>
+            <p className="text-xs leading-relaxed text-[var(--text-secondary)] whitespace-pre-wrap">
+              {result.explanation || result.breakdown || result.answer || result.text || ''}
+            </p>
           </div>
-
-          {result.signs && Array.isArray(result.signs) && (
-            <div className="space-y-4">
-              <h4 className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-teal-600" />
-                <span>Physical Gesture Instructions:</span>
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {result.signs.map((sign: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] space-y-2.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm text-[var(--text-primary)]">{sign.word}</span>
-                      <span className="text-xs font-bold text-teal-600">{sign.urdu}</span>
-                    </div>
-
-                    <div className="space-y-1 text-xs">
-                      <p>
-                        <strong className="text-[var(--text-muted)]">Hand Shape:</strong> {sign.handShape}
-                      </p>
-                      <p>
-                        <strong className="text-[var(--text-muted)]">Location:</strong> {sign.location}
-                      </p>
-                      <p>
-                        <strong className="text-[var(--text-muted)]">Movement:</strong> {sign.movement}
-                      </p>
-                      {sign.facialExpression && (
-                        <p>
-                          <strong className="text-[var(--text-muted)]">Facial Expression:</strong>{' '}
-                          {sign.facialExpression}
-                        </p>
-                      )}
-                    </div>
-
-                    {sign.instruction && (
-                      <div className="p-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[11px] text-[var(--text-primary)] font-medium leading-relaxed">
-                        {sign.instruction}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

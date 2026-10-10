@@ -7,6 +7,7 @@ import {
   FileCheck,
   Shield,
   AlertCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -17,20 +18,19 @@ interface LegalAssistantProps {
   selectedLanguage: LanguageCode;
 }
 
-const TOPICS = [
-  'کرایہ نامہ و حقوق (Tenancy Laws)',
-  'ملازمت و تنخواہ کے قوانین (Labor Laws)',
-  'وراثت و تقسیم جائیداد (Inheritance Rights)',
-  'صارفین کے حقوق (Consumer Protection)',
-  'خاندانی و نکاح نامہ امور (Family Law)',
-];
-
 export const LegalAssistant: React.FC<LegalAssistantProps> = ({ selectedLanguage }) => {
-  const { isRTL } = useLanguage();
+  const { isRTL, t, currentLanguage } = useLanguage();
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const topics = [
+    { label: t('legal.tenancy', 'Tenancy & Rent Agreements'), query: 'What are the legal rights of residential tenants and eviction notice requirements in Pakistan?' },
+    { label: t('legal.labor', 'Labor & Employment Rights'), query: 'Explain severance pay, termination notice period, and working hours under Pakistani labor laws' },
+    { label: t('legal.inheritance', 'Inheritance & Succession Laws'), query: 'How is inheritance divided and what is the procedure for obtaining a NADRA Succession Certificate in Pakistan?' },
+    { label: t('legal.consumer', 'Consumer Protection Courts'), query: 'How can a citizen file a claim in Pakistani consumer court against defective goods or services?' },
+  ];
 
   const handleAsk = async (textToSend?: string) => {
     const q = (textToSend || query).trim();
@@ -44,6 +44,7 @@ export const LegalAssistant: React.FC<LegalAssistantProps> = ({ selectedLanguage
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: q,
+          question: q,
           language: selectedLanguage,
         }),
       });
@@ -59,86 +60,93 @@ export const LegalAssistant: React.FC<LegalAssistantProps> = ({ selectedLanguage
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div
+      className="max-w-4xl mx-auto space-y-6 py-4"
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/20">
           <Scale className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">
-            {isRTL ? 'قانونی آگاہی و شہری حقوق (Legal Rights AI)' : 'Legal Rights & Citizen Awareness AI'}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">
+              {t('legal.title', 'Legal Rights & Citizen Awareness')}
+            </h1>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold">
+              {currentLanguage.nativeName}
+            </span>
+          </div>
           <p className="text-xs text-[var(--text-secondary)]">
-            Understand Pakistani laws, residential agreements, workplace rights, and legal procedures in simple terms
+            {t(
+              'legal.subtitle',
+              'Clear explanations of Pakistani laws, tenant rights, labor protections, inheritance, and consumer disputes'
+            )}
           </p>
         </div>
       </div>
 
-      <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-[var(--text-muted)]">Common Topics:</span>
-          {TOPICS.map((t, i) => (
-            <button
-              key={i}
-              onClick={() => {
-                setQuery(t);
-                handleAsk(t);
-              }}
-              className="text-xs px-2.5 py-1 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-emerald-600 transition-colors"
-            >
-              {t}
-            </button>
-          ))}
-        </div>
+      {/* Suggested Topics Strip */}
+      <div className="flex flex-wrap items-center gap-2">
+        {topics.map((tItem, idx) => (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => {
+              setQuery(tItem.query);
+              handleAsk(tItem.query);
+            }}
+            className="px-3 py-1.5 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-secondary)] font-medium transition-all cursor-pointer shadow-2xs"
+          >
+            {tItem.label}
+          </button>
+        ))}
+      </div>
 
+      {/* Search Input */}
+      <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
-            placeholder={
-              isRTL
-                ? 'اپنا قانونی سوال یا مسئلہ یہاں درج کریں...'
-                : 'Ask any legal question (e.g., notice period for tenant eviction, labor rights in Pakistan)...'
-            }
+            placeholder={t(
+              'legal.searchPlaceholder',
+              'Ask about residential tenancy, labor notice periods, inheritance distribution, or consumer court...'
+            )}
             className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden"
           />
           <button
             onClick={() => handleAsk()}
             disabled={!query.trim() || isLoading}
-            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
           >
-            <Search className="w-3.5 h-3.5" />
-            <span>{isRTL ? 'معلوم کریں' : 'Inquire'}</span>
+            {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            <span>{t('legal.inquireBtn', 'Check Legal Information')}</span>
           </button>
         </div>
       </div>
 
       {error && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {isLoading && (
-        <div className="p-12 text-center text-xs text-[var(--text-muted)]">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
-          <span>Consulting Pakistani statutory law and court guidelines...</span>
-        </div>
-      )}
-
-      {result && !isLoading && (
-        <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4">
-          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-800 dark:text-blue-200 text-[11px]">
-            ℹ️ <strong>قانونی وضاحت (Legal Disclaimer):</strong> یہ نظام صرف عام فہم قانونی رہنمائی اور آگاہی فراہم کرتا ہے۔ عدالت میں پیشی یا باضابطہ قانونی چارہ جوئی کے لیے مستند وکیل سے مشورہ کریں۔
+      {/* Result Card */}
+      {result && (
+        <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
+          <div className="prose prose-xs sm:prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {result.guidance || result.answer || result.text || ''}
+            </ReactMarkdown>
           </div>
 
-          <div className="prose prose-xs dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {result.reply || result.guidance || result.text || ''}
-            </ReactMarkdown>
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-200 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{t('legal.disclaimer', 'Notice: Informational guide only. Not formal legal counsel or advocate-client representation. For court litigation, consult a licensed legal advocate.')}</span>
           </div>
         </div>
       )}

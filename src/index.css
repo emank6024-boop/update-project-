@@ -742,9 +742,26 @@ html[data-theme] {
   background: rgba(100, 116, 139, 0.5);
 }
 
-/* 16. Nastaliq Font Support */
+/* 16. Pakistani Regional Scripts Font Support */
+[dir="rtl"] {
+  font-family: 'Noto Sans Arabic', 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+html[data-language="ur"] [dir="rtl"],
+html[data-language="pa"] [dir="rtl"] {
+  font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', system-ui, sans-serif;
+  line-height: 1.75;
+}
+
+html[data-language="sd"] [dir="rtl"],
+html[data-language="ps"] [dir="rtl"],
+html[data-language="bal"] [dir="rtl"] {
+  font-family: 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
+  line-height: 1.7;
+}
+
 .font-urdu {
-  font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
   line-height: 1.8;
 }
 

@@ -77,6 +77,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     selectedLanguage: ctxSelectedLanguage,
     setSelectedLanguage: ctxSetSelectedLanguage,
     isRTL,
+    t,
   } = useLanguage();
   const { isDark, toggleTheme } = useTheme();
 
@@ -549,23 +550,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
 
               <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[var(--text-primary)]">
-                Welcome to PakLingo AI
+                {t('auth.welcomeBack', 'Welcome to PakLingo AI')}
               </h1>
               <p className="text-xs font-semibold text-emerald-400 mt-0.5">
-                AI for Pakistan's Languages
+                {t('brand.tagline', "AI for Pakistan's Languages")}
               </p>
               <p className="text-[11px] text-[var(--text-muted)] mt-0.5 max-w-xs">
                 {specialView === 'forgot-password'
-                  ? 'Enter your email to receive password reset instructions'
+                  ? t('auth.forgotPasswordDesc', 'Enter your email to receive password reset instructions')
                   : specialView === 'reset-password'
-                  ? 'Choose a new secure password for your account'
+                  ? t('auth.resetPasswordDesc', 'Choose a new secure password for your account')
                   : specialView === 'verify-email-pending'
-                  ? 'Confirm your email address to activate your account'
+                  ? t('auth.verifyEmailDesc', 'Confirm your email address to activate your account')
                   : authMode === 'email' && emailTab === 'signup'
-                  ? 'Create an account with email and password'
+                  ? t('auth.joinSubtitle', 'Create an account with email and password')
                   : authMode === 'email'
-                  ? 'Sign in with your email and password'
-                  : 'Select an authentication method to continue'}
+                  ? t('auth.welcomeSubtitle', 'Sign in with your email and password')
+                  : t('auth.selectMethod', 'Select an authentication method to continue')}
               </p>
             </div>
 
@@ -615,12 +616,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   {activeButton === 'google' ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                      <span>Connecting with Google...</span>
+                      <span>{t('auth.loggingIn', 'Connecting with Google...')}</span>
                     </>
                   ) : (
                     <>
                       <GoogleIcon className="w-4 h-4" />
-                      <span>Continue with Google</span>
+                      <span>{t('auth.continueGoogle', 'Continue with Google')}</span>
                     </>
                   )}
                 </button>
@@ -638,8 +639,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   className="w-full h-11 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] text-white transition-all flex items-center justify-center gap-2.5 text-xs font-semibold shadow-md shadow-emerald-600/25 cursor-pointer border border-emerald-400/30"
                 >
                   <Mail className="w-4 h-4" />
-                  <span>Continue with Email</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-auto opacity-80" />
+                  <span>{t('auth.continueEmail', 'Continue with Email')}</span>
+                  <ArrowRight className={`w-3.5 h-3.5 ml-auto opacity-80 ${isRTL ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Built-in Demo Testing Access INSIDE the card (Zero clipping) */}
@@ -652,7 +653,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       className="inline-flex items-center gap-1.5 text-emerald-400 hover:underline font-semibold cursor-pointer"
                     >
                       <Sparkles className="w-3 h-3 text-emerald-400" />
-                      <span>Try Demo (Student / Faculty)</span>
+                      <span>{t('auth.demoMode', 'Try Demo (Student / Faculty)')}</span>
                     </button>
 
                     <button
@@ -665,7 +666,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       }}
                       className="hover:text-[var(--text-primary)] hover:underline cursor-pointer font-medium text-[var(--text-muted)]"
                     >
-                      Not a member? <span className="text-emerald-400 font-semibold">Sign up</span>
+                      {t('auth.dontHaveAccount', "Don't have an account?")}{' '}
+                      <span className="text-emerald-400 font-semibold">{t('auth.signUp', 'Sign up')}</span>
                     </button>
                   </div>
 
@@ -679,7 +681,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       className="py-1 px-2.5 rounded-lg bg-[var(--surface-secondary)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[10px] font-semibold text-[var(--text-primary)] hover:border-emerald-500/50 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
                     >
                       <BookOpen className="w-3 h-3 text-emerald-400" />
-                      <span>Demo Student</span>
+                      <span>{t('auth.demoStudent', 'Demo Student')}</span>
                     </button>
                     <button
                       type="button"
@@ -689,7 +691,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       className="py-1 px-2.5 rounded-lg bg-[var(--surface-secondary)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[10px] font-semibold text-[var(--text-primary)] hover:border-emerald-500/50 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
                     >
                       <GraduationCap className="w-3 h-3 text-emerald-400" />
-                      <span>Demo Faculty</span>
+                      <span>{t('auth.demoFaculty', 'Demo Faculty')}</span>
                     </button>
                   </div>
                 </div>
@@ -712,8 +714,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     }}
                     className="flex items-center gap-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                   >
-                    <ArrowLeft className="w-3 h-3" />
-                    <span>Back to all options</span>
+                    <ArrowLeft className={`w-3 h-3 ${isRTL ? 'rotate-180' : ''}`} />
+                    <span>{t('auth.backToLogin', 'Back to all options')}</span>
                   </button>
 
                   {/* Tab Selector */}
@@ -732,7 +734,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                       }`}
                     >
-                      Sign In
+                      {t('auth.signIn', 'Sign In')}
                     </button>
                     <button
                       type="button"
@@ -748,7 +750,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                       }`}
                     >
-                      Create Account
+                      {t('auth.signUp', 'Create Account')}
                     </button>
                   </div>
                 </div>
@@ -762,10 +764,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         htmlFor="email-input"
                         className="text-[11px] font-semibold text-[var(--text-secondary)]"
                       >
-                        Email Address
+                        {t('auth.emailAddress', 'Email Address')}
                       </label>
                       <div className="relative">
-                        <Mail className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <Mail className={`w-3.5 h-3.5 text-[var(--text-muted)] absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 pointer-events-none`} />
                         <input
                           type="email"
                           id="email-input"
@@ -773,7 +775,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="you@example.com"
-                          className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                          className={`w-full ${isRTL ? 'pr-9 pl-3' : 'pl-9 pr-3'} py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors`}
                         />
                       </div>
                     </div>
@@ -785,7 +787,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                           htmlFor="password-input"
                           className="text-[11px] font-semibold text-[var(--text-secondary)]"
                         >
-                          Password
+                          {t('auth.password', 'Password')}
                         </label>
                         <button
                           type="button"
@@ -798,11 +800,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                           }}
                           className="text-[11px] text-emerald-400 hover:underline cursor-pointer font-medium"
                         >
-                          Forgot Password?
+                          {t('auth.forgotPassword', 'Forgot Password?')}
                         </button>
                       </div>
                       <div className="relative">
-                        <Lock className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <Lock className={`w-3.5 h-3.5 text-[var(--text-muted)] absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 pointer-events-none`} />
                         <input
                           type={showPassword ? 'text' : 'password'}
                           id="password-input"
@@ -810,12 +812,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full pl-9 pr-9 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                          className={`w-full ${isRTL ? 'pr-9 pl-9' : 'pl-9 pr-9'} py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors`}
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                          className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer`}
                           aria-label={showPassword ? 'Hide password' : 'Show password'}
                         >
                           {showPassword ? (
@@ -837,7 +839,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                           onChange={(e) => setRememberMe(e.target.checked)}
                           className="w-3.5 h-3.5 rounded-sm border-[var(--border)] text-emerald-600 focus:ring-emerald-500"
                         />
-                        <span>Remember my email</span>
+                        <span>{t('auth.rememberMe', 'Remember my email')}</span>
                       </label>
                     </div>
 
@@ -851,19 +853,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       {activeButton === 'email' ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Verifying credentials...</span>
+                          <span>{t('auth.loggingIn', 'Verifying credentials...')}</span>
                         </>
                       ) : (
                         <>
-                          <span>Sign In to PakLingo AI</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          <span>{t('auth.signIn', 'Sign In to PakLingo AI')}</span>
+                          <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
                         </>
                       )}
                     </button>
 
                     {/* Bottom link: Not a member? Create account */}
                     <div className="pt-1.5 text-center text-[11px] text-[var(--text-muted)]">
-                      <span>Not a member? </span>
+                      <span>{t('auth.dontHaveAccount', "Don't have an account?")} </span>
                       <button
                         type="button"
                         onClick={() => {
@@ -873,7 +875,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         }}
                         className="text-emerald-400 hover:underline font-semibold cursor-pointer"
                       >
-                        Create account
+                        {t('auth.signUp', 'Create account')}
                       </button>
                     </div>
                   </form>
@@ -888,17 +890,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         htmlFor="signup-name-input"
                         className="text-[11px] font-semibold text-[var(--text-secondary)]"
                       >
-                        Full Name
+                        {t('auth.fullName', 'Full Name')}
                       </label>
                       <div className="relative">
-                        <User className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <User className={`w-3.5 h-3.5 text-[var(--text-muted)] absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 pointer-events-none`} />
                         <input
                           type="text"
                           id="signup-name-input"
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                           placeholder="Fatima Ali"
-                          className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                          className={`w-full ${isRTL ? 'pr-9 pl-3' : 'pl-9 pr-3'} py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors`}
                         />
                       </div>
                     </div>
@@ -908,10 +910,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         htmlFor="signup-email-input"
                         className="text-[11px] font-semibold text-[var(--text-secondary)]"
                       >
-                        Email Address
+                        {t('auth.emailAddress', 'Email Address')}
                       </label>
                       <div className="relative">
-                        <Mail className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <Mail className={`w-3.5 h-3.5 text-[var(--text-muted)] absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 pointer-events-none`} />
                         <input
                           type="email"
                           id="signup-email-input"
@@ -919,7 +921,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="you@example.com"
-                          className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                          className={`w-full ${isRTL ? 'pr-9 pl-3' : 'pl-9 pr-3'} py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors`}
                         />
                       </div>
                     </div>
@@ -931,10 +933,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                           htmlFor="signup-password-input"
                           className="text-[11px] font-semibold text-[var(--text-secondary)]"
                         >
-                          Password
+                          {t('auth.password', 'Password')}
                         </label>
                         <div className="relative">
-                          <Lock className="w-3 h-3 text-[var(--text-muted)] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <Lock className={`w-3 h-3 text-[var(--text-muted)] absolute ${isRTL ? 'right-2' : 'left-2'} top-1/2 -translate-y-1/2 pointer-events-none`} />
                           <input
                             type={showPassword ? 'text' : 'password'}
                             id="signup-password-input"
@@ -942,12 +944,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Min 6 chars"
-                            className="w-full pl-7 pr-6 py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                            className={`w-full ${isRTL ? 'pr-7 pl-6' : 'pl-7 pr-6'} py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors`}
                           />
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                            className={`absolute ${isRTL ? 'left-1.5' : 'right-1.5'} top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer`}
                           >
                             {showPassword ? (
                               <EyeOff className="w-3 h-3" />
@@ -963,10 +965,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                           htmlFor="signup-confirm-password-input"
                           className="text-[11px] font-semibold text-[var(--text-secondary)]"
                         >
-                          Confirm
+                          {t('auth.confirmPassword', 'Confirm')}
                         </label>
                         <div className="relative">
-                          <Lock className="w-3 h-3 text-[var(--text-muted)] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <Lock className={`w-3 h-3 text-[var(--text-muted)] absolute ${isRTL ? 'right-2' : 'left-2'} top-1/2 -translate-y-1/2 pointer-events-none`} />
                           <input
                             type={showConfirmPassword ? 'text' : 'password'}
                             id="signup-confirm-password-input"
@@ -974,12 +976,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             placeholder="Repeat"
-                            className="w-full pl-7 pr-6 py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                            className={`w-full ${isRTL ? 'pr-7 pl-6' : 'pl-7 pr-6'} py-1.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors`}
                           />
                           <button
                             type="button"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                            className={`absolute ${isRTL ? 'left-1.5' : 'right-1.5'} top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer`}
                           >
                             {showConfirmPassword ? (
                               <EyeOff className="w-3 h-3" />
@@ -1001,19 +1003,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       {activeButton === 'email' ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Creating account securely...</span>
+                          <span>{t('auth.signingUp', 'Creating account securely...')}</span>
                         </>
                       ) : (
                         <>
-                          <span>Create Account & Continue</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          <span>{t('auth.signUp', 'Create Account & Continue')}</span>
+                          <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
                         </>
                       )}
                     </button>
 
                     {/* Already have an account link */}
                     <div className="pt-1.5 text-center text-[11px] text-[var(--text-muted)]">
-                      <span>Already a member? </span>
+                      <span>{t('auth.alreadyHaveAccount', 'Already a member?')} </span>
                       <button
                         type="button"
                         onClick={() => {
@@ -1023,7 +1025,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         }}
                         className="text-emerald-400 hover:underline font-semibold cursor-pointer"
                       >
-                        Sign in
+                        {t('auth.signIn', 'Sign in')}
                       </button>
                     </div>
                   </form>
@@ -1038,7 +1040,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <form onSubmit={handleForgotPasswordSubmit} className="space-y-2.5 text-left">
                 <div className="flex items-center justify-between pb-0.5">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                    Reset Password
+                    {t('auth.resetPassword', 'Reset Password')}
                   </span>
                   <button
                     type="button"
@@ -1051,7 +1053,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     }}
                     className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                   >
-                    ← Back to Sign In
+                    {isRTL ? `← ${t('auth.backToLogin', 'Back to Sign In')}` : `← ${t('auth.backToLogin', 'Back to Sign In')}`}
                   </button>
                 </div>
 
@@ -1060,10 +1062,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     htmlFor="forgot-email-input"
                     className="text-[11px] font-semibold text-[var(--text-secondary)]"
                   >
-                    Registered Email Address
+                    {t('auth.emailAddress', 'Registered Email Address')}
                   </label>
                   <div className="relative">
-                    <Mail className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Mail className={`w-3.5 h-3.5 text-[var(--text-muted)] absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 pointer-events-none`} />
                     <input
                       type="email"
                       id="forgot-email-input"
@@ -1071,7 +1073,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                      className={`w-full ${isRTL ? 'pr-9 pl-3' : 'pl-9 pr-3'} py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors`}
                     />
                   </div>
                 </div>
@@ -1085,12 +1087,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   {activeButton === 'reset' ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Sending instructions...</span>
+                      <span>{t('auth.sendingInstructions', 'Sending instructions...')}</span>
                     </>
                   ) : (
                     <>
-                      <span>Send Password Reset Link</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <span>{t('auth.sendResetLink', 'Send Password Reset Link')}</span>
+                      <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
                     </>
                   )}
                 </button>
@@ -1104,7 +1106,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <form onSubmit={handleResetPasswordSubmit} className="space-y-2 text-left">
                 <div className="flex items-center justify-between pb-0.5">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                    New Password
+                    {t('auth.resetPassword', 'New Password')}
                   </span>
                   <button
                     type="button"
@@ -1116,7 +1118,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     }}
                     className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                   >
-                    Cancel
+                    {t('common.cancel', 'Cancel')}
                   </button>
                 </div>
 
@@ -1125,10 +1127,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     htmlFor="reset-new-password-input"
                     className="text-[11px] font-semibold text-[var(--text-secondary)]"
                   >
-                    Enter New Password
+                    {t('auth.password', 'Enter New Password')}
                   </label>
                   <div className="relative">
-                    <Lock className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Lock className={`w-3.5 h-3.5 text-[var(--text-muted)] absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 pointer-events-none`} />
                     <input
                       type="password"
                       id="reset-new-password-input"
@@ -1136,7 +1138,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Minimum 6 characters"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                      className={`w-full ${isRTL ? 'pr-9 pl-3' : 'pl-9 pr-3'} py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors`}
                     />
                   </div>
                 </div>
@@ -1146,10 +1148,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     htmlFor="reset-confirm-password-input"
                     className="text-[11px] font-semibold text-[var(--text-secondary)]"
                   >
-                    Confirm New Password
+                    {t('auth.confirmPassword', 'Confirm New Password')}
                   </label>
                   <div className="relative">
-                    <Lock className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Lock className={`w-3.5 h-3.5 text-[var(--text-muted)] absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 pointer-events-none`} />
                     <input
                       type="password"
                       id="reset-confirm-password-input"
@@ -1157,7 +1159,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       value={confirmNewPassword}
                       onChange={(e) => setConfirmNewPassword(e.target.value)}
                       placeholder="Repeat password"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                      className={`w-full ${isRTL ? 'pr-9 pl-3' : 'pl-9 pr-3'} py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors`}
                     />
                   </div>
                 </div>
@@ -1171,12 +1173,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   {activeButton === 'reset' ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Updating password...</span>
+                      <span>{t('auth.updatingPassword', 'Updating password...')}</span>
                     </>
                   ) : (
                     <>
-                      <span>Save & Sign In</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <span>{t('auth.signIn', 'Save & Sign In')}</span>
+                      <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? 'rotate-180' : ''}`} />
                     </>
                   )}
                 </button>
@@ -1193,10 +1195,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     <Mail className="w-4.5 h-4.5 text-emerald-400" />
                   </div>
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                    Verify Your Email Address
+                    {t('auth.verifyEmail', 'Verify Your Email Address')}
                   </h3>
                   <p className="text-[11px] text-[var(--text-muted)] leading-tight">
-                    Verification link sent to{' '}
+                    {t('auth.verificationSentTo', 'Verification link sent to')}{' '}
                     <strong className="text-[var(--text-primary)] font-semibold">
                       {pendingVerificationEmail || email || 'your email'}
                     </strong>
@@ -1213,12 +1215,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     {isVerifying ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Verifying...</span>
+                        <span>{t('auth.verifying', 'Verifying...')}</span>
                       </>
                     ) : (
                       <>
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Confirm & Verify Email Now</span>
+                        <span>{t('auth.verifyNow', 'Confirm & Verify Email Now')}</span>
                       </>
                     )}
                   </button>
@@ -1230,7 +1232,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       className="text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
                     >
                       <RefreshCw className="w-3 h-3" />
-                      <span>Resend email</span>
+                      <span>{t('auth.resendLink', 'Resend email')}</span>
                     </button>
                   </div>
                 </div>
@@ -1240,7 +1242,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   onClick={onLoginSuccess}
                   className="w-full py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-xs font-semibold text-[var(--text-primary)] text-center cursor-pointer transition-colors"
                 >
-                  Continue to PakLingo AI
+                  {t('common.continue', 'Continue to PakLingo AI')}
                 </button>
               </div>
             )}
@@ -1287,10 +1289,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
-                    PakLingo AI Demo Mode
+                    {t('auth.demoMode', 'PakLingo AI Demo Mode')}
                   </h3>
                   <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30 uppercase tracking-wider">
-                    Testing Only
+                    {t('common.testingOnly', 'Testing Only')}
                   </span>
                 </div>
               </div>
@@ -1308,11 +1310,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-600 dark:text-amber-300 space-y-1">
               <p className="font-semibold flex items-center gap-1.5">
                 <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
-                Notice & Disclaimer
+                {t('common.noticeDisclaimer', 'Notice & Disclaimer')}
               </p>
               <p className="text-[11px] leading-relaxed opacity-90">
-                Demo accounts provide instant pre-populated access for evaluation and demonstration.
-                Changes made in demo mode are simulated and separate from production accounts.
+                {t('auth.demoDisclaimer', 'Demo accounts provide instant pre-populated access for evaluation and demonstration. Changes made in demo mode are simulated and separate from production accounts.')}
               </p>
             </div>
 
@@ -1331,14 +1332,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-[var(--text-primary)]">
-                      Student Experience
+                      {t('auth.demoStudent', 'Student Experience')}
                     </h4>
                     <span className="text-[10px] text-emerald-400 font-semibold group-hover:translate-x-0.5 transition-transform">
-                      Launch →
+                      {t('common.launch', 'Launch →')}
                     </span>
                   </div>
                   <p className="text-[11px] text-[var(--text-muted)] truncate">
-                    Access learning exercises, speech drills, and vocabulary quizzes.
+                    {t('auth.studentExpDesc', 'Access learning exercises, speech drills, and vocabulary quizzes.')}
                   </p>
                 </div>
               </button>
@@ -1356,14 +1357,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-[var(--text-primary)]">
-                      Faculty / Instructor
+                      {t('auth.demoFaculty', 'Faculty / Instructor')}
                     </h4>
                     <span className="text-[10px] text-teal-400 font-semibold group-hover:translate-x-0.5 transition-transform">
-                      Launch →
+                      {t('common.launch', 'Launch →')}
                     </span>
                   </div>
                   <p className="text-[11px] text-[var(--text-muted)] truncate">
-                    Explore grading, rubric builder, curriculum analytics, and classroom tools.
+                    {t('auth.facultyExpDesc', 'Explore grading, rubric builder, curriculum analytics, and classroom tools.')}
                   </p>
                 </div>
               </button>
@@ -1376,7 +1377,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 onClick={() => setIsDemoModalOpen(false)}
                 className="px-3.5 py-1.5 rounded-xl border border-[var(--border)] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
               >
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </button>
             </div>
           </div>

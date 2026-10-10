@@ -8,6 +8,7 @@ import {
   Sparkles,
   ShieldAlert,
   AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -19,7 +20,7 @@ interface MedicalAssistantProps {
 }
 
 export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLanguage }) => {
-  const { isRTL } = useLanguage();
+  const { isRTL, t, currentLanguage } = useLanguage();
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -35,6 +36,7 @@ export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLang
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          question: query.trim(),
           query: query.trim(),
           language: selectedLanguage,
         }),
@@ -51,17 +53,28 @@ export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLang
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div
+      className="max-w-4xl mx-auto space-y-6 py-4"
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 flex items-center justify-center border border-rose-500/20">
           <HeartPulse className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">
-            {isRTL ? 'صحت و فوری طبی رہنمائی (Health Triage)' : 'Health Guidance & First-Aid Triage'}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">
+              {t('medical.title', 'Health Guidance & First-Aid Triage')}
+            </h1>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 font-bold">
+              {currentLanguage.nativeName}
+            </span>
+          </div>
           <p className="text-xs text-[var(--text-secondary)]">
-            Plain-language symptom guidance, first aid instructions, and 24/7 emergency hotline access
+            {t(
+              'medical.subtitle',
+              'Plain-language symptom guidance, first aid instructions, and 24/7 emergency hotline access'
+            )}
           </p>
         </div>
       </div>
@@ -70,17 +83,17 @@ export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLang
       <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs">
           <ShieldAlert className="w-4 h-4" />
-          <span>ایمرجنسی صورتحال میں فوری رابطہ کریں:</span>
+          <span>{t('medical.emergencyNotice', 'In life-threatening medical emergencies, call immediately:')}</span>
         </div>
         <div className="flex items-center gap-4 text-xs font-semibold">
           <a href="tel:1122" className="flex items-center gap-1.5 text-rose-600 hover:underline">
-            <PhoneCall className="w-3.5 h-3.5" /> Rescue 1122
+            <PhoneCall className="w-3.5 h-3.5" /> {t('medical.rescue1122', 'Rescue 1122')}
           </a>
           <a href="tel:115" className="flex items-center gap-1.5 text-rose-600 hover:underline">
-            <PhoneCall className="w-3.5 h-3.5" /> Edhi 115
+            <PhoneCall className="w-3.5 h-3.5" /> {t('medical.edhi115', 'Edhi 115')}
           </a>
           <a href="tel:1020" className="flex items-center gap-1.5 text-rose-600 hover:underline">
-            <PhoneCall className="w-3.5 h-3.5" /> Chhipa 1020
+            <PhoneCall className="w-3.5 h-3.5" /> {t('medical.chhipa1020', 'Chhipa 1020')}
           </a>
         </div>
       </div>
@@ -93,11 +106,10 @@ export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLang
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
-            placeholder={
-              isRTL
-                ? 'علامات، ابتدائی طبی امداد یا احتیاطی تدابیر کے بارے میں لکھیں...'
-                : 'Describe symptoms or ask about first-aid care (e.g., heatstroke first aid, dengue fever precautions)...'
-            }
+            placeholder={t(
+              'medical.searchPlaceholder',
+              'Describe symptoms or ask about first-aid care (e.g., heatstroke first aid, dengue fever precautions)...'
+            )}
             className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden"
           />
           <button
@@ -105,36 +117,31 @@ export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLang
             disabled={!query.trim() || isLoading}
             className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
           >
-            <Search className="w-3.5 h-3.5" />
-            <span>{isRTL ? 'رہنمائی لیں' : 'Inquire'}</span>
+            {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            <span>{t('medical.inquireBtn', 'Inquire Health Guide')}</span>
           </button>
         </div>
       </div>
 
       {error && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {isLoading && (
-        <div className="p-12 text-center text-xs text-[var(--text-muted)]">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-rose-600" />
-          <span>Formulating medical safety guidance...</span>
-        </div>
-      )}
-
-      {result && !isLoading && (
-        <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4">
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-200 text-[11px]">
-            ⚠️ <strong>طبی انتباہ (Medical Disclaimer):</strong> یہ معلومات صرف ابتدائی آگاہی اور ہنگامی معاونت کے لیے ہیں۔ کسی بھی شدید بیماری یا تکلیف کی صورت میں مستند ڈاکٹر یا ہسپتال سے رجوع کریں۔
+      {/* Result Card */}
+      {result && (
+        <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
+          <div className="prose prose-xs sm:prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {result.answer || result.guidance || result.text || ''}
+            </ReactMarkdown>
           </div>
 
-          <div className="prose prose-xs dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {result.reply || result.advisory || result.text || ''}
-            </ReactMarkdown>
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-200 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{t('medical.disclaimer', 'Notice: Informational guidance only. Not a medical prescription. Consult a licensed doctor.')}</span>
           </div>
         </div>
       )}

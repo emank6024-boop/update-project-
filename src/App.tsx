@@ -21,8 +21,11 @@ import { SignLanguageAssistant } from './components/pages/SignLanguageAssistant'
 import { VoiceAssistant } from './components/pages/VoiceAssistant';
 import { Dashboard } from './components/pages/Dashboard';
 import { Settings } from './components/pages/Settings';
-import { ToolsPage } from './components/pages/ToolsPage';
 import { HistoryPage } from './components/pages/HistoryPage';
+import { BlogPage } from './components/pages/BlogPage';
+import { ToolsPage } from './components/pages/ToolsPage';
+import { StudentDashboard } from './components/pages/StudentDashboard';
+import { FacultyDashboard } from './components/pages/FacultyDashboard';
 import { VoiceSettingsProvider } from './context/VoiceSettingsContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
@@ -35,12 +38,60 @@ import { Mail, X, AlertCircle, RefreshCw, Clock, Lock, LogIn } from 'lucide-reac
 
 function AppContent() {
   const { user, isAuthenticated, resendVerification } = useAuth();
-  const { selectedLanguage, setSelectedLanguage, isRTL } = useLanguage();
+  const { selectedLanguage, setSelectedLanguage, isRTL, t } = useLanguage();
   const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
   const [dismissVerifyBanner, setDismissVerifyBanner] = useState(false);
-  const [currentPage, setCurrentPage] = useState<PageId>('home');
+  const getPageFromUrl = (): PageId => {
+    if (typeof window === 'undefined') return 'home';
+    const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+    const map: Record<string, PageId> = {
+      '': 'home',
+      'home': 'home',
+      'translate': 'translate',
+      'translator': 'translate',
+      'voice': 'voice-assistant',
+      'voice-assistant': 'voice-assistant',
+      'tts-stt': 'tts-stt',
+      'documents': 'documents',
+      'ocr': 'documents',
+      'ocr-documents': 'documents',
+      'medical': 'medical',
+      'legal': 'legal',
+      'student': 'student',
+      'student-dashboard': 'student',
+      'faculty': 'faculty',
+      'faculty-dashboard': 'faculty',
+      'teacher': 'teacher',
+      'blog': 'blog',
+      'settings': 'settings',
+      'profile': 'settings',
+      'chat': 'chat',
+      'ai-assistant': 'chat',
+      'government': 'government',
+      'farmer': 'farmer',
+      'fake-news': 'fake-news',
+      'sign-language': 'sign-language',
+      'history': 'history',
+      'dashboard': 'dashboard',
+    };
+    return map[hash] || 'home';
+  };
+
+  const [currentPage, setCurrentPage] = useState<PageId>(getPageFromUrl);
   const [initialAssistantPrompt, setInitialAssistantPrompt] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const handleUrlChange = () => {
+      setCurrentPage(getPageFromUrl());
+    };
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+    };
+  }, []);
 
   // Modal Auth State: opens LoginScreen as an overlay without forcing early return
   const [intendedPage, setIntendedPage] = useState<PageId | null>(null);
@@ -71,6 +122,12 @@ function AppContent() {
       return;
     }
     setCurrentPage(targetPage);
+    if (typeof window !== 'undefined') {
+      const hash = targetPage === 'home' ? '' : `#${targetPage}`;
+      if (window.location.hash !== hash) {
+        window.history.pushState(null, '', hash || window.location.pathname);
+      }
+    }
   };
 
   const handleLoginSuccess = () => {
@@ -145,12 +202,6 @@ function AppContent() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage]);
-
-  // Synchronize document dir and lang with selected language for proper Urdu RTL support
-  useEffect(() => {
-    document.documentElement.lang = selectedLanguage;
-    document.documentElement.dir = selectedLanguage === 'ur' ? 'rtl' : 'ltr';
-  }, [selectedLanguage]);
 
   // Handle font size class
   const fontSizeClass =
@@ -309,12 +360,10 @@ function AppContent() {
                 <Clock className="w-7 h-7" />
               </div>
               <h2 className="text-xl font-bold text-[var(--text-primary)]">
-                {isRTL ? 'لاگ ان درکار ہے' : 'Sign In Required'}
+                {t('auth.loginRequired', 'Sign In Required')}
               </h2>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                {isRTL
-                  ? 'آپ کی سابقہ گفتگو، محفوظ شدہ ترجمے اور ریکارڈز صرف لاگ ان صارفین کے لیے دستیاب ہیں۔ براہ کرم اپنا اکاؤنٹ لاگ ان کریں۔'
-                  : 'Your activity history, recent chats, and translations are securely stored with your account. Sign in or create a free account to view your history.'}
+                {t('auth.loginRequiredDesc', 'Your activity history, recent chats, and translations are securely stored with your account. Sign in or create a free account to view your history.')}
               </p>
               <div className="pt-2 flex flex-wrap justify-center gap-3">
                 <button
@@ -326,22 +375,34 @@ function AppContent() {
                   }}
                   className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
                 >
-                  {isRTL ? 'لاگ ان / اکاؤنٹ بنائیں' : 'Sign In / Create Account'}
+                  {t('auth.signInOrCreate', 'Sign In / Create Account')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setCurrentPage('home')}
                   className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] text-xs font-medium hover:bg-[var(--surface-hover)] active:scale-95 transition-all cursor-pointer"
                 >
-                  {isRTL ? 'ہوم پیج پر واپس جائیں' : 'Return to Home'}
+                  {t('common.backToHome', 'Return to Home')}
                 </button>
               </div>
             </div>
           )
         )}
 
+        {currentPage === 'blog' && (
+          <BlogPage onSelectPage={handleSelectPage} />
+        )}
+
         {currentPage === 'government' && (
           <GovernmentAssistant selectedLanguage={selectedLanguage} />
+        )}
+
+        {(currentPage === 'student' || currentPage === 'student-dashboard') && (
+          <StudentDashboard onSelectPage={handleSelectPage} selectedLanguage={selectedLanguage} />
+        )}
+
+        {(currentPage === 'faculty' || currentPage === 'faculty-dashboard') && (
+          <FacultyDashboard onSelectPage={handleSelectPage} selectedLanguage={selectedLanguage} />
         )}
 
         {currentPage === 'teacher' && (
@@ -368,8 +429,11 @@ function AppContent() {
           <SignLanguageAssistant selectedLanguage={selectedLanguage} />
         )}
 
-        {currentPage === 'voice-assistant' && (
-          <VoiceAssistant selectedLanguage={selectedLanguage} />
+        {(currentPage === 'voice-assistant' || currentPage === 'voice' || currentPage === 'tts-stt') && (
+          <VoiceAssistant
+            selectedLanguage={selectedLanguage}
+            initialMode={currentPage === 'tts-stt' ? 'tts' : 'assistant'}
+          />
         )}
 
         {currentPage === 'settings' && (

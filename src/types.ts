@@ -11,18 +11,25 @@ export type PageId =
   | 'documents'
   | 'ocr-documents'
   | 'ocr'
+  | 'voice-assistant'
+  | 'voice'
+  | 'tts-stt'
   | 'government'
   | 'teacher'
+  | 'student'
+  | 'student-dashboard'
+  | 'faculty'
+  | 'faculty-dashboard'
   | 'medical'
   | 'farmer'
   | 'legal'
   | 'fake-news'
   | 'sign-language'
-  | 'voice-assistant'
   | 'dashboard'
   | 'settings'
   | 'tools'
-  | 'history';
+  | 'history'
+  | 'blog';
 
 export type LanguageCode =
   | 'ur'

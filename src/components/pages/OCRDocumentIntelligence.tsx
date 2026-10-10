@@ -19,7 +19,7 @@ interface OCRDocumentIntelligenceProps {
 }
 
 export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = ({ selectedLanguage }) => {
-  const { isRTL } = useLanguage();
+  const { isRTL, t, currentLanguage } = useLanguage();
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [documentText, setDocumentText] = useState('');
@@ -59,133 +59,134 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
       if (!response.ok) {
         throw new Error('Failed to analyze document.');
       }
+
       const data = await response.json();
       setResult(data);
     } catch (err: any) {
-      setError(err.message || 'Error processing document.');
+      setError(err.message || 'Error occurred during document OCR analysis.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
+    <div
+      className="max-w-4xl mx-auto space-y-6 py-4"
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+        <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-500/20">
           <FileText className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">
-            {isRTL ? 'دستاویزات تفہیم و اسکینر (Document Intelligence)' : 'Document Intelligence & Bilingual OCR'}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-[var(--text-primary)]">
+              {t('ocr.title', 'Document OCR & Form Intelligence')}
+            </h1>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold">
+              {currentLanguage.nativeName}
+            </span>
+          </div>
           <p className="text-xs text-[var(--text-secondary)]">
-            Scan and decode CNIC cards, electricity/gas bills, fard records, and legal deeds
+            {t(
+              'ocr.subtitle',
+              'Upload or snap Pakistani identity documents, electricity bills, and legal deeds for instant translation and extraction'
+            )}
           </p>
         </div>
       </div>
 
-      {/* Upload Zone & Text Input */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="p-6 rounded-2xl bg-[var(--surface)] border-2 border-dashed border-[var(--border)] text-center flex flex-col items-center justify-center min-h-[220px]">
-          <input
-            type="file"
-            id="doc-file-upload"
-            accept="image/*,.pdf"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-          <label htmlFor="doc-file-upload" className="cursor-pointer space-y-3 flex flex-col items-center">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <Upload className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-[var(--text-primary)]">
-                {fileName ? fileName : isRTL ? 'تصویر یا دستاویز اپ لوڈ کریں' : 'Upload Document Image (CNIC / Bill)'}
-              </p>
-              <p className="text-[11px] text-[var(--text-muted)]">PNG, JPG, WebP up to 10MB</p>
-            </div>
+      {/* Upload Dropzone */}
+      <div className="p-8 rounded-3xl bg-[var(--surface)] border-2 border-dashed border-[var(--border)] hover:border-purple-500/50 transition-all text-center flex flex-col items-center justify-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+          <Upload className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-bold text-purple-600 hover:text-purple-700 cursor-pointer block">
+            <span>{t('ocr.uploadBox', 'Drag & Drop your document here, or click to browse')}</span>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
           </label>
+          <p className="text-xs text-[var(--text-muted)]">
+            {t('ocr.supports', 'Supports JPG, PNG, PDF (CNIC, WAPDA Bills, Court Deeds)')}
+          </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] flex flex-col min-h-[220px]">
-          <p className="text-xs font-semibold text-[var(--text-primary)] mb-2">
-            {isRTL ? 'یا دستاویز کا متن یہاں درج کریں:' : 'Or Paste Document Text:'}
-          </p>
-          <textarea
-            value={documentText}
-            onChange={(e) => setDocumentText(e.target.value)}
-            placeholder="Paste text snippet or official notice here..."
-            className="flex-1 w-full p-2 bg-transparent resize-none text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden"
-          />
-        </div>
+        {fileName && (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-semibold">
+            <FileCheck className="w-4 h-4" />
+            <span>{fileName}</span>
+          </div>
+        )}
       </div>
 
-      <div className="flex justify-end">
-        <button
-          onClick={handleAnalyze}
-          disabled={(!imageBase64 && !documentText.trim()) || isLoading}
-          className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-2 shadow-xs cursor-pointer"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>{isRTL ? 'دستاویز کا تجزیہ کریں' : 'Analyze & Summarize'}</span>
-        </button>
+      {/* Text Input Alternate */}
+      <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
+        <textarea
+          value={documentText}
+          onChange={(e) => setDocumentText(e.target.value)}
+          placeholder={t(
+            'ocr.pastePlaceholder',
+            'Or paste extracted document text, bill reference number, or CNIC data here...'
+          )}
+          rows={3}
+          className="w-full bg-transparent border-none text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden resize-none font-medium"
+        />
+
+        <div className="flex justify-end pt-2 border-t border-[var(--border)]">
+          <button
+            onClick={handleAnalyze}
+            disabled={(!imageBase64 && !documentText.trim()) || isLoading}
+            className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+          >
+            {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            <span>{t('ocr.scanBtn', 'Extract Document Data')}</span>
+          </button>
+        </div>
       </div>
 
       {error && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Results View */}
+      {/* Result Card */}
       {result && (
-        <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--border)]">
-            <div>
-              <span className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider block">
-                Detected Category:
-              </span>
-              <h3 className="text-base font-bold text-[var(--text-primary)]">
-                {result.documentType || 'Official Pakistani Document'}
-              </h3>
+        <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+            <div className="flex items-center gap-2 text-xs font-bold text-purple-600">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{t('ocr.extractionComplete', 'Document Extraction Complete')}</span>
             </div>
+            <button
+              onClick={() => handleCopy(JSON.stringify(result, null, 2))}
+              className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? t('common.copied', 'Copied!') : t('common.copy', 'Copy Data')}</span>
+            </button>
           </div>
 
-          {result.keyFields && Array.isArray(result.keyFields) && (
-            <div>
-              <h4 className="text-xs font-bold text-[var(--text-primary)] mb-3">Key Extracted Fields:</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {result.keyFields.map((f: any, idx: number) => (
-                  <div key={idx} className="p-3 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)]">
-                    <span className="text-[10px] text-[var(--text-muted)] font-semibold uppercase block">
-                      {f.label}
-                    </span>
-                    <span className="text-xs font-medium text-[var(--text-primary)] block mt-0.5">
-                      {f.value || 'N/A'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <h4 className="text-xs font-bold text-[var(--text-primary)] mb-2">Executive Summary & Rights:</h4>
-            <div className="p-4 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">
-              {result.translatedSummary || result.summary}
-            </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold text-[var(--text-primary)]">
+              {t('ocr.extractedFields', 'Extracted & Translated Fields:')}
+            </h3>
+            <p className="text-xs leading-relaxed text-[var(--text-secondary)] whitespace-pre-wrap font-mono bg-[var(--surface-secondary)] p-4 rounded-xl border border-[var(--border)]">
+              {result.summary || result.analysis || JSON.stringify(result, null, 2)}
+            </p>
           </div>
-
-          {result.extractedText && (
-            <div>
-              <h4 className="text-xs font-bold text-[var(--text-primary)] mb-2">Full Extracted Transcript:</h4>
-              <div className="p-4 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-muted)] max-h-48 overflow-y-auto font-mono whitespace-pre-wrap">
-                {result.extractedText}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

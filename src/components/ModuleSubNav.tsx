@@ -13,8 +13,7 @@ import {
   ShieldCheck,
   HandHelping,
   Mic,
-  Clock,
-  Settings,
+  BookOpen,
   ChevronRight,
   ChevronLeft,
 } from 'lucide-react';
@@ -27,41 +26,47 @@ interface ModuleSubNavProps {
 
 interface SubNavItem {
   id: PageId;
-  label: string;
-  labelUrdu: string;
+  transKey: string;
+  defaultLabel: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 const MODULE_ITEMS: SubNavItem[] = [
-  { id: 'chat', label: 'AI Assistant', labelUrdu: 'اے آئی چیٹ', icon: Bot },
-  { id: 'translate', label: 'Translator', labelUrdu: 'لائیو ترجمہ', icon: Languages },
-  { id: 'documents', label: 'Documents & OCR', labelUrdu: 'دستاویزات', icon: FileText },
-  { id: 'government', label: 'NADRA & Civic', labelUrdu: 'سرکاری خدمات', icon: Building2 },
-  { id: 'farmer', label: 'Farmer AI', labelUrdu: 'کسان معاون', icon: Sprout },
-  { id: 'medical', label: 'Medical Health', labelUrdu: 'طبی امداد', icon: HeartPulse },
-  { id: 'legal', label: 'Legal Rights', labelUrdu: 'قانونی حقوق', icon: Scale },
-  { id: 'teacher', label: 'AI Teacher', labelUrdu: 'تعلیمی استاد', icon: GraduationCap },
-  { id: 'fake-news', label: 'Fact Check', labelUrdu: 'حقائق تصدیق', icon: ShieldCheck },
-  { id: 'sign-language', label: 'Sign Language (PSL)', labelUrdu: 'اشاروں کی زبان', icon: HandHelping },
-  { id: 'voice-assistant', label: 'Voice Mode', labelUrdu: 'صوتی موڈ', icon: Mic },
+  { id: 'chat', transKey: 'module.chat.title', defaultLabel: 'AI Assistant', icon: Bot },
+  { id: 'translate', transKey: 'module.translate.title', defaultLabel: 'Translator', icon: Languages },
+  { id: 'documents', transKey: 'module.documents.title', defaultLabel: 'Documents & OCR', icon: FileText },
+  { id: 'government', transKey: 'module.government.title', defaultLabel: 'NADRA & Civic', icon: Building2 },
+  { id: 'farmer', transKey: 'module.farmer.title', defaultLabel: 'Farmer AI', icon: Sprout },
+  { id: 'medical', transKey: 'module.medical.title', defaultLabel: 'Medical Health', icon: HeartPulse },
+  { id: 'legal', transKey: 'module.legal.title', defaultLabel: 'Legal Rights', icon: Scale },
+  { id: 'student', transKey: 'nav.studentDashboard', defaultLabel: 'Student Hub', icon: GraduationCap },
+  { id: 'faculty', transKey: 'nav.facultyDashboard', defaultLabel: 'Faculty Hub', icon: GraduationCap },
+  { id: 'teacher', transKey: 'module.teacher.title', defaultLabel: 'AI Teacher', icon: GraduationCap },
+  { id: 'fake-news', transKey: 'module.factCheck.title', defaultLabel: 'Fact Check', icon: ShieldCheck },
+  { id: 'sign-language', transKey: 'module.signLanguage.title', defaultLabel: 'Sign Language (PSL)', icon: HandHelping },
+  { id: 'voice-assistant', transKey: 'module.voice.title', defaultLabel: 'Voice & Audio', icon: Mic },
+  { id: 'blog', transKey: 'nav.blog', defaultLabel: 'Blog & Insights', icon: BookOpen },
 ];
 
 export const ModuleSubNav: React.FC<ModuleSubNavProps> = ({ currentPage, onSelectPage }) => {
-  const { isRTL } = useLanguage();
+  const { isRTL, t } = useLanguage();
 
   if (currentPage === 'home') {
     return null;
   }
 
   return (
-    <div className="w-full bg-[var(--surface)] border-b border-[var(--border)] overflow-x-auto no-scrollbar py-2 px-4 shadow-2xs">
+    <div
+      className="w-full bg-[var(--surface)] border-b border-[var(--border)] overflow-x-auto no-scrollbar py-2 px-4 shadow-2xs"
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
       <div className="max-w-7xl mx-auto flex items-center gap-2">
         <button
           onClick={() => onSelectPage('home')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] transition-colors shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] transition-colors shrink-0 cursor-pointer"
         >
           <Home className="w-3.5 h-3.5" />
-          <span>{isRTL ? 'ہوم' : 'Home'}</span>
+          <span>{t('nav.home', 'Home')}</span>
         </button>
 
         <span className="text-[var(--text-muted)] opacity-50 shrink-0">
@@ -81,14 +86,14 @@ export const ModuleSubNav: React.FC<ModuleSubNavProps> = ({ currentPage, onSelec
               <button
                 key={item.id}
                 onClick={() => onSelectPage(item.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 cursor-pointer ${
                   isActive
                     ? 'bg-emerald-600 text-white shadow-xs font-semibold'
                     : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:bg-[var(--border)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
-                <span>{isRTL ? item.labelUrdu : item.label}</span>
+                <span>{t(item.transKey, item.defaultLabel)}</span>
               </button>
             );
           })}
