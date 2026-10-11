@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   FileText,
   Upload,
-  Camera,
   RefreshCw,
   Sparkles,
   CheckCircle2,
@@ -10,10 +9,13 @@ import {
   Copy,
   Check,
   FileCheck,
+  Mic,
+  Square,
 } from 'lucide-react';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { AudioControlBar } from '../AudioControlBar';
+import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 
 interface OCRDocumentIntelligenceProps {
   selectedLanguage: LanguageCode;
@@ -28,6 +30,18 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const {
+    isListening,
+    isTranscribing,
+    error: sttError,
+    toggleListening,
+  } = useSpeechRecognition({
+    language: selectedLanguage,
+    onTranscript: (spokenText) => {
+      setDocumentText((prev) => (prev ? `${prev} ${spokenText}` : spokenText));
+    },
+  });
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,13 +72,13 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
       });
 
       if (!response.ok) {
-        throw new Error('Failed to analyze document.');
+        throw new Error(t('common.error', 'Failed to analyze document.'));
       }
 
       const data = await response.json();
       setResult(data);
     } catch (err: any) {
-      setError(err.message || 'Error occurred during document OCR analysis.');
+      setError(err.message || t('common.error', 'Error occurred during document OCR analysis.'));
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +145,7 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
         )}
       </div>
 
-      {/* Text Input Alternate */}
+      {/* Text Input Alternate with Voice Input */}
       <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3">
         <textarea
           value={documentText}
@@ -144,7 +158,36 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
           className="w-full bg-transparent border-none text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden resize-none font-medium"
         />
 
-        <div className="flex justify-end pt-2 border-t border-[var(--border)]">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border)]">
+          <button
+            type="button"
+            onClick={toggleListening}
+            disabled={isTranscribing}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+              isListening
+                ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                : 'bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] border-[var(--border)]'
+            }`}
+            title={t('assistant.listenControl', 'Voice Input')}
+          >
+            {isListening ? (
+              <>
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>{t('voice.stopBtn', 'Stop')}</span>
+              </>
+            ) : isTranscribing ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>{t('common.loading', 'Transcribing...')}</span>
+              </>
+            ) : (
+              <>
+                <Mic className="w-3.5 h-3.5 text-[var(--accent-text)]" />
+                <span>{t('assistant.mic', 'Mic')}</span>
+              </>
+            )}
+          </button>
+
           <button
             onClick={handleAnalyze}
             disabled={(!imageBase64 && !documentText.trim()) || isLoading}
@@ -156,10 +199,10 @@ export const OCRDocumentIntelligence: React.FC<OCRDocumentIntelligenceProps> = (
         </div>
       </div>
 
-      {error && (
+      {(error || sttError) && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
+          <span>{error || sttError}</span>
         </div>
       )}
 

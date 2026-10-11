@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Languages,
   ArrowRightLeft,
@@ -7,24 +7,23 @@ import {
   Check,
   RefreshCw,
   Sparkles,
-  ArrowRight,
-  BookOpen,
   AlertCircle,
-  Play,
+  Mic,
   Square,
-  RotateCcw,
 } from 'lucide-react';
 import { LanguageCode } from '../../types';
 import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import { useVoiceSettings } from '../../context/VoiceSettingsContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
+import { AudioControlBar } from '../AudioControlBar';
 
 interface LiveTranslatorProps {
   selectedLanguage: LanguageCode;
 }
 
-export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage }) => {
-  const { speak, stopSpeaking, isSpeaking, checkVoiceSupport } = useVoiceSettings();
+export const LiveTranslator: React.FC<LiveTranslatorProps> = () => {
+  const { speak, stopSpeaking, isSpeaking } = useVoiceSettings();
   const { t, isRTL } = useLanguage();
 
   // Translator source and target operate INDEPENDENTLY of the website interface language
@@ -38,34 +37,57 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [audioNotice, setAudioNotice] = useState<string | null>(null);
 
-  const handleTranslate = async () => {
-    if (!inputText.trim() || isLoading) return;
-    setIsLoading(true);
-    setErrorNotice(null);
-    setAudioNotice(null);
-    try {
-      const res = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: inputText.trim(),
-          sourceLang,
-          targetLang,
-        }),
-      });
+  const performTranslate = useCallback(
+    async (textToTranslate: string, src: LanguageCode = sourceLang, tgt: LanguageCode = targetLang) => {
+      if (!textToTranslate.trim() || isLoading) return;
+      setIsLoading(true);
+      setErrorNotice(null);
+      setAudioNotice(null);
+      try {
+        const res = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: textToTranslate.trim(),
+            sourceLang: src,
+            targetLang: tgt,
+          }),
+        });
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.message || 'Translation service temporarily unavailable.');
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(
+            errorData.error || errorData.message || t('common.error', 'Translation service temporarily unavailable.')
+          );
+        }
+        const data = await res.json();
+        setTranslatedText(data.translatedText || '');
+        setPhoneticText(data.phoneticText || '');
+      } catch (err: any) {
+        setErrorNotice(err.message || t('common.error', 'Translation error occurred. Please try again.'));
+      } finally {
+        setIsLoading(false);
       }
-      const data = await res.json();
-      setTranslatedText(data.translatedText || '');
-      setPhoneticText(data.phoneticText || '');
-    } catch (err: any) {
-      setErrorNotice(err.message || 'Translation error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    },
+    [isLoading, sourceLang, targetLang, t]
+  );
+
+  const {
+    isListening,
+    isTranscribing,
+    error: sttError,
+    toggleListening,
+  } = useSpeechRecognition({
+    language: sourceLang,
+    onTranscript: (spokenText) => {
+      const nextText = `${inputText ? inputText + ' ' : ''}${spokenText}`.trim();
+      setInputText(nextText);
+      performTranslate(nextText, sourceLang, targetLang);
+    },
+  });
+
+  const handleTranslate = () => {
+    performTranslate(inputText, sourceLang, targetLang);
   };
 
   const handleSwap = () => {
@@ -89,22 +111,18 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleListenAudio = async () => {
-    if (!translatedText) return;
+  const handleListenSourceAudio = async () => {
+    if (!inputText.trim()) return;
     if (isSpeaking) {
       stopSpeaking();
       return;
     }
-
-    const voiceSupport = checkVoiceSupport(targetLang);
-    if (!voiceSupport.isSupported) {
-      setAudioNotice(voiceSupport.message);
-      return;
-    }
-
     setAudioNotice(null);
-    await speak(translatedText, targetLang);
+    await speak(inputText, sourceLang);
   };
+
+  const srcIsRTL = ['ur', 'pa', 'sd', 'ps', 'bal', 'skr', 'hnd', 'ks', 'brh'].includes(sourceLang);
+  const tgtIsRTL = ['ur', 'pa', 'sd', 'ps', 'bal', 'skr', 'hnd', 'ks', 'brh'].includes(targetLang);
 
   return (
     <div
@@ -186,10 +204,10 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
         </div>
       </div>
 
-      {errorNotice && (
+      {(errorNotice || sttError) && (
         <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2 min-w-0">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span className="min-w-0 break-words">{errorNotice}</span>
+          <span className="min-w-0 break-words">{errorNotice || sttError}</span>
         </div>
       )}
 
@@ -197,7 +215,7 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
         <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2 min-w-0">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <div className="space-y-1 min-w-0">
-            <span className="font-semibold block">Audio Notice</span>
+            <span className="font-semibold block">{t('common.notice', 'Notice')}</span>
             <span className="break-words">{audioNotice}</span>
           </div>
         </div>
@@ -217,24 +235,66 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
               onChange={(e) => setInputText(e.target.value)}
               placeholder={t('translator.inputPlaceholder', 'Type or paste text to translate...')}
               rows={6}
-              className="w-full bg-transparent border-none text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden resize-none font-medium"
+              dir={srcIsRTL ? 'rtl' : 'ltr'}
+              className="w-full bg-transparent border-none text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden resize-none font-medium leading-relaxed"
             />
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]">
-            <button
-              type="button"
-              onClick={() => {
-                setInputText('');
-                setTranslatedText('');
-                setPhoneticText('');
-                setErrorNotice(null);
-                setAudioNotice(null);
-              }}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
-            >
-              {t('common.clear', 'Clear')}
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border)]">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleListening}
+                disabled={isTranscribing}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                  isListening
+                    ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                    : 'bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] border-[var(--border)]'
+                }`}
+                title={t('assistant.listenControl', 'Voice Input')}
+              >
+                {isListening ? (
+                  <>
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                    <span>{t('voice.stopBtn', 'Stop')}</span>
+                  </>
+                ) : isTranscribing ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>{t('common.loading', 'Transcribing...')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{t('assistant.mic', 'Mic')}</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleListenSourceAudio}
+                disabled={!inputText.trim()}
+                className="p-2 rounded-xl border border-[var(--border)] hover:bg-[var(--surface-secondary)] text-[var(--text-secondary)] disabled:opacity-30 transition-colors cursor-pointer"
+                title={t('translator.listen', 'Listen')}
+              >
+                <Volume2 className="w-4 h-4 text-emerald-600" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setInputText('');
+                  setTranslatedText('');
+                  setPhoneticText('');
+                  setErrorNotice(null);
+                  setAudioNotice(null);
+                }}
+                className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] px-2 py-1 cursor-pointer"
+              >
+                {t('common.clear', 'Clear')}
+              </button>
+            </div>
 
             <button
               type="button"
@@ -251,21 +311,21 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
         </div>
 
         {/* Target Box */}
-        <div className="p-4 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] flex flex-col justify-between space-y-3">
+        <div className="p-4 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] flex flex-col justify-between space-y-3 min-w-0">
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-medium">
               <span>{SUPPORTED_LANGUAGES.find((l) => l.code === targetLang)?.nativeName}</span>
               {translatedText && <span>{translatedText.length} chars</span>}
             </div>
 
-            <div className="min-h-[144px]">
+            <div className="min-h-[144px]" dir={tgtIsRTL ? 'rtl' : 'ltr'}>
               {translatedText ? (
                 <div className="space-y-3">
                   <p className="text-sm font-semibold text-[var(--text-primary)] leading-relaxed select-text">
                     {translatedText}
                   </p>
                   {phoneticText && (
-                    <div className="p-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-secondary)]">
+                    <div className="p-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-secondary)]" dir="ltr">
                       <span className="text-[10px] text-[var(--text-muted)] font-bold block uppercase tracking-wider mb-0.5">
                         {t('translator.romanPhonetics', 'Roman Urdu / Phonetic:')}
                       </span>
@@ -281,8 +341,8 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border)]">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={handleCopy}
@@ -293,18 +353,9 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = ({ selectedLanguage
                 {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
               </button>
 
-              <button
-                type="button"
-                onClick={handleListenAudio}
-                disabled={!translatedText}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] hover:bg-[var(--surface)] text-[var(--text-secondary)] disabled:opacity-30 text-xs font-medium transition-colors cursor-pointer"
-                title="Listen to translation"
-              >
-                <Volume2 className="w-4 h-4 text-emerald-600" />
-                <span>
-                  {isSpeaking ? t('translator.stop', 'Stop') : t('translator.listen', 'Listen')}
-                </span>
-              </button>
+              {translatedText && (
+                <AudioControlBar text={translatedText} language={targetLang} compact={true} />
+              )}
             </div>
 
             {copied && (

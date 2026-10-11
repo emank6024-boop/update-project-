@@ -17,6 +17,8 @@ import {
   Lightbulb,
   Copy,
   Check,
+  Mic,
+  Square,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -24,6 +26,7 @@ import { PageId, LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { AudioControlBar } from '../AudioControlBar';
+import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 
 interface StudentDashboardProps {
   onSelectPage: (page: PageId) => void;
@@ -234,6 +237,18 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     }
   };
 
+  const {
+    isListening,
+    isTranscribing,
+    toggleListening,
+  } = useSpeechRecognition({
+    language: selectedLanguage,
+    onTranscript: (spokenText) => {
+      setStudyTopic(spokenText);
+      handleGenerateStudyGuide(spokenText);
+    },
+  });
+
   const handleCopy = () => {
     if (!generatedNotes) return;
     navigator.clipboard.writeText(generatedNotes);
@@ -407,19 +422,40 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </select>
             </div>
 
-            {/* Topic Input */}
+            {/* Topic Input with Voice Input */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-[var(--text-secondary)]">
                 {t('student.topicPlaceholder', 'Topic or Chapter Name')}
               </label>
-              <input
-                type="text"
-                value={studyTopic}
-                onChange={(e) => setStudyTopic(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleGenerateStudyGuide()}
-                placeholder="e.g., Photosynthesis, Newton's Laws, Quadratic Equations"
-                className="w-full px-3 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-emerald-500"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={studyTopic}
+                  onChange={(e) => setStudyTopic(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleGenerateStudyGuide()}
+                  placeholder="e.g., Photosynthesis, Newton's Laws, Quadratic Equations"
+                  className="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  disabled={isTranscribing}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer border shrink-0 ${
+                    isListening
+                      ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                      : 'bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] border-[var(--border)]'
+                  }`}
+                  title={t('assistant.listenControl', 'Voice Input')}
+                >
+                  {isListening ? (
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                  ) : isTranscribing ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Mic className="w-3.5 h-3.5 text-emerald-600" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <button

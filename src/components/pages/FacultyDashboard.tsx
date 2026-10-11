@@ -12,6 +12,9 @@ import {
   Copy,
   Presentation,
   Check,
+  Mic,
+  Square,
+  RefreshCw,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -19,6 +22,7 @@ import { PageId, LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { AudioControlBar } from '../AudioControlBar';
+import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 
 interface FacultyDashboardProps {
   onSelectPage: (page: PageId) => void;
@@ -39,6 +43,17 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedOutput, setGeneratedOutput] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const {
+    isListening,
+    isTranscribing,
+    toggleListening,
+  } = useSpeechRecognition({
+    language: selectedLanguage,
+    onTranscript: (spokenText) => {
+      setTopic(spokenText);
+    },
+  });
 
   const facultyName = user?.name || (user?.isDemo ? 'Prof. Tariq Mahmood' : 'Educator');
 
@@ -348,20 +363,41 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
             <label className="text-xs font-semibold text-[var(--text-secondary)]">
               {t('faculty.topic', 'Curriculum Topic / SLO Objective')}
             </label>
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (activeTab === 'lessonPlan') handleGenerate('lesson');
-                  else if (activeTab === 'rubric') handleGenerate('rubric');
-                  else handleGenerate('questions');
-                }
-              }}
-              placeholder="e.g., Electromagnetic Induction, Cell Division, Quadratic Formula"
-              className="w-full px-3 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-indigo-500"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (activeTab === 'lessonPlan') handleGenerate('lesson');
+                    else if (activeTab === 'rubric') handleGenerate('rubric');
+                    else handleGenerate('questions');
+                  }
+                }}
+                placeholder="e.g., Electromagnetic Induction, Cell Division, Quadratic Formula"
+                className="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-indigo-500"
+              />
+              <button
+                type="button"
+                onClick={toggleListening}
+                disabled={isTranscribing}
+                className={`px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer border shrink-0 ${
+                  isListening
+                    ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                    : 'bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] border-[var(--border)]'
+                }`}
+                title={t('assistant.listenControl', 'Voice Input')}
+              >
+                {isListening ? (
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                ) : isTranscribing ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Mic className="w-3.5 h-3.5 text-indigo-600" />
+                )}
+              </button>
+            </div>
           </div>
 
           <button

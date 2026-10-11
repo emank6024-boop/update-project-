@@ -59,7 +59,7 @@ export const CENTRAL_LANGUAGE_CONFIG: Record<LanguageCode, LanguageMetadata> = {
     flag: '🌾',
     speechRecognitionCode: 'pa-PK',
     speechSynthesisCode: 'pa-PK',
-    browserSttSupport: 'partial',
+    browserSttSupport: 'cloud-fallback',
     fontFamily: "'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif",
     aiPromptDirective:
       'Respond entirely in authentic Pakistani Punjabi (پنجابی) written in Shahmukhi script (شاہ مکھی). Use natural Punjabi vocabulary and grammar (e.g., تہاڈا, وچ, نال, کیہ, ایہہ, آکھیا, کیتا). Do NOT reply in standard Urdu or English.',
@@ -123,7 +123,7 @@ export const CENTRAL_LANGUAGE_CONFIG: Record<LanguageCode, LanguageMetadata> = {
     flag: '📱',
     speechRecognitionCode: 'ur-PK',
     speechSynthesisCode: 'ur-PK',
-    browserSttSupport: 'partial',
+    browserSttSupport: 'cloud-fallback',
     fontFamily: "'Inter', system-ui, sans-serif",
     aiPromptDirective:
       'Respond entirely in natural, easy-to-read Pakistani Roman Urdu (Urdu written in the Latin/English alphabet).',
@@ -139,7 +139,7 @@ export const CENTRAL_LANGUAGE_CONFIG: Record<LanguageCode, LanguageMetadata> = {
     flag: '📱',
     speechRecognitionCode: 'ur-PK',
     speechSynthesisCode: 'ur-PK',
-    browserSttSupport: 'partial',
+    browserSttSupport: 'cloud-fallback',
     fontFamily: "'Inter', system-ui, sans-serif",
     aiPromptDirective:
       'Respond entirely in natural, easy-to-read Pakistani Roman Urdu (Urdu written in the Latin/English alphabet).',
@@ -258,6 +258,10 @@ export function detectLanguageFromText(text: string, fallbackLang: LanguageCode 
 
   if (latinCount > arabicCount * 2) {
     if (fallbackLang === 'roman_ur' || fallbackLang === 'roman') {
+      return 'roman_ur';
+    }
+    // Check for clear Roman Urdu word patterns
+    if (/\b(kya|hai|hain|mein|kaise|aur|nahi|karein|batayein|tareeqa|aap|hum|pakistan\s+mein|ke\s+liye|ki\s+madad)\b/i.test(sample)) {
       return 'roman_ur';
     }
     return 'en';

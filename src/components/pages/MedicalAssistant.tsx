@@ -1,20 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   HeartPulse,
   PhoneCall,
   AlertTriangle,
   Search,
   RefreshCw,
-  Sparkles,
   ShieldAlert,
   AlertCircle,
-  CheckCircle2,
+  Mic,
+  Square,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { AudioControlBar } from '../AudioControlBar';
+import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 
 interface MedicalAssistantProps {
   selectedLanguage: LanguageCode;
@@ -27,31 +28,48 @@ export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLang
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAsk = async () => {
-    if (!query.trim() || isLoading) return;
+  const handleAsk = useCallback(
+    async (textToSend?: string) => {
+      const q = (textToSend || query).trim();
+      if (!q || isLoading) return;
 
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/medical/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: query.trim(),
-          query: query.trim(),
-          language: selectedLanguage,
-        }),
-      });
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/medical/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: q,
+            query: q,
+            language: selectedLanguage,
+          }),
+        });
 
-      if (!res.ok) throw new Error('Medical inquiry failed.');
-      const data = await res.json();
-      setResult(data);
-    } catch (err: any) {
-      setError(err.message || 'Error consulting health triage.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        if (!res.ok) throw new Error(t('common.error', 'Medical inquiry failed.'));
+        const data = await res.json();
+        setResult(data);
+      } catch (err: any) {
+        setError(err.message || t('common.error', 'Error consulting health triage.'));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isLoading, query, selectedLanguage, t]
+  );
+
+  const {
+    isListening,
+    isTranscribing,
+    error: sttError,
+    toggleListening,
+  } = useSpeechRecognition({
+    language: selectedLanguage,
+    onTranscript: (spokenText) => {
+      setQuery(spokenText);
+      handleAsk(spokenText);
+    },
+  });
 
   return (
     <div
@@ -99,9 +117,9 @@ export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLang
         </div>
       </div>
 
-      {/* Search Input */}
+      {/* Search Input with Microphone Voice-to-Text */}
       <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="text"
             value={query}
@@ -111,10 +129,38 @@ export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLang
               'medical.searchPlaceholder',
               'Describe symptoms or ask about first-aid care (e.g., heatstroke first aid, dengue fever precautions)...'
             )}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden"
+            className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden"
           />
           <button
-            onClick={handleAsk}
+            type="button"
+            onClick={toggleListening}
+            disabled={isTranscribing}
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+              isListening
+                ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                : 'bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] border-[var(--border)]'
+            }`}
+            title={t('assistant.listenControl', 'Voice Input')}
+          >
+            {isListening ? (
+              <>
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>{t('voice.stopBtn', 'Stop')}</span>
+              </>
+            ) : isTranscribing ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>{t('common.loading', 'Transcribing...')}</span>
+              </>
+            ) : (
+              <>
+                <Mic className="w-3.5 h-3.5 text-[var(--accent-text)]" />
+                <span>{t('assistant.mic', 'Mic')}</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => handleAsk()}
             disabled={!query.trim() || isLoading}
             className="px-5 py-2.5 rounded-xl bg-[var(--button-primary-bg)] hover:bg-[var(--accent-hover)] text-[var(--button-primary-text)] disabled:opacity-40 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
           >
@@ -124,10 +170,10 @@ export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLang
         </div>
       </div>
 
-      {error && (
+      {(error || sttError) && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
+          <span>{error || sttError}</span>
         </div>
       )}
 
@@ -137,7 +183,7 @@ export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLang
           <AudioControlBar
             text={result.answer || result.guidance || result.text || ''}
             language={selectedLanguage}
-            label={`${currentLanguage.nativeName} Health Audio`}
+            label={`${currentLanguage.nativeName} — ${t('voice.listenBtn', 'Listen Audio')}`}
           />
           <div className="prose prose-xs sm:prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>

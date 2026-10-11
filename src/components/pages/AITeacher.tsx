@@ -24,6 +24,8 @@ import {
   Play,
   ArrowRight,
   RotateCcw,
+  Mic,
+  Square,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -32,6 +34,7 @@ import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import { useLanguage } from '../../context/LanguageContext';
 import { useVoiceSettings, detectSpeechLanguage } from '../../context/VoiceSettingsContext';
 import { AudioControlBar } from '../AudioControlBar';
+import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 
 interface AITeacherProps {
   selectedLanguage: LanguageCode;
@@ -367,6 +370,19 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
     }
   };
 
+  const {
+    isListening,
+    isTranscribing,
+    error: sttError,
+    toggleListening,
+  } = useSpeechRecognition({
+    language: lessonLang,
+    onTranscript: (spokenText) => {
+      setQuery(spokenText);
+      handleRunAction(spokenText, lessonLang, mode);
+    },
+  });
+
   const handleCopy = () => {
     if (!lessonText) return;
     navigator.clipboard.writeText(lessonText);
@@ -447,7 +463,7 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
             {isFullscreen ? (
               <>
                 <Minimize2 className="w-3.5 h-3.5" />
-                <span>Exit Full Screen</span>
+                <span>{t('common.close', 'Exit Full Screen')}</span>
               </>
             ) : (
               <>
@@ -629,7 +645,7 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
 
         {/* RIGHT COLUMN (8 cols on desktop): SEARCH BAR + INTERACTIVE LESSON / QUIZ / FLASHCARDS DISPLAY */}
         <div className="lg:col-span-8 space-y-5 min-w-0">
-          {/* Topic / Question Input Bar */}
+          {/* Topic / Question Input Bar with Microphone Voice-to-Text */}
           <div className="p-4 sm:p-5 rounded-3xl bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-3 min-w-0">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 min-w-0">
               <input
@@ -650,6 +666,34 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
                 }
                 className="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs sm:text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--accent)]"
               />
+              <button
+                type="button"
+                onClick={toggleListening}
+                disabled={isTranscribing}
+                className={`px-4 py-3 rounded-2xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border shrink-0 ${
+                  isListening
+                    ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                    : 'bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] border-[var(--border)]'
+                }`}
+                title={t('assistant.listenControl', 'Voice Input')}
+              >
+                {isListening ? (
+                  <>
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                    <span>{t('voice.stopBtn', 'Stop')}</span>
+                  </>
+                ) : isTranscribing ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>{t('common.loading', 'Transcribing...')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-4 h-4 text-[var(--accent-text)]" />
+                    <span>{t('assistant.mic', 'Mic')}</span>
+                  </>
+                )}
+              </button>
               <button
                 type="button"
                 onClick={() => handleRunAction()}
@@ -677,18 +721,18 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
             </div>
           </div>
 
-          {error && (
+          {(error || sttError) && (
             <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs sm:text-sm flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
+                <span>{error || sttError}</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleRunAction()}
                 className="px-3 py-1 rounded-xl bg-rose-600 text-white text-xs font-semibold cursor-pointer"
               >
-                Retry
+                {t('common.retry', 'Retry')}
               </button>
             </div>
           )}

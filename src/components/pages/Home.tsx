@@ -471,7 +471,7 @@ export const Home: React.FC<HomeProps> = ({
               )}
             </div>
 
-            {/* Bottom Action Bar inside Search Box: Mic, Upload Image, Attach File, Language, Ask AI Button */}
+            {/* Bottom Action Bar inside Search Box: Mic, Upload Image, Attach File, Language Selector, Ask AI Button */}
             <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 mt-2 border-t border-[var(--border)] px-1">
               <div className="flex flex-wrap items-center gap-2">
                 {/* Voice Input Button */}
@@ -481,25 +481,25 @@ export const Home: React.FC<HomeProps> = ({
                   disabled={isTranscribing}
                   className={`h-9 px-3.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border ${
                     isListening
-                      ? 'bg-rose-600 text-white border-rose-600'
+                      ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
                       : 'bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] hover:text-[var(--accent-text)] border-[var(--border-strong)]'
                   }`}
-                  title={isListening ? 'Stop voice recording' : 'Speak your question'}
+                  title={isListening ? t('voice.stopBtn', 'Stop') : t('assistant.listenControl', 'Voice Input')}
                 >
                   {isListening ? (
                     <>
                       <Square className="w-3.5 h-3.5 fill-current shrink-0" />
-                      <span>Listening... (Stop)</span>
+                      <span>{t('voice.listeningShort', 'Listening...')} ({t('voice.stopBtn', 'Stop')})</span>
                     </>
                   ) : isTranscribing ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
-                      <span>Transcribing...</span>
+                      <span>{t('common.loading', 'Transcribing...')}</span>
                     </>
                   ) : (
                     <>
                       <Mic className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0" />
-                      <span>Voice</span>
+                      <span>{t('assistant.listenControl', 'Voice Input')}</span>
                     </>
                   )}
                 </button>
@@ -509,10 +509,10 @@ export const Home: React.FC<HomeProps> = ({
                   type="button"
                   onClick={() => imageInputRef.current?.click()}
                   className="h-9 px-3.5 rounded-xl bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] hover:text-[var(--accent-text)] border border-[var(--border-strong)] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Attach an image (CNIC, bill, crop photo, textbook)"
+                  title={t('assistant.uploadImage', 'Upload Image')}
                 >
                   <ImageIcon className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0" />
-                  <span>Image</span>
+                  <span>{t('assistant.uploadImage', 'Upload Image')}</span>
                 </button>
 
                 {/* Attach File Button */}
@@ -520,18 +520,29 @@ export const Home: React.FC<HomeProps> = ({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="h-9 px-3.5 rounded-xl bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] hover:text-[var(--accent-text)] border border-[var(--border-strong)] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Attach a document (PDF, TXT, CSV)"
+                  title={t('assistant.uploadFile', 'Attach File')}
                 >
                   <Paperclip className="w-3.5 h-3.5 text-[var(--accent-text)] shrink-0" />
-                  <span>Document</span>
+                  <span>{t('assistant.uploadFile', 'Attach File')}</span>
                 </button>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold bg-[var(--surface-secondary)] text-[var(--text-primary)] border border-[var(--border-strong)]">
+                <label className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-xl text-xs font-semibold bg-[var(--surface-secondary)] text-[var(--text-primary)] border border-[var(--border-strong)]">
                   <span>{currentLanguage.flag}</span>
-                  <span>{currentLanguage.nativeName}</span>
-                </span>
+                  <select
+                    value={selectedLanguage}
+                    onChange={(e) => handleLanguageClick(e.target.value as LanguageCode)}
+                    aria-label={t('hero.voiceLangLabel', 'Voice Language')}
+                    className="bg-transparent text-xs font-bold text-[var(--text-primary)] focus:outline-none cursor-pointer"
+                  >
+                    {SUPPORTED_LANGUAGES.map((l) => (
+                      <option key={l.code} value={l.code} className="bg-[var(--surface)] text-[var(--text-primary)]">
+                        {l.nativeName} ({l.name})
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
                 <button
                   type="submit"

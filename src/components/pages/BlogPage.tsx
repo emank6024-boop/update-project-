@@ -4,21 +4,21 @@ import {
   Search,
   Calendar,
   Clock,
-  Globe,
   ArrowRight,
   ArrowLeft,
-  Share2,
-  Tag,
   Volume2,
   CheckCircle2,
   AlertCircle,
   ExternalLink,
-  ChevronRight,
-  X,
+  Mic,
+  Square,
+  RefreshCw,
 } from 'lucide-react';
 import { LanguageCode, PageId } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { useVoiceSettings } from '../../context/VoiceSettingsContext';
+import { AudioControlBar } from '../AudioControlBar';
+import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 
 interface BlogArticle {
   id: string;
@@ -42,7 +42,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
     date: '2026-03-28',
     readTimeMinutes: 5,
     author: 'PakLingo Civic Desk',
-    availableLangs: ['en', 'ur', 'sd', 'pa', 'bal', 'ps'],
+    availableLangs: ['en', 'ur', 'sd', 'pa', 'bal', 'ps', 'roman_ur'],
     title: {
       en: 'Complete Guide: Renewing Your NADRA Smart CNIC and CRC Without Queues',
       ur: 'نادرا سمارٹ شناختی کارڈ اور ب-فارم کی باآسانی تجدید کا مکمل طریقہ کار',
@@ -50,6 +50,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
       pa: 'پوری رہنمائی: نادرا سمارٹ کارڈ تے ب-فارم بنا لائناں دے نواں کراون دا طریقہ',
       bal: 'سرجمیں رہنمائی: نادرا سمارٹ شناختی کارڈ ءِ نوک کنگ ءِ آسانیں راہبند',
       ps: 'بشپړه لارښوونه: د نادرا سمارټ کارډ او ب-فارم په اسانۍ نوي کولو پړاوونه',
+      roman_ur: 'Mukammal Guide: NADRA Smart CNIC aur B-Form Bina Qataar Ke Tajdeed Karne Ka Tariqa',
     },
     summary: {
       en: 'A step-by-step citizen walkthrough covering normal, urgent, and executive fees, Pak-ID mobile app biometric verification, and home delivery.',
@@ -58,6 +59,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
       pa: 'سمارٹ کارڈ دی فیس، پاک آئی ڈی ایپ راہیں آن لائن انگوٹھے دی تصدیق تے گھر ڈیلیوری دا طریقہ۔',
       bal: 'سمارٹ کارڈ ءِ فیس، پاک آئی ڈی ایپ ءِ وسیلہ ءَ آن لائن بائیو میٹرک ءُ لوگ ءَ گرگ ءِ رھبند۔',
       ps: 'د سمارټ کارډ فیس، پاک ای ډي اپلیکیشن له لارې د ګوتو نښې تایید او کور ته د رارسېدو پړاوونه.',
+      roman_ur: 'Smart CNIC ki fees, Pak-ID mobile app ke zariye online biometric tasdeeq aur ghar par home delivery ke tamam marahil.',
     },
     content: {
       en: [
@@ -73,7 +75,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
         'اوورسیز پاکستانیوں کے لیے نائیکوپ (NICOP) کی آن لائن تجدید بین الاقوامی ڈلیوری کے ساتھ دستیاب ہے۔',
       ],
       sd: [
-        'اهي سڀ پاڪستاني شهري جن جو شناختي ڪارڊ ختم ٿي رهيو آهي، اهي هاڻي نادرا سينٽر وڃڻ کانسواءِ سرڪاري پاڪ آءِ ڊي پورٽل تان به درخواست ڏئي سگهن ٿا.',
+        'اهي سڀ پاڪستاني شهري جن جو شناختي ڪارڊ ختم ٿي رهيو آهي، اهي هاڻي نادرا سينٽر وڃڻ کانسواءِ سرڪاري پاڪ آءِ ڊي پورٹل تان به درخواست ڏئي سگهن ٿا.',
         'فيس جي تفصيل: عام فيس 750 رپيا (31 ڏينهن)، ارجنٽ فيس 1500 رپيا (15 ڏينهن) ۽ ايگزيڪيوٽو فيس 2500 رپيا (7 ڏينهن) آهي.',
         'ضروري ڪاغذ: پُراڻو ڪارڊ، پاڪ آءِ ڊي ايپ ذريعي آڱرين جا نشان ۽ گهر جو صحيح پتو.',
         'پرديهه ۾ رهندڙ سنڌي ۽ پاڪستاني نائيڪوپ ڪارڊ سڌو آن لائن گهرائي سگهن ٿا.',
@@ -90,6 +92,12 @@ const BLOG_ARTICLES: BlogArticle[] = [
       ps: 'ټول هغه هېوادوال چې د شناختي کارډ موده یې پای ته رسېږي، کولی شي د پاک ای ډي لارې پرته له کتاره خپل کارډ نوی کړي. د عادي پروسې فیس ۷۵۰ روپۍ، عاجل ۱۵۰۰ روپۍ او ایګزیکټیو ۲۵۰۰ روپۍ دی. زاړه کارډ او د ګوتو نښو تایید ته اړتیا ده.'
         .split('.')
         .filter(Boolean),
+      roman_ur: [
+        'Har Pakistani shehri jiska CNIC expire ho raha ho ya gum ho gaya ho, ab NADRA center jane ke ilawa Pak-ID mobile app ke zariye ghar baithe online apply kar sakta hai.',
+        'Fees ka hisab (2026): Normal fee 750 rupay (~31 din), Urgent fee 1,500 rupay (~15 din), aur Executive fee 2,500 rupay (~7 din) hai.',
+        'Zaroori Kagजात: Purana CNIC number, Pak-ID app ke camera se ungliyon (fingerprints) ki تصدیق, aur ghar ka durust pata.',
+        'Overseas Pakistanis ke liye NICOP card ki online tajdeed international courier delivery ke sath dastiyab hai.',
+      ],
     },
     officialLinks: [
       { label: 'NADRA Official Pak-ID Portal', url: 'https://id.nadra.gov.pk' },
@@ -103,7 +111,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
     date: '2026-03-20',
     readTimeMinutes: 6,
     author: 'Energy Economics Research',
-    availableLangs: ['en', 'ur', 'sd', 'pa', 'bal', 'ps'],
+    availableLangs: ['en', 'ur', 'sd', 'pa', 'bal', 'ps', 'roman_ur'],
     title: {
       en: 'Demystifying Electricity Bills: What are FPA, GST, TV Fee, and Financing Surcharges?',
       ur: 'بجلی کے بلوں کا تجزیہ: فیول پرائس ایڈجسٹمنٹ (FPA)، جی ایس ٹی اور اضافی سرچارجز کیا ہیں؟',
@@ -111,6 +119,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
       pa: 'بجلی دے بل دا سچ: فیول ایڈجسٹمنٹ (FPA)، جی ایس ٹی تے ٹی وی فیس دا کیہ مطلب اے؟',
       bal: 'بجلی بل ءِ پٹ و پول: FPA، جی ایس ٹی ءُ سرچارج ٹیکسانی مانا چی انت؟',
       ps: 'د برېښنا د بلونو حقیقت: د FPA، جي ایس ټي او ټلویزیون فیس مانا څه ده؟',
+      roman_ur: 'Bijli Ke Bill Ka Tajziya: Fuel Price Adjustment (FPA), GST aur Surcharges Kya Hain?',
     },
     summary: {
       en: 'A transparent breakdown of how power distribution companies (DISCOs) calculate fuel surcharges, consumer protected slabs, and peak vs off-peak hours.',
@@ -119,6 +128,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
       pa: 'پنجاب تے پاکستان دیاں بجلی کمپنیاں ولوں بل وچ لائے گئے ٹیکساں تے پروٹیکٹڈ یونٹاں دی وضاحت۔',
       bal: 'کیسکو ءُ دگہ کمپنیاں ولوں بجلی بل ءِ تہا ٹیکس ءُ یونٹانی حساب کتاب۔',
       ps: 'د پښتونخوا او پاکستان برېښنا شرکتونو لخوا په بل کې د لګول شویو مالیاتو ساده تشریح.',
+      roman_ur: 'LESCO, K-Electric, IESCO aur MEPCO ke bijli billon mein protected slabs, peak hours aur taxes ki asan wazahat.',
     },
     content: {
       en: [
@@ -149,6 +159,12 @@ const BLOG_ARTICLES: BlogArticle[] = [
       ps: 'د برېښنا په بل کې د بریښنا لګښت او حکومتي مالیات شامل دي. FPA د تیلو په بیو کې بدلون ښيي. هغه کورنۍ چې له ۲۰۰ یونټونو کم مصرفوي ځانګړې رعایت ترلاسه کوي.'
         .split('.')
         .filter(Boolean),
+      roman_ur: [
+        'Pakistani bijli ke bill mein do bare hisse hote hain: Bijli ki asal laagat (Energy Charges + Capacity Charges) aur Sarkari Taxes.',
+        'Fuel Price Adjustment (FPA): Do mahine pehle bijli banane ke liye istemal hone wale fuel (LNG, oil, coal) ki qeemat ke farq ko FPA kaha jata hai.',
+        'Protected Sarifeen: Jo gharane musalsal 6 mahine tak 200 units se kam bijli istemal karte hain unhein riayati rate milta hai.',
+        'Peak Hours: Shaam 7 baje se raat 11 baje tak three-phase meters par bijli ka rate sab se zyada hota hai.',
+      ],
     },
     officialLinks: [{ label: 'NEPRA Official Tariff Portal', url: 'https://nepra.org.pk' }],
   },
@@ -159,7 +175,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
     date: '2026-03-15',
     readTimeMinutes: 4,
     author: 'Kissan Agri Advisory',
-    availableLangs: ['en', 'ur', 'sd', 'pa', 'bal', 'ps'],
+    availableLangs: ['en', 'ur', 'sd', 'pa', 'bal', 'ps', 'roman_ur'],
     title: {
       en: 'Kissan Alert: Identifying and Treating Yellow Rust in Pakistani Wheat Crops',
       ur: 'کسان الرٹ: گندم کی فصل میں پیلی کنگی (Yellow Rust) کی بر وقت تشخیص اور تدارک',
@@ -167,6 +183,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
       pa: 'کسان الرٹ: کنک دی پیلی کنگی دی پچھان تے دیسی علاج دا نسخہ',
       bal: 'ڈگارکار الرٹ: گندم ءِ زردیں زنگ نادراہی ءُ آئی ءِ علاج',
       ps: 'بزګرانو ته خبرداری: په غنمو کې د ژېړې زنګۍ نښې او درملنه',
+      roman_ur: 'Kissan Alert: Gandum Ki Fasal Mein Peeli Kangi (Yellow Rust) Ki Tashkhees Aur Ilaj',
     },
     summary: {
       en: 'Seasonal weather shifts in Punjab, Sindh, and KP trigger Puccinia striiformis stripe rust. Learn certified fungicides, foliar spray timing, and resistant seed varieties.',
@@ -175,6 +192,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
       pa: 'نمی تے ٹھنڈ دی وجہ توں کنک دے پتیاں تے پیلی پاؤڈر ونگی کنگی لگی جاندی اے۔ بر وقت اسپرے تے بچاء۔',
       bal: 'سردی ءُ نم سبب گندم ءِ تاکانی سرا زردیں دھاریاں ودی بنت۔ زرعی دواء ءُ سپرے ءِ وہد۔',
       ps: 'په غنمو کې د زېړې زنګۍ پر وړاندې پر وخت سپری او د تایید شوو کرنیزو تخمونو کارول.',
+      roman_ur: 'Thand aur nami ki wajah se gandum ke patton par peeli dhariyan ban jati hain. Bar-waqt fungicide spray aur bachao ke tariqe.',
     },
     content: {
       en: [
@@ -205,6 +223,12 @@ const BLOG_ARTICLES: BlogArticle[] = [
       ps: 'د غنمو ژېړه زنګۍ په نمناکه هوا کې ژر خپرېږي. پر پاڼو د ژېړو نښو لیدلو سره سمدستي د چينجي ضد درمل سپری کړئ.'
         .split('.')
         .filter(Boolean),
+      roman_ur: [
+        'Peeli Kangi (Yellow Rust) gandum ki sab se khatarnak fungal bimari hai jo thande aur nami wale mausam (10 se 15 degree) mein tezi se phailti hai.',
+        'Alamaat: Gandum ke patton par peele rang ke powder jaisi dhariyan ban jati hain jo haath lagane par ungliyon par lag jati hain.',
+        'Fauri Hal: Flag leaf mutasir hone se pehle Tebuconazole ya Propiconazole fungicide ka spray subah ke waqt karein.',
+        'Agle Season Ke Liye: Hamesha mehkama zaraat ki manzoor-shuda beej اقسام (Akbar-2019, Dilkash-2020, Subhani-2021) kasht karein.',
+      ],
     },
   },
   {
@@ -214,7 +238,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
     date: '2026-03-05',
     readTimeMinutes: 5,
     author: 'PakLingo Civic Desk',
-    availableLangs: ['en', 'ur', 'sd', 'pa', 'bal', 'ps'],
+    availableLangs: ['en', 'ur', 'sd', 'pa', 'bal', 'ps', 'roman_ur'],
     title: {
       en: 'BISP 8171 Kafalat: How to Verify Eligibility and Receive Payments Securely',
       ur: 'بے نظیر انکم سپورٹ 8171 کفالت: اہلیت جانچنے اور رقم کی محفوظ وصولی کا طریقہ',
@@ -222,6 +246,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
       pa: 'بی آئی ایس پی 8171 کفالت: اہلیت پرکھن تے رقم لین دا پورا طریقہ',
       bal: 'بی آئی ایس پی 8171 بینظیر کفالت: زرّ گرگ ءِ پکائیں رھبند',
       ps: 'د بي آی ایس پي 8171 کفالت: د وړتیا معلومول او د پیسو ترلاسه کول',
+      roman_ur: 'BISP 8171 Benazir Kafalat: Ahliyat Check Karne Aur Raqam Ki Mehfooz Wasooli Ka Tariqa',
     },
     summary: {
       en: 'Avoid fraudulent SMS scammers. Learn the official SMS format to 8171, biometric retail agent verification, and dynamic registry in your Tehsil.',
@@ -230,6 +255,7 @@ const BLOG_ARTICLES: BlogArticle[] = [
       pa: 'فراڈ میسجاں توں بچو، ۸۱۷۱ تے شناختی کارڈ نمبر بھیجو تے بائیو میٹرک تصدیق نال پوری قسط لوو۔',
       bal: 'دروغیں میسجاں چہ وتا بچین ات۔ شناختی کارڈ ۸۱۷۱ دیم دے ات ءُ فنگر پرنٹ نال وتی زرّ بہ گر ات۔',
       ps: 'د دروغجنو میسجونو ښکار مه کېږئ. یوازې ۸۱۷۱ ته خپل شناختي کارډ ولیږئ او رسمي مرسته ترلاسه کړئ.',
+      roman_ur: 'Jaali SMS aur fraud se bachein. 8171 par CNIC bhejne, Tehsil office mein Dynamic Survey aur biometric tasdeeq se poori qist lene ka tariqa.',
     },
     content: {
       en: [
@@ -261,6 +287,12 @@ const BLOG_ARTICLES: BlogArticle[] = [
       ps: 'د بي آی ایس پي ټول پیغامونه یوازې له ۸۱۷۱ څخه راځي. خپل ۱۳ عددي شناختي کارډ واستوئ او خپله برخه پیسې پوره ترلاسه کړئ.'
         .split('.')
         .filter(Boolean),
+      roman_ur: [
+        'Benazir Income Support Programme (BISP) ke tamam sarkari messages sirf 8171 short-code se aate hain. Kisi aam mobile number (+92 3xx) ke message par bharosa na karein.',
+        'Ahliyat Check Karein: Apna 13-digit CNIC number bina dash ke 8171 par SMS karein ya 8171 web portal par check karein.',
+        'Raqam Ki Wasooli: Asal CNIC ke sath HBL Konnect ya Bank Alfalah agent ke paas ja kar angootha (biometric) laga kar poori raqam wasool karein.',
+        'Koi Katauti Na Dein: BISP ki raqam bilkul muft milti hai. Agar koi agent katauti maange to fauran 0800-26477 helpline par shikayat darj karwayein.',
+      ],
     },
     officialLinks: [
       { label: 'BISP 8171 Web Tracking Portal', url: 'https://8171.bisp.gov.pk' },
@@ -275,11 +307,22 @@ interface BlogPageProps {
 
 export const BlogPage: React.FC<BlogPageProps> = ({ onSelectPage }) => {
   const { t, selectedLanguage, isRTL, currentLanguage } = useLanguage();
-  const { speak, isSpeaking, stopSpeaking, checkVoiceSupport } = useVoiceSettings();
+  const { speak, isSpeaking, stopSpeaking } = useVoiceSettings();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeArticle, setActiveArticle] = useState<BlogArticle | null>(null);
+
+  const {
+    isListening,
+    isTranscribing,
+    toggleListening,
+  } = useSpeechRecognition({
+    language: selectedLanguage,
+    onTranscript: (spokenText) => {
+      setSearchQuery(spokenText);
+    },
+  });
 
   const categories = [
     { id: 'all', labelKey: 'blog.all', fallback: 'All Categories' },
@@ -343,8 +386,6 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onSelectPage }) => {
     }
   };
 
-  const voiceSupport = checkVoiceSupport(selectedLanguage);
-
   return (
     <div
       className="w-full max-w-full min-w-0 py-4 text-[var(--text-primary)] transition-colors duration-200"
@@ -367,19 +408,11 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onSelectPage }) => {
                 <span>{t('blog.backToBlog', 'Back to Articles')}</span>
               </button>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleListenArticle(activeArticle)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
-                  title="Listen to Article Summary"
-                >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span>
-                    {isSpeaking ? t('translator.stop', 'Stop') : t('translator.listen', 'Listen')}
-                  </span>
-                </button>
-              </div>
+              <AudioControlBar
+                text={`${getArticleTitle(activeArticle)}. ${getArticleSummary(activeArticle)}. ${getArticleContent(activeArticle).join(' ')}`}
+                language={selectedLanguage}
+                label={`${currentLanguage.nativeName} — ${t('voice.listenBtn', 'Listen Audio')}`}
+              />
             </div>
 
             {/* Translation Availability Notice Banner */}
@@ -499,17 +532,38 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onSelectPage }) => {
 
             {/* Search and Category Filters */}
             <div className="space-y-4">
-              <div className="relative max-w-xl mx-auto">
-                <Search className={`w-4 h-4 absolute top-3.5 text-[var(--text-muted)] ${isRTL ? 'right-3.5' : 'left-3.5'}`} />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('blog.searchPlaceholder', 'Search articles, topics, or keywords...')}
-                  className={`w-full py-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-2xl text-xs sm:text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:ring-2 focus:ring-emerald-500 shadow-xs ${
-                    isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'
+              <div className="flex items-center gap-2 max-w-xl mx-auto">
+                <div className="relative flex-1">
+                  <Search className={`w-4 h-4 absolute top-3.5 text-[var(--text-muted)] ${isRTL ? 'right-3.5' : 'left-3.5'}`} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t('blog.searchPlaceholder', 'Search articles, topics, or keywords...')}
+                    className={`w-full py-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-2xl text-xs sm:text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden focus:ring-2 focus:ring-emerald-500 shadow-xs ${
+                      isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'
+                    }`}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  disabled={isTranscribing}
+                  className={`px-3.5 py-2.5 rounded-2xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border shrink-0 ${
+                    isListening
+                      ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                      : 'bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-[var(--text-primary)] border-[var(--border)]'
                   }`}
-                />
+                  title={t('assistant.listenControl', 'Voice Input')}
+                >
+                  {isListening ? (
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                  ) : isTranscribing ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Mic className="w-4 h-4 text-emerald-600" />
+                  )}
+                </button>
               </div>
 
               {/* Categories */}

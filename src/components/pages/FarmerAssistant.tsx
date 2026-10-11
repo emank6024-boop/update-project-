@@ -1,19 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Sprout,
   Search,
   RefreshCw,
-  Sun,
-  Droplets,
-  Bug,
-  Coins,
   AlertCircle,
+  Mic,
+  Square,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { AudioControlBar } from '../AudioControlBar';
+import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 
 interface FarmerAssistantProps {
   selectedLanguage: LanguageCode;
@@ -35,33 +34,49 @@ export const FarmerAssistant: React.FC<FarmerAssistantProps> = ({ selectedLangua
     { label: t('farmer.maize', 'Maize (Makai)'), value: 'maize' },
   ];
 
-  const handleAsk = async (textToSend?: string) => {
-    const q = (textToSend || query).trim();
-    if (!q || isLoading) return;
+  const handleAsk = useCallback(
+    async (textToSend?: string) => {
+      const q = (textToSend || query).trim();
+      if (!q || isLoading) return;
 
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/farmer/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: q,
-          question: q,
-          language: selectedLanguage,
-          cropType: crop,
-        }),
-      });
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/farmer/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: q,
+            question: q,
+            language: selectedLanguage,
+            cropType: crop,
+          }),
+        });
 
-      if (!res.ok) throw new Error('Failed to consult farmer advisory.');
-      const data = await res.json();
-      setResult(data);
-    } catch (err: any) {
-      setError(err.message || 'Error consulting agricultural engine.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        if (!res.ok) throw new Error(t('common.error', 'Failed to consult farmer advisory.'));
+        const data = await res.json();
+        setResult(data);
+      } catch (err: any) {
+        setError(err.message || t('common.error', 'Error consulting agricultural engine.'));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [crop, isLoading, query, selectedLanguage, t]
+  );
+
+  const {
+    isListening,
+    isTranscribing,
+    error: sttError,
+    toggleListening,
+  } = useSpeechRecognition({
+    language: selectedLanguage,
+    onTranscript: (spokenText) => {
+      setQuery(spokenText);
+      handleAsk(spokenText);
+    },
+  });
 
   return (
     <div
@@ -101,7 +116,11 @@ export const FarmerAssistant: React.FC<FarmerAssistantProps> = ({ selectedLangua
             type="button"
             onClick={() => {
               setCrop(c.value);
-              setQuery(`Best seasonal advisory and pest management for ${c.label}`);
+              const qText = c.value === 'wheat'
+                ? t('hero.promptWheatQuery', c.label)
+                : c.label;
+              setQuery(qText);
+              handleAsk(qText);
             }}
             className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
               crop === c.value
@@ -114,9 +133,9 @@ export const FarmerAssistant: React.FC<FarmerAssistantProps> = ({ selectedLangua
         ))}
       </div>
 
-      {/* Search Input */}
+      {/* Search Input with Microphone Voice-to-Text */}
       <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="text"
             value={query}
@@ -126,8 +145,36 @@ export const FarmerAssistant: React.FC<FarmerAssistantProps> = ({ selectedLangua
               'farmer.searchPlaceholder',
               'Ask about wheat yellow rust, cotton pest remedies, urea/DAP timing, or seasonal planting...'
             )}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden"
+            className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden"
           />
+          <button
+            type="button"
+            onClick={toggleListening}
+            disabled={isTranscribing}
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+              isListening
+                ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                : 'bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] border-[var(--border)]'
+            }`}
+            title={t('assistant.listenControl', 'Voice Input')}
+          >
+            {isListening ? (
+              <>
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>{t('voice.stopBtn', 'Stop')}</span>
+              </>
+            ) : isTranscribing ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>{t('common.loading', 'Transcribing...')}</span>
+              </>
+            ) : (
+              <>
+                <Mic className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{t('assistant.mic', 'Mic')}</span>
+              </>
+            )}
+          </button>
           <button
             onClick={() => handleAsk()}
             disabled={!query.trim() || isLoading}
@@ -139,10 +186,10 @@ export const FarmerAssistant: React.FC<FarmerAssistantProps> = ({ selectedLangua
         </div>
       </div>
 
-      {error && (
+      {(error || sttError) && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
+          <span>{error || sttError}</span>
         </div>
       )}
 
@@ -152,7 +199,7 @@ export const FarmerAssistant: React.FC<FarmerAssistantProps> = ({ selectedLangua
           <AudioControlBar
             text={result.guidance || result.advice || result.answer || result.text || ''}
             language={selectedLanguage}
-            label={`${currentLanguage.nativeName} Kissan Audio Advisory`}
+            label={`${currentLanguage.nativeName} — ${t('voice.listenBtn', 'Listen Audio')}`}
           />
           <div className="prose prose-xs sm:prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>

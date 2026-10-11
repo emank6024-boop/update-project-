@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   ShieldCheck,
   Search,
@@ -8,11 +8,13 @@ import {
   XCircle,
   HelpCircle,
   AlertCircle,
-  ExternalLink,
+  Mic,
+  Square,
 } from 'lucide-react';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { AudioControlBar } from '../AudioControlBar';
+import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 
 interface FakeNewsDetectorProps {
   selectedLanguage: LanguageCode;
@@ -25,31 +27,47 @@ export const FakeNewsDetector: React.FC<FakeNewsDetectorProps> = ({ selectedLang
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleVerify = async (textToVerify?: string) => {
-    const text = (textToVerify || claim).trim();
-    if (!text || isLoading) return;
+  const handleVerify = useCallback(
+    async (textToVerify?: string) => {
+      const text = (textToVerify || claim).trim();
+      if (!text || isLoading) return;
 
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/fact-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          claim: text,
-          language: selectedLanguage,
-        }),
-      });
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/fact-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            claim: text,
+            language: selectedLanguage,
+          }),
+        });
 
-      if (!res.ok) throw new Error('Verification failed.');
-      const data = await res.json();
-      setResult(data);
-    } catch (err: any) {
-      setError(err.message || 'Error communicating with verification service.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        if (!res.ok) throw new Error(t('common.error', 'Verification failed.'));
+        const data = await res.json();
+        setResult(data);
+      } catch (err: any) {
+        setError(err.message || t('common.error', 'Error communicating with verification service.'));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [claim, isLoading, selectedLanguage, t]
+  );
+
+  const {
+    isListening,
+    isTranscribing,
+    error: sttError,
+    toggleListening,
+  } = useSpeechRecognition({
+    language: selectedLanguage,
+    onTranscript: (spokenText) => {
+      setClaim(spokenText);
+      handleVerify(spokenText);
+    },
+  });
 
   const getVerdictBadge = (verdict: string) => {
     switch (verdict) {
@@ -107,9 +125,9 @@ export const FakeNewsDetector: React.FC<FakeNewsDetectorProps> = ({ selectedLang
         </div>
       </div>
 
-      {/* Verification Input */}
+      {/* Verification Input with Microphone Voice-to-Text */}
       <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xs">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="text"
             value={claim}
@@ -119,8 +137,36 @@ export const FakeNewsDetector: React.FC<FakeNewsDetectorProps> = ({ selectedLang
               'factCheck.searchPlaceholder',
               'Paste viral message, headline, or claim to verify...'
             )}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden"
+            className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden"
           />
+          <button
+            type="button"
+            onClick={toggleListening}
+            disabled={isTranscribing}
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+              isListening
+                ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                : 'bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-primary)] border-[var(--border)]'
+            }`}
+            title={t('assistant.listenControl', 'Voice Input')}
+          >
+            {isListening ? (
+              <>
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>{t('voice.stopBtn', 'Stop')}</span>
+              </>
+            ) : isTranscribing ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>{t('common.loading', 'Transcribing...')}</span>
+              </>
+            ) : (
+              <>
+                <Mic className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{t('assistant.mic', 'Mic')}</span>
+              </>
+            )}
+          </button>
           <button
             onClick={() => handleVerify()}
             disabled={!claim.trim() || isLoading}
@@ -132,10 +178,10 @@ export const FakeNewsDetector: React.FC<FakeNewsDetectorProps> = ({ selectedLang
         </div>
       </div>
 
-      {error && (
+      {(error || sttError) && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
+          <span>{error || sttError}</span>
         </div>
       )}
 
@@ -163,7 +209,7 @@ export const FakeNewsDetector: React.FC<FakeNewsDetectorProps> = ({ selectedLang
           <AudioControlBar
             text={result.explanation || result.analysis || result.answer || ''}
             language={selectedLanguage}
-            label={`${currentLanguage.nativeName} Verification Audio`}
+            label={`${currentLanguage.nativeName} — ${t('voice.listenBtn', 'Listen Audio')}`}
           />
 
           <div className="space-y-2">
@@ -184,15 +230,15 @@ export const FakeNewsDetector: React.FC<FakeNewsDetectorProps> = ({ selectedLang
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-[var(--text-secondary)]">
           <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-            <span className="font-bold block text-emerald-600 mb-1">1. Gazettes & Portals</span>
+            <span className="font-bold block text-emerald-600 mb-1">1.</span>
             {t('factCheck.step1', 'Cross-references official government gazettes, news wires, and state regulators.')}
           </div>
           <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-            <span className="font-bold block text-emerald-600 mb-1">2. Anomaly Detection</span>
+            <span className="font-bold block text-emerald-600 mb-1">2.</span>
             {t('factCheck.step2', 'Detects manipulated quotes, altered dates, and fabricated notifications.')}
           </div>
           <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-            <span className="font-bold block text-emerald-600 mb-1">3. Clear Verdict</span>
+            <span className="font-bold block text-emerald-600 mb-1">3.</span>
             {t('factCheck.step3', 'Provides a clear verdict, corroborating sources, and context in your language.')}
           </div>
         </div>
