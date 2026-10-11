@@ -38,46 +38,58 @@ export function resolveEffectiveLanguage(userMessage: string, selectedLanguage =
     return cleanSelected;
   }
 
-  const sample = userMessage.slice(0, 600).trim();
+  const sample = userMessage.slice(0, 800).trim();
+
+  // Check Gurmukhi Punjabi script (ਪੰਜਾਬੀ)
+  const gurmukhiMatches = sample.match(/[\u0A00-\u0A7F]/g);
+  if (gurmukhiMatches && gurmukhiMatches.length >= 2) {
+    return 'pa';
+  }
+
   const arabicMatches = sample.match(/[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/g);
   const latinMatches = sample.match(/[A-Za-z]/g);
   const arabicCount = arabicMatches ? arabicMatches.length : 0;
   const latinCount = latinMatches ? latinMatches.length : 0;
 
   if (arabicCount >= 3 && arabicCount >= latinCount * 0.3) {
-    // 1. Explicit Pashto characters or words
+    // 1. Explicit Pashto-exclusive characters (ښ ځ څ ډ ړ ږ ڼ ټ ګ ې ۍ ۀ) or Pashto-exclusive words
     if (
-      /[ښځڅډړږڼېۍۀ]/.test(sample) ||
-      /(?:^|\s)(ستاسو|څنګه|پښتو|کولی|دمخه|لپاره|څه|ولې|چیرته)(?:\s|$)/.test(sample)
+      /[ښځڅډړږڼټګېۍۀ]/.test(sample) ||
+      /(?:^|\s)(ستاسو|څنګه|پښتو|کولی|دمخه|لپاره|موږ|تاسو|څخه|باندې|غواړم|مرسته|پوښتنه|ځواب)(?:\s|$)/.test(sample)
     ) {
       return 'ps';
     }
-    // 2. Explicit Sindhi characters or words
+    // 2. Explicit Sindhi-exclusive characters or words
     if (
-      /[ڄڃڳڱڪڇڌٿڦٺڏڙ]/.test(sample) ||
+      /[ڄڃڱڪڇڌٿڦٺڏڙ]/.test(sample) ||
       /(?:^|\s)(آهي|آهن|توهان|سنڌي|ڪيئن|سگهان|ڪهڙو)(?:\s|$)/.test(sample)
     ) {
       return 'sd';
     }
-    // 3. Explicit Saraiki characters
-    if (/[ݙݨٻ]/.test(sample)) {
+    // 3. Explicit Saraiki-exclusive character (ݙ) or words
+    if (/[ݙ]/.test(sample) || /(?:^|\s)(تہاݙا|تہاݙی|سڳدا|سرائیکی)(?:\s|$)/.test(sample)) {
       return 'skr';
     }
-    // 4. Explicit Balochi vocabulary
+    // 4. Explicit Punjabi Shahmukhi vocabulary & characters (ݨ / ݪ)
     if (
-      /(?:^|\s)(شما|شمارا|وتی|کُت|کن ات|کناں|گوں|بلوچی|نبشتہ|انت|ہست|وش آتک|کمکار|بلوچستان)(?:\s|$)/.test(
+      /[ݨݪ]/.test(sample) ||
+      /(?:^|\s)(تہاڈا|تہانوں|تہاڈی|تہاڈے|تُہاڈا|تُہانوں|تُہاڈی|آکھیا|وِچ|نال|کیہ|ساڈا|ساڈی|تسی|تُسی|پنجابی|کیتا|سکدا|ہوندے|ایہہ|جیہڑا|کیہڑا|دسو|بنوان)(?:\s|$)/.test(
         sample
       )
     ) {
-      return cleanSelected === 'ur' ? 'bal' : cleanSelected === 'en' ? 'bal' : cleanSelected;
+      return 'pa';
     }
-    // 5. Explicit Punjabi Shahmukhi vocabulary
+    // 5. Explicit Balochi vocabulary
     if (
-      /(?:^|\s)(تہاڈا|تہانوں|تہاڈی|آکھیا|وچ|نال|کیہ|ساڈا|تسی|پنجابی|کیتا|سکدا|ہوندے)(?:\s|$)/.test(
+      /(?:^|\s)(شمارا|وتی|کُت|کن ات|کناں|گوں|بلوچی|نبشتہ|ہست|وش آتک|کمکار|بلوچستان|باروا|پُرس)(?:\s|$)/.test(
         sample
       )
     ) {
-      return cleanSelected === 'ur' || cleanSelected === 'en' ? 'pa' : cleanSelected;
+      return 'bal';
+    }
+    // 6. Respect user's explicitly selected regional language (pa, ps, sd, bal, skr, hnd, ks, brh)
+    if (['pa', 'ps', 'sd', 'bal', 'skr', 'hnd', 'ks', 'brh'].includes(cleanSelected)) {
+      return cleanSelected;
     }
 
     // If the user typed in Perso-Arabic script while UI was set to English ('en'),
@@ -97,9 +109,10 @@ export function getGlobalLanguageDirective(languageCode: string): string {
     case 'ps':
       return `CRITICAL MULTILINGUAL REQUIREMENT — PASHTO (پښتو):
 The target response language is PASHTO (پښتو).
-1. You MUST generate your ENTIRE response, headings, explanations, bullet points, step-by-step guides, and advice in authentic, natural, grammatically accurate Pashto (پښتو) using standard Pashto Arabic script (including proper Pashto letters: ښ, ځ, څ, ډ, ړ, ږ, ڼ, ې, ۍ, ۀ).
-2. Whether the user's question is written in Pashto, English, Urdu, or Roman script, understand the question completely and write your full answer ONLY in Pashto (پښتو).
-3. NEVER reply in Urdu, Persian/Farsi, or English. Use genuine Pashto vocabulary (e.g., لومړی, دوهم, مهم ټکي, لنډیز, لارښوونه, ستاسو, په اړه).`;
+1. You MUST generate your ENTIRE response, headings, explanations, bullet points, step-by-step guides, and advice in authentic, natural, grammatically accurate Pashto (پښتو) using standard Pashto script and pure Pashto characters (ښ, ځ, څ, ډ, ړ, ږ, ڼ, ټ, ګ, ې, ۍ, ۀ).
+2. Do NOT use Urdu letters like ٹ, ڈ, ڑ, گ, ے, or ہ — always use proper Pashto letters ټ, ډ, ړ, ګ, ې, and ه so that Pashto text-to-speech pronounces every word with authentic Pashto phonetics.
+3. Whether the user's question is written in Pashto, English, Urdu, or Roman script, understand the question completely and write your full answer ONLY in Pashto (پښتو).
+4. NEVER reply in Urdu, Persian/Farsi, or English. Use genuine Pashto vocabulary (e.g., لومړی, دوهم, مهم ټکي, لنډیز, لارښوونه, ستاسو, په اړه, مرسته).`;
 
     case 'bal':
       return `CRITICAL MULTILINGUAL REQUIREMENT — BALOCHI (بلوچی):
@@ -118,10 +131,10 @@ The target response language is SINDHI (سنڌي).
 
     case 'pa':
       return `CRITICAL MULTILINGUAL REQUIREMENT — PUNJABI (پنجابی - شاہ مکھی):
-The target response language is Pakistani PUNJABI (پنجابی) in Shahmukhi script.
+The target response language is Pakistani PUNJABI (پنجابی) in Shahmukhi script (unless the user explicitly wrote in Gurmukhi ਪੰਜਾਬੀ, in which case reply in Gurmukhi ਪੰਜਾਬੀ).
 1. You MUST generate your ENTIRE response, headings, explanations, bullet points, step-by-step guides, and advice in authentic, natural Pakistani Punjabi (پنجابی / شاہ مکھی).
-2. Use genuine Punjabi vocabulary and grammar (e.g., تہاڈا, تہانوں, وچ, نال, کیہ, ایہہ, آکھیا, کیتا, لئی, دسیا, طریقے) rather than standard Urdu grammar.
-3. Whether the user's question is in Punjabi, Urdu, or English, understand it and write your complete answer ONLY in Punjabi (پنجابی).
+2. Use genuine Punjabi vocabulary, verbs, postpositions, and grammar (e.g., تُہاڈا, تُہانوں, تُسی, وِچ, نال, کیہ, ایہہ, آکھیا, کیتا, لئی, دسیا, طریقے, سکدا, ہوندے, چاہیدا اے) rather than standard Urdu grammar.
+3. Whether the user's question is in Punjabi, Urdu, or English, understand it and write your complete answer ONLY in authentic Punjabi (پنجابی).
 4. NEVER default to English or standard Urdu.`;
 
     case 'skr':

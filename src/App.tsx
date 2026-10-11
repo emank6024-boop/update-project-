@@ -46,6 +46,8 @@ function AppContent() {
   const getPageFromUrl = (): PageId => {
     if (typeof window === 'undefined') return 'home';
     const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+    const pathSegment = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+    const routeKey = hash || pathSegment;
     const map: Record<string, PageId> = {
       '': 'home',
       'home': 'home',
@@ -79,7 +81,7 @@ function AppContent() {
       'features': 'tools',
       'all-features': 'tools',
     };
-    return map[hash] || 'home';
+    return map[routeKey] || 'home';
   };
 
   const [currentPage, setCurrentPage] = useState<PageId>(getPageFromUrl);

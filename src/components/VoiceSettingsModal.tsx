@@ -23,14 +23,23 @@ export const VoiceSettingsModal: React.FC = () => {
 
   const support = checkVoiceSupport(selectedLanguage);
 
+  const VOICE_TEST_SAMPLES: Record<string, string> = {
+    ps: 'سلام! پاک لنګو اي آی ته ښه راغلاست. زه ستاسو سره په روانه او طبیعي پښتو ژبه کې مرسته کولی شم.',
+    pa: 'سلام وعلیکم! پاک لنگو اے آئی وِچ جی آیاں نوں۔ میں تُہاڈی خالص پنجابی زبان وِچ پوری مدد کر سکدا ہاں۔',
+    ur: 'السلام علیکم! پاک لنگو اے آئی میں خوش آمدید۔ میں آپ کی صاف اور قدرتی اردو آواز میں رہنمائی کے لیے حاضر ہوں۔',
+    sd: 'اسلام عليڪم! پاڪ لنگو اي آءِ ۾ ڀليڪار. مان توهان جي صاف ۽ قدرتي سنڌي آواز ۾ مدد ڪري سگهان ٿو.',
+    bal: 'سلام! پاک لنگو اے آئی ءَ وش آتک ئے۔ من شمارا بلوچی زبان ءِ تہا کمک کُت کناں۔',
+    roman_ur: 'Assalam-o-Alaikum! PakLingo AI mein khush aamdeed. Main aap ki har sawal mein madad kar sakta hoon.',
+    en: 'Hello and welcome to PakLingo AI! I am ready to assist you at a natural, clear conversational pace.',
+  };
+
   const handleTestVoice = () => {
     if (isSpeaking) {
       stopSpeaking();
     } else {
-      const testSample = t(
-        'hero.title',
-        'Empowering Every Pakistani Through AI, Language, and Accessibility'
-      );
+      const testSample =
+        VOICE_TEST_SAMPLES[selectedLanguage] ||
+        t('hero.title', 'Empowering Every Pakistani Through AI, Language, and Accessibility');
       speak(testSample, selectedLanguage);
     }
   };
@@ -118,17 +127,24 @@ export const VoiceSettingsModal: React.FC = () => {
               <span className="text-[var(--text-secondary)]">
                 {t('settings.speechRate', 'Speech Rate')}
               </span>
-              <span className="font-semibold text-emerald-600">{voiceSettings.rate}x</span>
+              <span className="font-semibold text-emerald-600">
+                {(voiceSettings.rate || 1.0).toFixed(2)}x
+              </span>
             </div>
             <input
               type="range"
-              min="0.5"
-              max="2.0"
-              step="0.1"
-              value={voiceSettings.rate}
+              min="0.75"
+              max="1.35"
+              step="0.05"
+              value={voiceSettings.rate || 1.0}
               onChange={(e) => updateVoiceSettings({ rate: parseFloat(e.target.value) })}
               className="w-full accent-emerald-600 cursor-pointer"
             />
+            <div className="flex justify-between text-[10px] text-[var(--text-muted)] mt-1">
+              <span>0.75x (Slow)</span>
+              <span>1.00x (Natural)</span>
+              <span>1.35x (Fast)</span>
+            </div>
           </div>
 
           <div>

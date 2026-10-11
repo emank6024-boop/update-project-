@@ -90,7 +90,29 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = () => {
     performTranslate(inputText, sourceLang, targetLang);
   };
 
+  const handleSourceLangChange = (nextSource: LanguageCode) => {
+    stopSpeaking();
+    setSourceLang(nextSource);
+    setAudioNotice(null);
+    if (inputText.trim()) {
+      performTranslate(inputText, nextSource, targetLang);
+    }
+  };
+
+  const handleTargetLangChange = (nextTarget: LanguageCode) => {
+    stopSpeaking();
+    setTargetLang(nextTarget);
+    setAudioNotice(null);
+    if (inputText.trim()) {
+      performTranslate(inputText, sourceLang, nextTarget);
+    } else {
+      setTranslatedText('');
+      setPhoneticText('');
+    }
+  };
+
   const handleSwap = () => {
+    stopSpeaking();
     const prevSource = sourceLang;
     const prevTarget = targetLang;
     const prevInput = inputText;
@@ -166,7 +188,7 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = () => {
           </span>
           <select
             value={sourceLang}
-            onChange={(e) => setSourceLang(e.target.value as LanguageCode)}
+            onChange={(e) => handleSourceLangChange(e.target.value as LanguageCode)}
             className="px-3 py-1.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] cursor-pointer min-w-0 max-w-full"
           >
             {SUPPORTED_LANGUAGES.map((l) => (
@@ -192,7 +214,7 @@ export const LiveTranslator: React.FC<LiveTranslatorProps> = () => {
           </span>
           <select
             value={targetLang}
-            onChange={(e) => setTargetLang(e.target.value as LanguageCode)}
+            onChange={(e) => handleTargetLangChange(e.target.value as LanguageCode)}
             className="px-3 py-1.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] cursor-pointer min-w-0 max-w-full"
           >
             {SUPPORTED_LANGUAGES.map((l) => (

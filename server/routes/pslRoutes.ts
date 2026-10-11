@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { getGemini, callWithCandidateModels, getFastModelConfig } from '../geminiService.js';
+import crypto from 'crypto';
+import { getGemini, callWithCandidateModels, getFastModelConfig, ServerLRUCache } from '../geminiService.js';
 import { getGlobalLanguageDirective } from '../languageDirectives.js';
 
 export const pslRouter = Router();
+const pslImageCache = new ServerLRUCache<Record<string, any>>(200, 60 * 60 * 1000);
 
 // Pakistan Sign Language (PSL) Sentence & Concept Breakdown
 pslRouter.post('/api/psl/breakdown', async (req: Request, res: Response) => {
@@ -164,67 +166,66 @@ pslRouter.post('/api/psl/analyze-sign', async (req: Request, res: Response) => {
     return res.status(503).json({ error: 'AI_UNAVAILABLE', message: 'Gemini API not configured.' });
   }
 
-  const cleanBase64 = imageBase64.replace(/^data:image\/[a-z0-9+.-]+;base64,/, '');
-  const meaningHeader = language === 'ur'
-    ? 'اس سائن کا مطلب:'
-    : (language === 'roman_ur' || language === 'roman')
+  const cleanBase64 = imageBase64.replace(/^data:image\/[a-z0-9+.-]+;base64,/i, '');
+  const detectedMime =
+    imageBase64.match(/^data:(image\/[a-z0-9+.-]+);base64,/i)?.[1] || mimeType || 'image/jpeg';
+
+  const imgHash = crypto
+    .createHash('sha1')
+    .update(cleanBase64)
+    .digest('hex');
+  const cacheKey = `psl_img_${language}_${imgHash}`;
+  const cachedResult = pslImageCache.get(cacheKey);
+  if (cachedResult) {
+    return res.json(cachedResult);
+  }
+
+  const meaningHeader =
+    language === 'ur'
+      ? 'اس سائن کا مطلب:'
+      : language === 'ps'
+      ? 'د دې نښې (اشارې) معنی:'
+      : language === 'pa'
+      ? 'ایس اشارے دا مطلب:'
+      : language === 'sd'
+      ? 'هن اشاري جو مطلب:'
+      : language === 'bal'
+      ? 'اے اشارہ ءِ بزانت (مطلب):'
+      : language === 'roman_ur' || language === 'roman'
       ? 'Is sign ka matlab:'
       : 'Meaning of this sign:';
 
   const systemInstruction = `You are the PakLingo Pakistan Sign Language (PSL / پاکستانی اشاروں کی زبان) Vision & Gesture Interpreter.
-You analyze photographs and webcam snapshots containing hand gestures, signs, or fingerspelling used in Pakistan Sign Language (PSL conventions by Deaf Reach / FESF, Pakistan Association of the Deaf - PAD, and National Institute of Special Education - NISE).
+Inspect the hand shape, finger configuration, thumb position, palm orientation, facial expression, and any visual arrows/labels in the uploaded sign image (PSL / Deaf Reach / PAD & international sign conventions).
 
-CRITICAL HONESTY & ACCURACY MANDATES:
-1. CAREFUL VISUAL INSPECTION:
-   - Carefully inspect the hand shape, finger configurations, thumb position, palm orientation, and location relative to the body/face/chest.
-2. CONFIDENT IDENTIFICATION:
-   - If the hand gesture matches a recognized PSL sign (e.g. Salam/Hello, Thank You, Water, Food, Help, Yes, No, Family, Doctor, Numbers, or Urdu/English fingerspelling letters):
-     - Set "identified": true
-     - "signName": Name of the sign in English and Urdu (e.g. "Assalam o Alaikum (السلام علیکم)")
-     - "meaningHeader": "${meaningHeader}"
-     - "meaning": Direct, clear explanation of the sign's meaning and when it is used.
-     - "gestureDescription": Physical details of how the hand is shaped and oriented in the image.
-     - "usageContext": Cultural and everyday communication context in Pakistan.
-     - "confidence": "High" or "Medium"
-3. UNIDENTIFIABLE OR UNCLEAR GESTURES:
-   - If the image is blurry, poorly lit, fingers are cut off, ambiguous, or NOT a recognizable PSL sign:
-     - DO NOT INVENT A FAKE MEANING.
-     - Set "identified": false
-     - "signName": "Unidentified / غیر واضح اشارہ"
-     - "meaningHeader": "${meaningHeader}"
-     - "meaning": Honestly state that the sign could not be identified with confidence.
-       * If Urdu: "یہ اشارہ واضح طور پر شناخت نہیں ہو سکا۔ تصویر میں انگلیاں یا زاویہ پوری طرح واضح نہیں ہیں یا یہ معیاری پی ایس ایل اشارہ نہیں۔"
-       * If English: "This sign could not be confidently identified. The hand gesture or finger positions are unclear in the image."
-       * If Roman Urdu: "Yeh sign wazeh tor par identify nahi ho saka. Haath ki ungliyan ya angle saaf nahi hain."
-     - "tips": Give practical guidance to the user (e.g. hold hand steady at chest level, ensure good lighting, show all active fingers).
-     - "confidence": "Uncertain"
-4. LANGUAGE REQUIREMENT:
-${getGlobalLanguageDirective(language)}
-Ensure all explanations and guidance are delivered in the requested language.
+RULES:
+1. Accurately identify the sign shown (e.g. Assalam-o-Alaikum/Hello, Thank You, Water, Food, Help, Yes, No, Good, Bad, Love, Family, Doctor, Hospital, Book, School, I Love You, Stop, Peace, OK, Numbers, or Alphabet letters).
+2. If the image contains no hand/sign or is completely unreadable, set "identified": false and politely ask for a clearer sign photo.
+3. ${getGlobalLanguageDirective(language)}
+Write "meaning", "gestureDescription", and "usageContext" concisely and accurately in the requested language (${language}).
 
-OUTPUT FORMAT (JSON only):
+Respond with valid JSON ONLY:
 {
   "identified": true,
-  "signName": "Concept name in Urdu & English",
-  "meaningHeader": "${meaningHeader}",
-  "meaning": "Concise statement of what this gesture means",
-  "gestureDescription": "Physical analysis of observed handshape, fingers, and orientation",
-  "usageContext": "How this sign is used in Pakistani Deaf community",
-  "confidence": "High" | "Medium" | "Uncertain",
-  "tips": "Tips for clearer signing or retaking photo",
-  "fullExplanation": "Comprehensive markdown explanation starting with header"
+  "signName": "Sign name in ${language} and English",
+  "meaning": "Clear, accurate 1-2 sentence explanation of what this sign means",
+  "gestureDescription": "1 concise sentence describing hand and finger position",
+  "usageContext": "1 concise sentence on when this sign is used",
+  "confidence": "High"
 }`;
 
   try {
     const contents = [
       {
         inlineData: {
-          mimeType: mimeType || 'image/jpeg',
+          mimeType: detectedMime,
           data: cleanBase64,
         },
       },
       {
-        text: `Analyze this image containing a Pakistan Sign Language (PSL) gesture. Identify what sign is shown and explain its meaning.\nUser notes/context: "${notes || 'Identify this sign'}"`,
+        text: notes
+          ? `Identify this sign language gesture and its meaning. Context: "${notes}"`
+          : 'Identify this sign language gesture and explain its exact meaning concisely.',
       },
     ];
 
@@ -234,33 +235,59 @@ OUTPUT FORMAT (JSON only):
         ai.models.generateContent({
           model: modelName,
           contents,
-          config: {
+          config: getFastModelConfig(modelName, {
             systemInstruction,
             responseMimeType: 'application/json',
-          },
+            temperature: 0.1,
+            maxOutputTokens: 350,
+          }),
         }),
-      25000
+      4800
     );
 
-    const parsed = JSON.parse(response.text || '{}');
-    const resultMeaning = parsed.meaning || (parsed.identified ? `Pakistan Sign Language gesture for ${parsed.signName}.` : 'This sign could not be confidently identified.');
+    const rawOutput = (response.text || '').trim();
+    let parsed: Record<string, any> = {};
+    try {
+      const cleanedJson = rawOutput
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
+      parsed = JSON.parse(cleanedJson || '{}');
+    } catch {
+      parsed = {
+        identified: true,
+        signName: 'Sign Analysis',
+        meaningHeader,
+        meaning: rawOutput || 'Sign analyzed.',
+      };
+    }
 
-    return res.json({
+    const resultMeaning =
+      parsed.meaning ||
+      parsed.fullExplanation ||
+      (parsed.identified
+        ? `Pakistan Sign Language gesture for ${parsed.signName}.`
+        : 'This sign could not be confidently identified.');
+
+    const payload = {
       identified: parsed.identified ?? true,
-      signName: parsed.signName || 'Observed Gesture',
+      signName: parsed.signName || 'Observed Sign',
       meaningHeader: parsed.meaningHeader || meaningHeader,
       meaning: resultMeaning,
-      gestureDescription: parsed.gestureDescription || 'Hand gesture captured and analyzed with computer vision.',
-      usageContext: parsed.usageContext || 'Standard Pakistan Sign Language (PSL) communication.',
-      confidence: parsed.confidence || 'Medium',
-      tips: parsed.tips || 'Hold hand at chest or facial level with clear finger separation for optimal recognition.',
-      fullExplanation: parsed.fullExplanation || `### ${meaningHeader}\n\n**${parsed.signName || 'Sign'}**\n\n${resultMeaning}`,
+      gestureDescription: parsed.gestureDescription || '',
+      usageContext: parsed.usageContext || '',
+      confidence: parsed.confidence || 'High',
+      tips: parsed.tips || '',
+      fullExplanation: `${meaningHeader}\n${parsed.signName ? `${parsed.signName}: ` : ''}${resultMeaning}`,
       success: true,
-    });
+    };
+
+    pslImageCache.set(cacheKey, payload);
+    return res.json(payload);
   } catch (err: any) {
     console.error('PSL Vision Analysis Error:', err?.message || err);
     return res.status(503).json({
-      error: 'Unable to analyze sign image right now. Please ensure your image is clear and retry.',
+      error: 'Unable to analyze sign image within time limit. Please click Retry.',
     });
   }
 });

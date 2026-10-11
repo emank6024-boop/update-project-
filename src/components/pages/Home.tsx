@@ -591,7 +591,7 @@ export const Home: React.FC<HomeProps> = ({
           </div>
         </div>
 
-        {/* Primary & Secondary Action Buttons — Stable Height & High Contrast */}
+        {/* Primary Action Button — Stable Height & High Contrast */}
         <div className="flex flex-wrap items-center justify-center gap-3">
           <button
             type="button"
@@ -601,15 +601,6 @@ export const Home: React.FC<HomeProps> = ({
             <Bot className="w-4 h-4 shrink-0" />
             <span>{t('nav.aiAssistant', 'Open Full AI Assistant')}</span>
             <ArrowRight className={`w-4 h-4 shrink-0 ${isRTL ? 'rotate-180' : ''}`} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectPage('translate')}
-            className="h-10 inline-flex items-center gap-2 px-5 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border-strong)] text-[var(--text-primary)] text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer"
-          >
-            <Languages className="w-4 h-4 text-[var(--accent-text)] shrink-0" />
-            <span>{t('hero.getStarted', 'Launch Translator')}</span>
           </button>
         </div>
       </section>
@@ -676,13 +667,6 @@ export const Home: React.FC<HomeProps> = ({
                 className="hover:text-[var(--accent-text)] cursor-pointer transition-colors"
               >
                 {t('nav.aiAssistant', 'AI Assistant')}
-              </button>
-              <button
-                type="button"
-                onClick={() => onSelectPage('translate')}
-                className="hover:text-[var(--accent-text)] cursor-pointer transition-colors"
-              >
-                {t('nav.translator', 'Translator')}
               </button>
               <button
                 type="button"

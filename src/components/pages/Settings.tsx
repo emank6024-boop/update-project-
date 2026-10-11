@@ -58,7 +58,7 @@ export const Settings: React.FC<SettingsProps> = ({
     resetThemeToDefault,
     contrastInfo,
   } = useTheme();
-  const { openVoiceModal } = useVoiceSettings();
+  const { openVoiceModal, settings: voiceSettings, updateSettings: updateVoiceSettings } = useVoiceSettings();
   const { isRTL, t, setSelectedLanguage: setGlobalLanguage } = useLanguage();
   const [saveBanner, setSaveBanner] = useState<string | null>(null);
   const [hexDraft, setHexDraft] = useState(accentColor.toUpperCase());
@@ -517,26 +517,54 @@ export const Settings: React.FC<SettingsProps> = ({
             </button>
           </div>
 
-          {/* Voice Feedback Modal Trigger */}
-          <div className="py-3 flex items-center justify-between gap-4">
-            <div>
-              <div className="text-xs font-bold text-[var(--text-primary)]">
-                {t('settings.voiceFeedback', 'Voice Feedback on Interactions')}
+          {/* Voice Feedback Modal Trigger & Speaking Speed */}
+          <div className="py-3 space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-xs font-bold text-[var(--text-primary)]">
+                  {t('settings.voiceFeedback', 'Voice Feedback & Speaking Speed')}
+                </div>
+                <div className="text-[11px] text-[var(--text-muted)]">
+                  {t(
+                    'settings.voiceFeedbackDesc',
+                    'Audibly narrates confirmations and AI responses at a natural conversational speed'
+                  )}
+                </div>
               </div>
-              <div className="text-[11px] text-[var(--text-muted)]">
-                {t(
-                  'settings.voiceFeedbackDesc',
-                  'Audibly narrates confirmations and key responses when supported'
-                )}
+              <button
+                type="button"
+                onClick={openVoiceModal}
+                className="px-3.5 py-1.5 rounded-xl border border-[var(--border)] hover:bg-[var(--surface-secondary)] text-xs font-semibold text-[var(--accent-text)] cursor-pointer shrink-0"
+              >
+                {t('nav.voiceSettings', 'Configure Voice')}
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)] space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
+                  <Volume2 className="w-3.5 h-3.5 text-[var(--accent-text)]" />
+                  {t('voice.speed', 'Speaking Speed (Rate)')}
+                </span>
+                <span className="font-mono font-bold text-[var(--accent-text)]">
+                  {(voiceSettings.rate || 1.0).toFixed(2)}x
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0.75}
+                max={1.35}
+                step={0.05}
+                value={voiceSettings.rate || 1.0}
+                onChange={(e) => updateVoiceSettings({ rate: parseFloat(e.target.value) })}
+                className="w-full accent-[var(--accent-primary)] cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] text-[var(--text-muted)]">
+                <span>0.75x (Slow)</span>
+                <span>1.00x (Natural)</span>
+                <span>1.35x (Fast)</span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={openVoiceModal}
-              className="px-3.5 py-1.5 rounded-xl border border-[var(--border)] hover:bg-[var(--surface-secondary)] text-xs font-semibold text-[var(--accent-text)] cursor-pointer"
-            >
-              {t('nav.voiceSettings', 'Configure Voice')}
-            </button>
           </div>
         </div>
       </section>

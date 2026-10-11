@@ -118,6 +118,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const isFeaturesActive = [
     'tools',
+    'translate',
+    'translator',
     'voice-assistant',
     'voice',
     'tts-stt',
@@ -191,19 +193,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Bot className="w-3.5 h-3.5 shrink-0" />
               <span>{t('nav.aiAssistant', 'AI Assistant')}</span>
-            </button>
-
-            {/* Translator */}
-            <button
-              type="button"
-              onClick={() => handleNavClick('translate')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer ${
-                currentPage === 'translate' || currentPage === 'translator'
-                  ? 'bg-[var(--button-primary-bg)] text-[var(--button-primary-text)] shadow-xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]'
-              }`}
-            >
-              {t('nav.translator', 'Translator')}
             </button>
 
             {/* Features Dropdown */}
@@ -676,19 +665,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <button
                 type="button"
-                onClick={() => handleNavClick('translate')}
-                className={`px-3 py-2.5 rounded-xl text-xs font-semibold text-start flex items-center gap-2 transition-all cursor-pointer ${
-                  currentPage === 'translate' || currentPage === 'translator'
-                    ? 'bg-[var(--button-primary-bg)] text-[var(--button-primary-text)]'
-                    : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
-                }`}
-              >
-                <Languages className="w-3.5 h-3.5 shrink-0" />
-                <span>{t('nav.translator', 'Translator')}</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => handleNavClick('blog')}
                 className={`px-3 py-2.5 rounded-xl text-xs font-semibold text-start flex items-center gap-2 transition-all cursor-pointer ${
                   currentPage === 'blog'
@@ -703,7 +679,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={() => handleNavClick('settings')}
-                className={`col-span-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-start flex items-center gap-2 transition-all cursor-pointer ${
+                className={`px-3 py-2.5 rounded-xl text-xs font-semibold text-start flex items-center gap-2 transition-all cursor-pointer ${
                   currentPage === 'settings'
                     ? 'bg-[var(--button-primary-bg)] text-[var(--button-primary-text)]'
                     : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'

@@ -755,4 +755,11 @@ html[data-theme="dark"] .dark\:text-rose-400 { color: #fb7185 !important; }
   }
 }
 
+html,
+body,
+#root {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 

@@ -62,8 +62,8 @@ export const CENTRAL_LANGUAGE_CONFIG: Record<LanguageCode, LanguageMetadata> = {
     browserSttSupport: 'cloud-fallback',
     fontFamily: "'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif",
     aiPromptDirective:
-      'Respond entirely in authentic Pakistani Punjabi (پنجابی) written in Shahmukhi script (شاہ مکھی). Use natural Punjabi vocabulary and grammar (e.g., تہاڈا, وچ, نال, کیہ, ایہہ, آکھیا, کیتا). Do NOT reply in standard Urdu or English.',
-    sampleGreeting: 'سلام وعلیکم! میں تہاڈی کیہ مدد کر سکدا ہاں؟',
+      'Respond entirely in authentic Pakistani Punjabi (پنجابی) written in Shahmukhi script (شاہ مکھی). Use natural Punjabi vocabulary, idioms, and grammar (e.g., تُہاڈا, تُہانوں, وِچ, نال, کیہ, ایہہ, آکھیا, کیتا, سکدا, ہوندے, لئی). Do NOT reply in standard Urdu or English.',
+    sampleGreeting: 'سلام وعلیکم! میں تُہاڈی کیہ مدد کر سکدا ہاں؟',
   },
   sd: {
     code: 'sd',
@@ -90,11 +90,11 @@ export const CENTRAL_LANGUAGE_CONFIG: Record<LanguageCode, LanguageMetadata> = {
     region: 'Khyber Pakhtunkhwa',
     flag: '⛰️',
     speechRecognitionCode: 'ps-AF',
-    speechSynthesisCode: 'ps-PK',
+    speechSynthesisCode: 'ps-AF',
     browserSttSupport: 'cloud-fallback',
     fontFamily: "'Noto Naskh Arabic', 'Amiri', serif",
     aiPromptDirective:
-      'Respond entirely in authentic, fluent Pashto (پښتو) using standard Pashto Arabic script with proper Pashto characters (ښ, ځ, څ, ډ, ړ, ږ, ڼ, ې, ۍ, ۀ). Use natural Pashto grammar and vocabulary (e.g., ستاسو, څنګه, کولی شئ, په اړه, مرسته). Do NOT reply in Urdu, Persian, or English.',
+      'Respond entirely in authentic, fluent Pashto (پښتو) using standard Pashto script and pure Pashto characters (ښ, ځ, څ, ډ, ړ, ږ, ڼ, ټ, ګ, ې, ۍ, ۀ). Use natural Pashto grammar and vocabulary (e.g., ستاسو, څنګه, کولی شئ, په اړه, مرسته, لومړی, دوهم). Do NOT use Urdu letters (ٹ, ڈ, ڑ, گ, ے) and do NOT reply in Urdu, Persian, or English.',
     sampleGreeting: 'سلام! زه ستاسو څنګه مرسته کولی شم؟',
   },
   bal: {
@@ -217,11 +217,19 @@ export function getLanguageConfig(code?: string): LanguageMetadata {
 }
 
 /**
- * High-accuracy script & lexical detector for English, Urdu, Punjabi, Sindhi, Pashto, Balochi, and Saraiki.
+ * High-accuracy script & lexical detector for English, Urdu, Punjabi (Shahmukhi & Gurmukhi),
+ * Sindhi, Pashto, Balochi, and Saraiki.
+ * Preserves user-selected language preference while accurately detecting script-exclusive characters.
  */
 export function detectLanguageFromText(text: string, fallbackLang: LanguageCode = 'ur'): LanguageCode {
   if (!text || !text.trim()) return fallbackLang;
-  const sample = text.replace(/```[\s\S]*?```/g, ' ').slice(0, 600).trim();
+  const sample = text.replace(/```[\s\S]*?```/g, ' ').slice(0, 800).trim();
+
+  // Check Gurmukhi Punjabi script (ਪੰਜਾਬੀ)
+  const gurmukhiMatches = sample.match(/[\u0A00-\u0A7F]/g);
+  if (gurmukhiMatches && gurmukhiMatches.length >= 2) {
+    return 'pa';
+  }
 
   const arabicMatches = sample.match(/[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/g);
   const latinMatches = sample.match(/[A-Za-z]/g);
@@ -229,30 +237,58 @@ export function detectLanguageFromText(text: string, fallbackLang: LanguageCode 
   const latinCount = latinMatches ? latinMatches.length : 0;
 
   if (arabicCount > 0 && arabicCount >= latinCount * 0.25) {
-    // 1. Distinct Pashto characters: ښ ځ څ ډ ړ ږ ڼ ې ۍ ۀ
-    if (/[ښځڅډړږڼېۍۀ]/.test(sample) || /(?:^|\s)(ستاسو|څنګه|پښتو|کولی|په|دمخه|لپاره|دی|ده|وي)(?:\s|$)/.test(sample)) {
+    // 1. Unmistakable Pashto-exclusive characters (ښ ځ څ ډ ړ ږ ڼ ټ ګ ې ۍ ۀ) or Pashto-exclusive words
+    // Note: Never match ambiguous words like 'دی' or 'ده' which are common in Punjabi ("of") and Urdu ("gave").
+    if (
+      /[ښځڅډړږڼټګېۍۀ]/.test(sample) ||
+      /(?:^|\s)(ستاسو|څنګه|پښتو|کولی|دمخه|لپاره|موږ|تاسو|څخه|باندې|غواړم|مرسته|پوښتنه|ځواب)(?:\s|$)/.test(sample)
+    ) {
       return 'ps';
     }
-    // 2. Distinct Sindhi characters: ڄ ڃ ڳ ڱ ڪ ڇ ڌ ٿ ڦ ٺ ڏ ڙ
-    if (/[ڄڃڳڱڪڇڌٿڦٺڏڙ]/.test(sample) || /(?:^|\s)(آهي|آهن|توهان|سنڌي|ڪيئن|سگهان|ٿو)(?:\s|$)/.test(sample)) {
+
+    // 2. Unmistakable Sindhi-exclusive characters (ڄ ڃ ڱ ڪ ڇ ڌ ٿ ڦ ٺ ڏ ڙ) or Sindhi-exclusive words
+    if (
+      /[ڄڃڱڪڇڌٿڦٺڏڙ]/.test(sample) ||
+      /(?:^|\s)(آهي|آهن|توهان|سنڌي|ڪيئن|سگهان|ٿو|ڪهڙو)(?:\s|$)/.test(sample)
+    ) {
       return 'sd';
     }
-    // 3. Distinct Saraiki characters: ݙ ݨ ٻ
-    if (/[ݙݨٻ]/.test(sample)) {
+
+    // 3. Unmistakable Saraiki-exclusive character (ݙ) or Saraiki words
+    if (/[ݙ]/.test(sample) || /(?:^|\s)(تہاݙا|تہاݙی|سڳدا|سرائیکی)(?:\s|$)/.test(sample)) {
       return 'skr';
     }
-    // 4. Distinct Balochi lexical & orthographic markers
-    if (/(?:^|\s)(شما|شمارا|وتی|کُت|کن ات|کناں|گوں|بلوچی|نبشتہ|انت|ہست|وش آتک|کمکار)(?:\s|$)/.test(sample)) {
-      return 'bal';
-    }
-    // 5. Distinct Punjabi (Shahmukhi) lexical markers
-    if (/(?:^|\s)(تہاڈا|تہانوں|تہاڈی|آکھیا|ہاں|وچ|نال|کیہ|ساڈا|تسی|پنجابی|کیتا|سکدا|ہوندے)(?:\s|$)/.test(sample)) {
+
+    // 4. Distinct Punjabi (Shahmukhi) lexical & orthographic markers (including ݨ / ݪ)
+    if (
+      /[ݨݪ]/.test(sample) ||
+      /(?:^|\s)(تہاڈا|تہانوں|تہاڈی|تہاڈے|تُہاڈا|تُہانوں|تُہاڈی|آکھیا|وِچ|نال|کیہ|ساڈا|ساڈی|تسی|تُسی|پنجابی|کیتا|سکدا|ہوندے|ایہہ|جیہڑا|کیہڑا|وچوں|دسو|بنوان)(?:\s|$)/.test(sample)
+    ) {
       return 'pa';
     }
-    // 6. Respect the user's selected regional RTL language if no conflicting markers
-    if (['ur', 'pa', 'sd', 'ps', 'bal', 'skr', 'hnd', 'ks', 'brh'].includes(fallbackLang)) {
+
+    // 5. Distinct Balochi lexical & orthographic markers
+    if (
+      /(?:^|\s)(شمارا|وتی|کُت|کن ات|کناں|گوں|بلوچی|نبشتہ|ہست|وش آتک|کمکار|باروا|پُرس)(?:\s|$)/.test(sample)
+    ) {
+      return 'bal';
+    }
+
+    // 6. Distinct Urdu grammatical markers (when no Pashto, Sindhi, Saraiki, Punjabi, or Balochi markers matched)
+    if (
+      /(?:^|\s)(ہے|ہیں|تھا|تھی|تھے|ہوں|ہوگا|ہوگی|کیونکہ|لیکن|طریقہ|درج|ذیل|کیسے|بتائیں|مکمل|تجدید)(?:\s|$)/.test(sample) &&
+      fallbackLang !== 'pa' &&
+      fallbackLang !== 'skr' &&
+      fallbackLang !== 'hnd'
+    ) {
+      return 'ur';
+    }
+
+    // 7. Otherwise respect the active regional fallback language if Perso-Arabic
+    if (['ur', 'pa', 'ps', 'sd', 'bal', 'skr', 'hnd', 'ks', 'brh'].includes(fallbackLang)) {
       return fallbackLang;
     }
+
     return 'ur';
   }
 
@@ -260,8 +296,11 @@ export function detectLanguageFromText(text: string, fallbackLang: LanguageCode 
     if (fallbackLang === 'roman_ur' || fallbackLang === 'roman') {
       return 'roman_ur';
     }
-    // Check for clear Roman Urdu word patterns
-    if (/\b(kya|hai|hain|mein|kaise|aur|nahi|karein|batayein|tareeqa|aap|hum|pakistan\s+mein|ke\s+liye|ki\s+madad)\b/i.test(sample)) {
+    if (
+      /\b(kya|hai|hain|mein|kaise|aur|nahi|karein|batayein|tareeqa|aap|hum|pakistan\s+mein|ke\s+liye|ki\s+madad)\b/i.test(
+        sample
+      )
+    ) {
       return 'roman_ur';
     }
     return 'en';

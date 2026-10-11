@@ -186,6 +186,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
 }) => {
   const { isRTL, t, currentLanguage } = useLanguage();
   const {
+    settings: voiceSettings,
+    updateSettings: updateVoiceSettings,
     speak,
     pauseSpeaking,
     resumeSpeaking,
@@ -1515,7 +1517,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
 
       if (autoReadAloud && updatedText) {
         setSpeakingMessageId(assistantMsgId);
-        speak(updatedText, selectedLanguage);
+        const regeneratedLang = detectSpeechLanguage(updatedText, selectedLanguage);
+        speak(updatedText, regeneratedLang);
       }
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
@@ -1576,6 +1579,16 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
   const handleStopMessageAudio = () => {
     stopSpeaking();
     setSpeakingMessageId(null);
+  };
+
+  const ASSISTANT_SPEED_STEPS = [0.9, 0.95, 1.0, 1.05, 1.1, 1.25];
+  const handleCycleSpeechSpeed = () => {
+    const currentIdx = ASSISTANT_SPEED_STEPS.findIndex(
+      (s) => Math.abs(s - (voiceSettings.rate || 1.0)) < 0.03
+    );
+    const nextRate =
+      ASSISTANT_SPEED_STEPS[(currentIdx + 1) % ASSISTANT_SPEED_STEPS.length];
+    updateVoiceSettings({ rate: nextRate });
   };
 
   const handleCopy = (text: string, id: string) => {
@@ -2313,6 +2326,22 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                         <span>{t('voice.replay', 'Replay')}</span>
+                      </button>
+
+                      {/* ⚡ Playback Speed Selector Button */}
+                      <button
+                        type="button"
+                        onClick={handleCycleSpeechSpeed}
+                        className="px-2 py-1 rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--accent-text)] border border-[var(--border)] font-bold text-[11px] transition-all cursor-pointer tabular-nums"
+                        title="Click to adjust speaking speed (0.9x – 1.25x)"
+                      >
+                        {(voiceSettings.rate || 1.0).toFixed(
+                          (voiceSettings.rate || 1.0) % 1 === 0
+                            ? 1
+                            : (voiceSettings.rate || 1.0) * 100 % 10 === 0
+                            ? 1
+                            : 2
+                        )}x
                       </button>
 
                       {/* 🔁 Regenerate Response Button */}
