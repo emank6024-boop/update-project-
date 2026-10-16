@@ -6,7 +6,7 @@ import {
   ServerLRUCache,
   deduplicateRequest,
 } from '../geminiService.js';
-import { getLanguageName, getGlobalLanguageDirective } from '../languageDirectives.js';
+import { getLanguageName } from '../languageDirectives.js';
 
 export const translateRouter = Router();
 
@@ -29,7 +29,7 @@ translateRouter.post('/api/translate', async (req: Request, res: Response) => {
     });
   }
 
-  const cacheKey = `v2_${sourceLang}_${targetLang}_${trimmed.toLowerCase()}`;
+  const cacheKey = `${sourceLang}_${targetLang}_${trimmed.toLowerCase()}`;
   const cached = serverTranslationCache.get(cacheKey);
   if (cached) {
     res.setHeader('X-Cache-Status', 'HIT');
@@ -43,22 +43,17 @@ translateRouter.post('/api/translate', async (req: Request, res: Response) => {
 
   const sLang = getLanguageName(sourceLang);
   const tLang = getLanguageName(targetLang);
-  const targetDirective = getGlobalLanguageDirective(targetLang);
 
   const prompt = `You are the PakLingo Multilingual Translation Engine for Pakistan.
-Translate the following text accurately, preserving natural spoken cadence, grammar, and cultural idiom.
+Translate the following text accurately, preserving nuance and natural cultural idiom.
 Source Language: ${sLang}
 Target Language: ${tLang}
-
-TARGET LANGUAGE DIRECTIVE:
-${targetDirective}
-
 Input text: "${trimmed}"
 
 Respond in valid JSON format only:
 {
-  "translatedText": "Exact, natural translation in ${tLang} using authentic native vocabulary and script",
-  "phoneticText": "Clear Romanized pronunciation / phonetic transliteration in Latin letters showing how to pronounce the translated text"
+  "translatedText": "Exact translation in the target script/language",
+  "phoneticText": "Romanized pronunciation / phonetic transliteration in Latin letters"
 }`;
 
   try {

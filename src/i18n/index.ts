@@ -39,7 +39,7 @@ export const LANGUAGE_BCP47_MAP: Record<string, string> = {
   en: 'en-US',
   pa: 'pa-PK',
   sd: 'sd-PK',
-  ps: 'ps-AF',
+  ps: 'ps-PK',
   bal: 'bal-PK',
   skr: 'ur-PK',
   hnd: 'ur-PK',

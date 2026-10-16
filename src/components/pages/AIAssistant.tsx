@@ -53,6 +53,7 @@ import {
 } from '../../lib/firestoreService';
 import { getLanguageBCP47, isLanguageRTL } from '../../i18n';
 import { PakLingoMark } from '../PakLingoLogo';
+import { SmartVisualCard } from '../SmartVisualCard';
 
 interface AIAssistantProps {
   selectedLanguage: LanguageCode;
@@ -186,8 +187,6 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
 }) => {
   const { isRTL, t, currentLanguage } = useLanguage();
   const {
-    settings: voiceSettings,
-    updateSettings: updateVoiceSettings,
     speak,
     pauseSpeaking,
     resumeSpeaking,
@@ -249,6 +248,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
       conversationId: activeConversationId,
     },
   ]);
+  const [visibleVisuals, setVisibleVisuals] = useState<Record<string, boolean>>({});
 
   // Load local + Firestore saved conversations when user changes
   useEffect(() => {
@@ -1517,8 +1517,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
 
       if (autoReadAloud && updatedText) {
         setSpeakingMessageId(assistantMsgId);
-        const regeneratedLang = detectSpeechLanguage(updatedText, selectedLanguage);
-        speak(updatedText, regeneratedLang);
+        speak(updatedText, selectedLanguage);
       }
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
@@ -1579,16 +1578,6 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
   const handleStopMessageAudio = () => {
     stopSpeaking();
     setSpeakingMessageId(null);
-  };
-
-  const ASSISTANT_SPEED_STEPS = [0.9, 0.95, 1.0, 1.05, 1.1, 1.25];
-  const handleCycleSpeechSpeed = () => {
-    const currentIdx = ASSISTANT_SPEED_STEPS.findIndex(
-      (s) => Math.abs(s - (voiceSettings.rate || 1.0)) < 0.03
-    );
-    const nextRate =
-      ASSISTANT_SPEED_STEPS[(currentIdx + 1) % ASSISTANT_SPEED_STEPS.length];
-    updateVoiceSettings({ rate: nextRate });
   };
 
   const handleCopy = (text: string, id: string) => {
@@ -2214,6 +2203,24 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
                       </ReactMarkdown>
                     </div>
                   )}
+
+                  {/* Smart Visual Explanation Card */}
+                  {!isUser && visibleVisuals[m.id] && (
+                    <div className="mt-4 pt-3 border-t border-[var(--border)]">
+                      <SmartVisualCard
+                        title={m.text.slice(0, 45).replace(/[#*`_]/g, '').trim()}
+                        prompt={
+                          (messages[idx - 1]?.text && messages[idx - 1].sender === 'user')
+                            ? messages[idx - 1].text
+                            : m.text.slice(0, 180).replace(/[#*`_]/g, '').trim()
+                        }
+                        category="general"
+                        language={selectedLanguage}
+                        initialAspectRatio="4:3"
+                        autoGenerate={true}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Message Action Footer */}
@@ -2328,22 +2335,6 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
                         <span>{t('voice.replay', 'Replay')}</span>
                       </button>
 
-                      {/* ⚡ Playback Speed Selector Button */}
-                      <button
-                        type="button"
-                        onClick={handleCycleSpeechSpeed}
-                        className="px-2 py-1 rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--accent-text)] border border-[var(--border)] font-bold text-[11px] transition-all cursor-pointer tabular-nums"
-                        title="Click to adjust speaking speed (0.9x – 1.25x)"
-                      >
-                        {(voiceSettings.rate || 1.0).toFixed(
-                          (voiceSettings.rate || 1.0) % 1 === 0
-                            ? 1
-                            : (voiceSettings.rate || 1.0) * 100 % 10 === 0
-                            ? 1
-                            : 2
-                        )}x
-                      </button>
-
                       {/* 🔁 Regenerate Response Button */}
                       {canRegenerate && (
                         <button
@@ -2384,6 +2375,30 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
                             <span>{t('common.copy', 'Copy')}</span>
                           </>
                         )}
+                      </button>
+
+                      {/* 🎨 Visual Concept Generator Button */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setVisibleVisuals((prev) => ({
+                            ...prev,
+                            [m.id]: !prev[m.id],
+                          }))
+                        }
+                        className={`px-2.5 py-1 rounded-lg border font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          visibleVisuals[m.id]
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                            : 'bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-emerald-600 border-[var(--border)]'
+                        }`}
+                        title="Generate or View Visual Concept"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>
+                          {visibleVisuals[m.id]
+                            ? t('visual.hideVisual', 'Hide Visual')
+                            : t('visual.viewVisual', 'Visual Concept')}
+                        </span>
                       </button>
                     </div>
                   )}

@@ -13,6 +13,7 @@ import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { AudioControlBar } from '../AudioControlBar';
 import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
+import { SmartVisualCard } from '../SmartVisualCard';
 
 interface FarmerAssistantProps {
   selectedLanguage: LanguageCode;
@@ -193,18 +194,30 @@ export const FarmerAssistant: React.FC<FarmerAssistantProps> = ({ selectedLangua
         </div>
       )}
 
-      {/* Result Card */}
+      {/* Result Card & Visual Advisory */}
       {result && (
-        <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
-          <AudioControlBar
-            text={result.guidance || result.advice || result.answer || result.text || ''}
+        <div className="space-y-6">
+          {/* Smart AI Visual Illustration */}
+          <SmartVisualCard
+            title={`${crop ? crop.toUpperCase() + ' — ' : ''}${query || t('farmer.title', 'Agri Advisory Visual')}`}
+            prompt={`Agricultural field guidance and visual inspection for ${crop || 'crops in Pakistan'}: ${query}`}
+            category="farmer"
             language={selectedLanguage}
-            label={`${currentLanguage.nativeName} — ${t('voice.listenBtn', 'Listen Audio')}`}
+            initialAspectRatio="4:3"
+            autoGenerate={true}
           />
-          <div className="prose prose-xs sm:prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {result.guidance || result.advice || result.answer || result.text || ''}
-            </ReactMarkdown>
+
+          <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
+            <AudioControlBar
+              text={result.guidance || result.advice || result.answer || result.text || ''}
+              language={selectedLanguage}
+              label={`${currentLanguage.nativeName} — ${t('voice.listenBtn', 'Listen Audio')}`}
+            />
+            <div className="prose prose-xs sm:prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {result.guidance || result.advice || result.answer || result.text || ''}
+              </ReactMarkdown>
+            </div>
           </div>
         </div>
       )}

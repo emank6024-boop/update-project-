@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "katex/dist/katex.min.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -755,11 +756,46 @@ html[data-theme="dark"] .dark\:text-rose-400 { color: #fb7185 !important; }
   }
 }
 
-html,
-body,
-#root {
-  max-width: 100vw;
-  overflow-x: hidden;
+/*
+  ======================================================================
+  SCIENTIFIC & MATHEMATICAL FORMULA RENDERING (KaTeX STYLING)
+  ======================================================================
+*/
+.katex-display {
+  display: block;
+  margin: 1rem 0 !important;
+  padding: 0.75rem 1rem !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  text-align: center;
+  direction: ltr !important;
+  unicode-bidi: isolate;
+  background-color: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  color: var(--text-primary);
+}
+
+.katex {
+  font-size: 1.08em;
+  text-rendering: auto;
+  direction: ltr !important;
+  unicode-bidi: isolate;
+  color: var(--text-primary);
+}
+
+.katex-html {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+html[data-theme="dark"] .katex {
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .katex-display {
+  background-color: rgba(15, 29, 51, 0.75) !important;
+  border-color: var(--border) !important;
 }
 
 

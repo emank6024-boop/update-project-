@@ -35,6 +35,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useVoiceSettings, detectSpeechLanguage } from '../../context/VoiceSettingsContext';
 import { AudioControlBar } from '../AudioControlBar';
 import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
+import { SmartVisualCard } from '../SmartVisualCard';
 
 interface AITeacherProps {
   selectedLanguage: LanguageCode;
@@ -787,6 +788,16 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
                       </button>
                     </div>
                   </div>
+
+                  {/* Smart Educational Visual Concept Diagram */}
+                  <SmartVisualCard
+                    title={`${subject} — ${activeTopicTitle || query}`}
+                    prompt={`Educational diagram and scientific textbook illustration explaining ${activeTopicTitle || query} for ${subject} ${grade} in Pakistan boards`}
+                    category="student"
+                    language={lessonLang}
+                    initialAspectRatio="4:3"
+                    autoGenerate={true}
+                  />
 
                   {/* Lesson Content with Per-Heading Audio Play Button */}
                   <div

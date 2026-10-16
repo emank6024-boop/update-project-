@@ -17,6 +17,7 @@ import { ttsRouter } from './server/routes/ttsRoutes.js';
 import { factCheckRouter } from './server/routes/factCheckRoutes.js';
 import { pslRouter } from './server/routes/pslRoutes.js';
 import { documentRouter } from './server/routes/documentRoutes.js';
+import { imageRouter } from './server/routes/imageRoutes.js';
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.use(ttsRouter);
 app.use(factCheckRouter);
 app.use(pslRouter);
 app.use(documentRouter);
+app.use(imageRouter);
 
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {

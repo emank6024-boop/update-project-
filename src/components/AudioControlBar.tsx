@@ -36,19 +36,9 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
     isSpeaking,
     isPaused,
     isLoadingAudio,
-    settings,
-    updateSettings,
   } = useVoiceSettings();
 
   const [isThisActive, setIsThisActive] = useState(false);
-
-  const SPEED_STEPS = [0.9, 0.95, 1.0, 1.05, 1.1, 1.25];
-
-  const handleCycleSpeed = () => {
-    const currentIdx = SPEED_STEPS.findIndex((s) => Math.abs(s - settings.rate) < 0.03);
-    const nextRate = SPEED_STEPS[(currentIdx + 1) % SPEED_STEPS.length];
-    updateSettings({ rate: nextRate });
-  };
 
   const targetLang = (language || currentLanguage.code || 'ur') as LanguageCode;
   const detectedLangCode = detectSpeechLanguage(text || '', targetLang);
@@ -186,18 +176,6 @@ export const AudioControlBar: React.FC<AudioControlBarProps> = ({
           </button>
         </>
       )}
-
-      {/* Speed Control Button (always accessible to adjust playback speed in real time) */}
-      <button
-        type="button"
-        onClick={handleCycleSpeed}
-        className={`inline-flex items-center justify-center ${
-          compact ? 'px-2 py-1 text-[10px]' : 'px-2.5 py-1.5 text-[11px]'
-        } rounded-xl bg-[var(--surface-secondary)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] font-mono font-bold transition-all cursor-pointer`}
-        title={`${t('settings.speechRate', 'Speech Rate')}: ${settings.rate}x (Click to change speed)`}
-      >
-        {settings.rate}x
-      </button>
     </div>
   );
 };

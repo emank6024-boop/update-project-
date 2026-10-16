@@ -47,7 +47,7 @@ const DEFAULT_SETTINGS: VoiceSettings = {
   selectedVoiceURI: undefined,
 };
 
-const STORAGE_KEY = 'paklingo_voice_settings_v4';
+const STORAGE_KEY = 'paklingo_voice_settings_v2';
 
 // Memoization cache for language detection so it never runs repeatedly on the same text
 const languageDetectionCache = new Map<string, string>();
@@ -62,8 +62,8 @@ const clientAudioChunkCache = new Map<string, string>();
 export function detectSpeechLanguage(text: string, fallbackLang = 'ur'): string {
   if (!text || !text.trim()) return fallbackLang;
 
-  const sample = text.slice(0, 800).trim();
-  const cacheKey = `v4_${fallbackLang}__${sample}`;
+  const sample = text.slice(0, 600).trim();
+  const cacheKey = `${fallbackLang}__${sample}`;
   const cached = languageDetectionCache.get(cacheKey);
   if (cached) return cached;
 
@@ -77,7 +77,7 @@ export function detectSpeechLanguage(text: string, fallbackLang = 'ur'): string 
   return detected;
 }
 
-// Clean markdown formatting symbols for natural spoken rhythm without adding artificial pauses
+// Clean markdown formatting symbols for natural spoken rhythm
 export function stripMarkdownForSpeech(text: string): string {
   return text
     .replace(/```[\s\S]*?```/g, ' ')
@@ -85,46 +85,43 @@ export function stripMarkdownForSpeech(text: string): string {
     .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/^[ \t]*\|?[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)+\|?[ \t]*$/gm, ' ')
-    .replace(/\|/g, '، ')
+    .replace(/\|/g, ', ')
     .replace(/^#{1,6}\s+/gm, '')
-    .replace(/^[ \t]*[-*•+]\s+/gm, '')
-    .replace(/^[ \t]*(\d+)[.)]\s+/gm, '$1، ')
     .replace(/[*_~]+/g, '')
-    .replace(/[📘💡✅📝📌📊🌍🔎⚠️🎯🏛️🌾⚖️🩺📚🧠🔬💻🔢⚛️🧪🧬📖🖋️🌙🔊🎤🇵🇰🌐⛰️🏺🏜️📱☀️🌲🍁🦅]/gu, '')
-    .replace(/([^\s.۔؟?!:؛،,])\s*\n+/g, '$1۔ ')
-    .replace(/\n+/g, ' ')
-    .replace(/([.۔؟?!])\s*[،,]+/g, '$1 ')
-    .replace(/[۔.]{2,}/g, '۔')
+    .replace(/[📘💡✅📝📌📊🌍🔎⚠️🎯🏛️🌾⚖️🩺📚🧠🔬💻🔢⚛️🧪🧬📖🖋️🌙]/gu, '')
+    .replace(/\n{2,}/g, '. ')
+    .replace(/\n/g, ', ')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
 
 /**
- * Splits cleaned text into natural multi-sentence audio segments so the first segment starts playing
- * in ~1 second while remaining segments prefetch in parallel with zero inter-sentence pauses.
+ * Splits cleaned text into progressive audio chunks so the first chunk is concise (~120 chars)
+ * and begins playing within ~1.5 seconds, while subsequent chunks prefetch in the background.
  */
 function splitIntoProgressiveSpeechChunks(cleanedText: string): string[] {
   if (!cleanedText) return [];
-  if (cleanedText.length <= 340) return [cleanedText];
+  if (cleanedText.length <= 130) return [cleanedText];
 
-  // Split by Urdu/Pashto/Arabic/Gurmukhi full stop (۔ / ।), question mark (؟ / ?), exclamation (!), period (.), or semicolon
+  // Split by Urdu/Arabic full stop (۔), question mark (؟ / ?), exclamation (!), period (.), or newline
   const rawSentences = cleanedText
-    .split(/(?<=[.۔।؟?!؛;])\s+/)
+    .split(/(?<=[.۔؟?!؛;\n])\s+/)
     .map((s) => s.trim())
     .filter(Boolean);
 
   if (rawSentences.length <= 1) {
+    // Fallback split by comma or word boundaries if no sentence punctuation
     const chunks: string[] = [];
     let remaining = cleanedText;
     let isFirst = true;
     while (remaining.length > 0) {
-      const maxLen = isFirst ? 340 : 620;
+      const maxLen = isFirst ? 120 : 340;
       if (remaining.length <= maxLen) {
         chunks.push(remaining.trim());
         break;
       }
       let cutIdx = remaining.lastIndexOf(' ', maxLen);
-      if (cutIdx < 80) cutIdx = maxLen;
+      if (cutIdx < 45) cutIdx = maxLen;
       chunks.push(remaining.slice(0, cutIdx).trim());
       remaining = remaining.slice(cutIdx).trim();
       isFirst = false;
@@ -137,13 +134,14 @@ function splitIntoProgressiveSpeechChunks(cleanedText: string): string[] {
   let isFirstChunk = true;
 
   for (const sentence of rawSentences) {
-    const targetLimit = isFirstChunk ? 340 : 620;
+    const targetLimit = isFirstChunk ? 125 : 350;
     if (!current) {
       if (sentence.length > targetLimit) {
+        // Split overly long first sentence at a comma or space
         let cut = sentence.lastIndexOf('،', targetLimit);
-        if (cut < 80) cut = sentence.lastIndexOf(',', targetLimit);
-        if (cut < 80) cut = sentence.lastIndexOf(' ', targetLimit);
-        if (cut < 80) cut = targetLimit;
+        if (cut < 45) cut = sentence.lastIndexOf(',', targetLimit);
+        if (cut < 45) cut = sentence.lastIndexOf(' ', targetLimit);
+        if (cut < 45) cut = targetLimit;
         chunks.push(sentence.slice(0, cut).trim());
         current = sentence.slice(cut).trim();
         isFirstChunk = false;
@@ -163,7 +161,7 @@ function splitIntoProgressiveSpeechChunks(cleanedText: string): string[] {
     chunks.push(current.trim());
   }
 
-  return chunks.slice(0, 12);
+  return chunks.slice(0, 10); // Cap at 10 chunks (~3300 chars max)
 }
 
 const VoiceSettingsContext = createContext<VoiceSettingsContextType | undefined>(undefined);
@@ -180,9 +178,6 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     return DEFAULT_SETTINGS;
   });
-
-  const settingsRef = useRef<VoiceSettings>(settings);
-  settingsRef.current = settings;
 
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -233,7 +228,6 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateSettings = useCallback((partial: Partial<VoiceSettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...partial };
-      settingsRef.current = next;
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       } catch {
@@ -334,25 +328,13 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (cloudTtsAvailable) {
-        const neuralLabel =
-          langCode === 'ps'
-            ? 'Pashto Native Neural (ps-AF LatifaNeural)'
-            : langCode === 'pa'
-            ? 'Pakistani Punjabi Neural (pa-PK / AsadNeural)'
-            : langCode === 'sd'
-            ? 'Sindhi Neural Voice (sd-PK / UzmaNeural)'
-            : langCode === 'bal'
-            ? 'Balochi Neural Voice (bal-PK / UzmaNeural)'
-            : langCode === 'en'
-            ? 'English Neural (en-US AvaMultilingual)'
-            : 'Pakistani Urdu Neural (ur-PK UzmaNeural)';
         return {
           isSupported: true,
-          hasNativeVoice: true,
-          voiceName: neuralLabel,
+          hasNativeVoice: Boolean(matchedVoice),
+          voiceName: 'PakLingo Neural Voice (Kore)',
           langTag: bcp47,
           engineType: 'cloud-neural',
-          message: `Ready (${neuralLabel} — ${bcp47})`,
+          message: `Ready (PakLingo Cloud Neural TTS — ${bcp47})`,
         };
       }
 
@@ -438,7 +420,7 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Helper to fetch or retrieve cached audio DataURL for a single text chunk
   const fetchChunkAudioUrl = useCallback(async (chunkText: string, targetLang: string): Promise<string | null> => {
-    const cacheKey = `v3_${targetLang}_Kore_${chunkText}`;
+    const cacheKey = `${targetLang}_Kore_${chunkText}`;
     const existing = clientAudioChunkCache.get(cacheKey);
     if (existing) return existing;
 
@@ -454,7 +436,7 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const data = await response.json().catch(() => ({}));
     if (response.ok && data.success && data.audioBase64) {
-      const audioSrc = `data:${data.mimeType || 'audio/mpeg'};base64,${data.audioBase64}`;
+      const audioSrc = `data:${data.mimeType || 'audio/wav'};base64,${data.audioBase64}`;
       if (clientAudioChunkCache.size > 150) {
         const oldest = clientAudioChunkCache.keys().next().value;
         if (oldest) clientAudioChunkCache.delete(oldest);
@@ -465,7 +447,7 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     return null;
   }, []);
 
-  // Helper to play a sequence of progressive audio chunks with parallel background prefetching & preloading
+  // Helper to play a sequence of progressive audio chunks with background prefetching
   const playProgressiveCloudNeuralTTS = useCallback(
     async (cleanedText: string, targetLang: string, sessionId: number): Promise<boolean> => {
       const chunks = splitIntoProgressiveSpeechChunks(cleanedText);
@@ -476,13 +458,9 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Start fetching Chunk 0 immediately
         const firstChunkPromise = fetchChunkAudioUrl(chunks[0], targetLang);
+        // If there is a second chunk, kick off prefetching in parallel after a tiny stagger
         const prefetchPromises: Map<number, Promise<string | null>> = new Map();
         prefetchPromises.set(0, firstChunkPromise);
-
-        // Kick off Chunk 1 in parallel right away so there is zero pause after Chunk 0
-        if (chunks.length > 1) {
-          prefetchPromises.set(1, fetchChunkAudioUrl(chunks[1], targetLang));
-        }
 
         const firstAudioSrc = await firstChunkPromise;
         if (playbackSessionRef.current !== sessionId) {
@@ -494,14 +472,12 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
           return false;
         }
 
-        // Prefetch any remaining chunks in parallel while Chunk 0 plays
-        for (let idx = 2; idx < chunks.length; idx++) {
-          if (!prefetchPromises.has(idx)) {
-            prefetchPromises.set(idx, fetchChunkAudioUrl(chunks[idx], targetLang));
-          }
+        // Prefetch Chunk 1 while Chunk 0 starts playing
+        if (chunks.length > 1) {
+          prefetchPromises.set(1, fetchChunkAudioUrl(chunks[1], targetLang));
         }
 
-        const playSingleAudioUrl = (audioSrc: string): Promise<boolean> => {
+        const playSingleAudioUrl = (audioSrc: string, chunkIndex: number): Promise<boolean> => {
           return new Promise<boolean>((resolve) => {
             if (playbackSessionRef.current !== sessionId) {
               resolve(false);
@@ -518,12 +494,16 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
             }
 
             const audio = new Audio(audioSrc);
-            audio.preload = 'auto';
-            // Always read live rate & volume from settingsRef so speed changes apply across all chunks
-            audio.volume = Math.max(0, Math.min(1, settingsRef.current.volume));
-            audio.playbackRate = Math.max(0.5, Math.min(2.0, settingsRef.current.rate));
+            audio.volume = Math.max(0, Math.min(1, settings.volume));
+            audio.playbackRate = Math.max(0.5, Math.min(2.0, settings.rate));
             audioRef.current = audio;
             activeModeRef.current = 'cloud';
+
+            // Prefetch next chunk in the queue
+            const nextIndex = chunkIndex + 1;
+            if (nextIndex < chunks.length && !prefetchPromises.has(nextIndex)) {
+              prefetchPromises.set(nextIndex, fetchChunkAudioUrl(chunks[nextIndex], targetLang));
+            }
 
             audio.onplay = () => {
               if (playbackSessionRef.current !== sessionId) return;
@@ -561,7 +541,7 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         };
 
         // Play Chunk 0 immediately
-        const firstPlayed = await playSingleAudioUrl(firstAudioSrc);
+        const firstPlayed = await playSingleAudioUrl(firstAudioSrc, 0);
         if (!firstPlayed || playbackSessionRef.current !== sessionId) {
           if (playbackSessionRef.current === sessionId) {
             setIsSpeaking(false);
@@ -581,7 +561,7 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
           }
           const nextAudioSrc = await nextPromise;
           if (!nextAudioSrc || playbackSessionRef.current !== sessionId) break;
-          const ok = await playSingleAudioUrl(nextAudioSrc);
+          const ok = await playSingleAudioUrl(nextAudioSrc, i);
           if (!ok) break;
         }
 
@@ -599,7 +579,7 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         return false;
       }
     },
-    [fetchChunkAudioUrl]
+    [fetchChunkAudioUrl, settings.rate, settings.volume]
   );
 
   // Helper to play using verified native Browser SpeechSynthesis
@@ -611,13 +591,11 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       const utterance = new SpeechSynthesisUtterance(cleanedText);
       utterance.voice = matchedVoice;
       utterance.lang = matchedVoice.lang || getLanguageBCP47(targetLang);
-      utterance.rate = Math.max(0.5, Math.min(2.0, settingsRef.current.rate));
-      utterance.pitch = Math.max(0.5, Math.min(2.0, settingsRef.current.pitch));
-      utterance.volume = Math.max(0.0, Math.min(1.0, settingsRef.current.volume));
+      utterance.rate = Math.max(0.5, Math.min(2.0, settings.rate));
+      utterance.pitch = Math.max(0.5, Math.min(2.0, settings.pitch));
+      utterance.volume = Math.max(0.0, Math.min(1.0, settings.volume));
 
       activeModeRef.current = 'browser';
-      setIsSpeaking(true);
-      setIsLoadingAudio(false);
 
       utterance.onstart = () => {
         setIsLoadingAudio(false);
@@ -644,7 +622,7 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       window.speechSynthesis.speak(utterance);
       return true;
     },
-    []
+    [settings.pitch, settings.rate, settings.volume]
   );
 
   const speak = useCallback(
@@ -663,7 +641,6 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       // Stop any existing speech and start a fresh playback session
       stopSpeaking();
       const currentSessionId = playbackSessionRef.current;
-      setIsLoadingAudio(true);
 
       const voices =
         availableVoices.length > 0
@@ -674,8 +651,14 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const matchedVoice = findBestVoiceForLanguage(detectedLang, voices);
 
-      // 1. For Urdu, Punjabi, Sindhi, Pashto, Balochi, Saraiki, Roman Urdu, and English:
-      // Prioritize Progressive Cloud Neural TTS so the response is spoken with high-quality native neural pronunciation
+      // 1. For English, if a high-quality native browser voice exists, play immediately; otherwise use Cloud Neural TTS
+      if (detectedLang === 'en' && matchedVoice) {
+        const played = playBrowserTTS(cleanedText, matchedVoice, detectedLang);
+        if (played) return true;
+      }
+
+      // 2. For Urdu, Punjabi, Sindhi, Pashto, Balochi, Saraiki, Roman Urdu (and English fallback):
+      // Prioritize Progressive Cloud Neural TTS so the first sentence starts playing promptly in authentic native speech
       const cloudPlayed = await playProgressiveCloudNeuralTTS(
         cleanedText,
         detectedLang,
@@ -685,7 +668,7 @@ export const VoiceSettingsProvider: React.FC<{ children: React.ReactNode }> = ({
         return true;
       }
 
-      // 2. Fallback to verified native browser voice ONLY if one genuinely matches the target language
+      // 3. Fallback to verified native browser voice ONLY if one genuinely matches the target language
       if (matchedVoice && playbackSessionRef.current === currentSessionId) {
         return playBrowserTTS(cleanedText, matchedVoice, detectedLang);
       }

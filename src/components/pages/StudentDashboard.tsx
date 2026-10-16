@@ -27,6 +27,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { AudioControlBar } from '../AudioControlBar';
 import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
+import { SmartVisualCard } from '../SmartVisualCard';
 
 interface StudentDashboardProps {
   onSelectPage: (page: PageId) => void;
@@ -531,8 +532,18 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
 
             {generatedNotes ? (
-              <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-[var(--text-primary)] leading-relaxed p-5 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)]">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{generatedNotes}</ReactMarkdown>
+              <div className="space-y-4">
+                <SmartVisualCard
+                  title={`${subject} — ${studyTopic}`}
+                  prompt={`Educational concept diagram and study illustration for ${studyTopic} in ${subject}`}
+                  category="student"
+                  language={selectedLanguage}
+                  initialAspectRatio="4:3"
+                  autoGenerate={true}
+                />
+                <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-[var(--text-primary)] leading-relaxed p-5 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)]">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{generatedNotes}</ReactMarkdown>
+                </div>
               </div>
             ) : (
               <div className="py-16 text-center space-y-3">
