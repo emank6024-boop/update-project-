@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   GraduationCap,
   BookOpen,
@@ -19,20 +19,74 @@ import {
   Check,
   Mic,
   Square,
+  History as HistoryIcon,
+  Trash2,
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { FormattedMarkdown } from '../FormattedMarkdown';
 import { PageId, LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { AudioControlBar } from '../AudioControlBar';
 import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 import { SmartVisualCard } from '../SmartVisualCard';
+import {
+  saveFeatureHistoryItem,
+  loadFeatureHistory,
+  deleteFeatureHistoryItem,
+  FeatureHistoryItem,
+} from '../../lib/firestoreService';
 
 interface StudentDashboardProps {
   onSelectPage: (page: PageId) => void;
   selectedLanguage: LanguageCode;
 }
+
+const QUICK_TOPICS_BY_SUBJECT: Record<string, string[]> = {
+  Mathematics: [
+    'Quadratic Formula & Factorization (دو درجی مساوات)',
+    'Pythagoras Theorem & Right Triangles (مسئلہ فیثاغورث)',
+    'Matrices, Determinants & Cramer Rule (کالب اور مقطع)',
+    'Trigonometric Ratios & Identities (مثلثیاتی نسبتیں)',
+    'Calculus: Derivatives & Slopes (ڈیریویٹیوز اور سلوپ)',
+  ],
+  Biology: [
+    'Animal Cell Structure & Organelles (جانوروں کا خلیہ)',
+    'Plant Cell Anatomy & Chloroplasts (پودوں کا خلیہ)',
+    'Photosynthesis & Cellular Respiration (ضیائی تالیف اور تنفس)',
+    'Mitosis vs Meiosis Cell Division (خلوی تقسیم)',
+    'Human Digestive & Circulatory Systems (نظام انہضام اور دوران خون)',
+  ],
+  Physics: [
+    "Newton's Three Laws of Motion (نیوٹن کے قوانین حرکت)",
+    "Ohm's Law, Electric Current & Resistance (اوہم کا قانون)",
+    'Work, Kinetic & Potential Energy (کام اور توانائی)',
+    'Electromagnetic Induction & Transformers (برقی مقناطیسی امالہ)',
+  ],
+  Chemistry: [
+    'Ionic, Covalent & Coordinate Bonds (کیمیائی بانڈنگ)',
+    'Periodic Table Trends & Atomic Radius (دوری جدول)',
+    'Acids, Bases, pH Scale & Neutralization (تیزاب اور اساس)',
+    'Chemical Equilibrium & Le Chatelier Principle (کیمیائی توازن)',
+  ],
+  'Computer Science': [
+    'Object-Oriented Programming (OOP) Pillars',
+    'Loops, Arrays & Functions in C++ / Python',
+    'Binary Number System & Logic Gates (AND, OR, NOT)',
+    'Database Normalization & SQL Queries',
+  ],
+  'Pakistan Studies': [
+    'Lahore Resolution 1940 & Creation of Pakistan (قرارداد پاکستان)',
+    'Salient Features of 1973 Constitution (آئین پاکستان 1973)',
+    'Physical Features, Rivers & Climate of Pakistan (پاکستان کا جغرافیہ)',
+    'Agricultural & Industrial Development in Pakistan (زراعت اور صنعت)',
+  ],
+  'Urdu Adab': [
+    'اسم، فعل، حرف اور جملے کی ساخت (قواعد اردو)',
+    'تلمیح، استعارہ، تشبیہ اور قافیہ و ردیف',
+    'مرزا غالب اور علامہ اقبال کی شاعری کا فکری جائزہ',
+    'درخواست نویسی، خطوط اور مضمون نگاری کے اصول',
+  ],
+};
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onSelectPage,
@@ -44,10 +98,29 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<'study' | 'quiz' | 'resources'>('study');
   const [subject, setSubject] = useState('Mathematics');
   const [gradeLevel, setGradeLevel] = useState('Class 10 (Matric / SSC Part 2)');
-  const [studyTopic, setStudyTopic] = useState('');
+  const [studyTopic, setStudyTopic] = useState('Quadratic Formula & Factorization (دو درجی مساوات)');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedNotes, setGeneratedNotes] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Student Feature History (Persists across reloads/revisits)
+  const [studentHistory, setStudentHistory] = useState<FeatureHistoryItem[]>(() =>
+    loadFeatureHistory('student', user?.id)
+  );
+
+  // Restore active study session if opened from History page or reload
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('paklingo_active_query_student');
+      if (stored) {
+        const item = JSON.parse(stored) as FeatureHistoryItem;
+        if (item.subject) setSubject(item.subject);
+        if (item.query || item.topic) setStudyTopic(item.query || item.topic || '');
+        if (item.resultText) setGeneratedNotes(item.resultText);
+        sessionStorage.removeItem('paklingo_active_query_student');
+      }
+    } catch {}
+  }, []);
 
   // Quick practice quiz state
   const [quizQuestion, setQuizQuestion] = useState<string | null>(null);
@@ -97,13 +170,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     { id: 'urdu', value: 'Urdu Adab', name: t('student.urduLiterature', 'Urdu Grammar & Literature') },
   ];
 
-  const quickTopics = [
-    'Photosynthesis & Cellular Respiration',
-    "Newton's Laws of Motion",
-    'Quadratic Formula & Factorization',
-    'Periodic Table & Chemical Bonding',
-    '1973 Constitution of Pakistan',
-  ];
+  // Dynamically tailor quick topics to strictly match the active subject!
+  const quickTopics = QUICK_TOPICS_BY_SUBJECT[subject] || QUICK_TOPICS_BY_SUBJECT['Mathematics'];
+
+  const handleSubjectChange = (newSubject: string) => {
+    setSubject(newSubject);
+    const subTopics = QUICK_TOPICS_BY_SUBJECT[newSubject];
+    if (subTopics && subTopics.length > 0) {
+      setStudyTopic(subTopics[0]);
+    }
+  };
 
   const handleGenerateStudyGuide = async (overrideTopic?: string) => {
     const targetTopic = (overrideTopic !== undefined ? overrideTopic : studyTopic).trim();
@@ -128,6 +204,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
       if (!res.ok) throw new Error('Could not generate notes');
 
+      let savedText = '';
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('text/event-stream') && res.body) {
         const reader = res.body.getReader();
@@ -159,23 +236,54 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             }
           }
         }
+        savedText = fullText;
       } else {
         const data = await res.json();
-        setGeneratedNotes(
-          data.explanation || data.reply || data.answer || 'Study guide generated successfully.'
+        savedText = data.explanation || data.reply || data.answer || 'Study guide generated successfully.';
+        setGeneratedNotes(savedText);
+      }
+
+      if (savedText) {
+        const saved = saveFeatureHistoryItem(
+          'student',
+          {
+            title: `${subject} — ${targetTopic}`,
+            subtitle: `${gradeLevel} • ${currentLanguage.nativeName}`,
+            query: targetTopic,
+            subject,
+            topic: targetTopic,
+            resultText: savedText,
+            language: selectedLanguage,
+          },
+          user?.id
         );
+        setStudentHistory((prev) => [saved, ...prev.filter((p) => p.id !== saved.id)].slice(0, 30));
       }
     } catch {
-      setGeneratedNotes(
+      const fallback =
         `### 📚 ${targetTopic} — ${subject} (${gradeLevel})\n\n` +
-          `**Key Concepts:**\n` +
-          `- Comprehensive fundamentals aligned with Pakistani curriculum (FBISE / Punjab / Sindh / KPK / Balochistan boards).\n` +
-          `- Step-by-step conceptual breakdown in ${currentLanguage.nativeName}.\n\n` +
-          `**Practice Tips:**\n` +
-          `1. Memorize core definitions and primary units.\n` +
-          `2. Practice previous 5-year past papers questions.\n` +
-          `3. Use PakLingo AI Teacher for instant step-by-step problem solving.`
+        `**Key Concepts:**\n` +
+        `- Comprehensive fundamentals aligned with Pakistani curriculum (FBISE / Punjab / Sindh / KPK / Balochistan boards).\n` +
+        `- Step-by-step conceptual breakdown in ${currentLanguage.nativeName}.\n\n` +
+        `**Practice Tips:**\n` +
+        `1. Memorize core definitions and primary units.\n` +
+        `2. Practice previous 5-year past papers questions.\n` +
+        `3. Use PakLingo AI Teacher for instant step-by-step problem solving.`;
+      setGeneratedNotes(fallback);
+      const saved = saveFeatureHistoryItem(
+        'student',
+        {
+          title: `${subject} — ${targetTopic}`,
+          subtitle: `${gradeLevel} • ${currentLanguage.nativeName}`,
+          query: targetTopic,
+          subject,
+          topic: targetTopic,
+          resultText: fallback,
+          language: selectedLanguage,
+        },
+        user?.id
       );
+      setStudentHistory((prev) => [saved, ...prev.filter((p) => p.id !== saved.id)].slice(0, 30));
     } finally {
       setIsGenerating(false);
     }
@@ -532,17 +640,23 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
 
             {generatedNotes ? (
-              <div className="space-y-4">
-                <SmartVisualCard
-                  title={`${subject} — ${studyTopic}`}
-                  prompt={`Educational concept diagram and study illustration for ${studyTopic} in ${subject}`}
-                  category="student"
-                  language={selectedLanguage}
-                  initialAspectRatio="4:3"
-                  autoGenerate={true}
-                />
-                <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-[var(--text-primary)] leading-relaxed p-5 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)]">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{generatedNotes}</ReactMarkdown>
+              <div className="flex flex-col lg:flex-row gap-6 items-start" dir={isRTL ? 'rtl' : 'ltr'}>
+                {/* Notes Text Content */}
+                <div className="flex-1 min-w-0 p-5 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)]">
+                  <FormattedMarkdown content={generatedNotes} isRTL={isRTL} />
+                </div>
+
+                {/* Compact Side Visual Diagram */}
+                <div className="w-full lg:w-72 xl:w-80 shrink-0 lg:sticky lg:top-4 order-first lg:order-last">
+                  <SmartVisualCard
+                    title={`${subject} — ${studyTopic}`}
+                    prompt={`Educational concept diagram and study illustration for ${studyTopic} in ${subject}`}
+                    category="student"
+                    language={selectedLanguage}
+                    initialAspectRatio="4:3"
+                    autoGenerate={true}
+                    compact={true}
+                  />
                 </div>
               </div>
             ) : (

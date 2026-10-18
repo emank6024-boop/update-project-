@@ -265,3 +265,140 @@ export async function deleteUserConversation(convId: string): Promise<boolean> {
   }
 }
 
+export interface FeatureHistoryItem {
+  id: string;
+  module: 'chat' | 'teacher' | 'student' | 'farmer' | 'medical' | 'legal' | 'government' | 'tools';
+  title: string;
+  subtitle?: string;
+  query: string;
+  resultText?: string;
+  subject?: string;
+  topic?: string;
+  crop?: string;
+  language: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+const FEATURE_STORAGE_KEY_PREFIX = 'paklingo_feature_history_v1_';
+
+export function getFeatureHistoryKey(module: string, userId?: string): string {
+  return `${FEATURE_STORAGE_KEY_PREFIX}${module}_${userId || 'guest'}`;
+}
+
+export function loadFeatureHistory(module: string, userId?: string): FeatureHistoryItem[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(getFeatureHistoryKey(module, userId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+  } catch (e) {
+    console.warn(`Failed to load history for ${module}:`, e);
+    return [];
+  }
+}
+
+export function saveFeatureHistoryItem(
+  module: string,
+  item: Omit<FeatureHistoryItem, 'id' | 'module' | 'createdAt'> & { id?: string; createdAt?: string },
+  userId?: string
+): FeatureHistoryItem {
+  if (typeof window === 'undefined') {
+    return {
+      ...item,
+      id: item.id || `hist_${Date.now()}`,
+      module: module as any,
+      createdAt: item.createdAt || new Date().toISOString(),
+    };
+  }
+  try {
+    const existing = loadFeatureHistory(module, userId);
+    const id = item.id || `hist_${module}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const fullItem: FeatureHistoryItem = {
+      ...item,
+      id,
+      module: module as any,
+      createdAt: item.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const filtered = existing.filter((x) => x.id !== id && x.query !== item.query);
+    const updated = [fullItem, ...filtered].slice(0, 40);
+    localStorage.setItem(getFeatureHistoryKey(module, userId), JSON.stringify(updated));
+
+    // Mirror to Firestore if user is authenticated
+    if (userId) {
+      saveUserConversation(
+        {
+          userId,
+          title: item.title,
+          subtitle: item.subtitle || item.query.slice(0, 120),
+          category: module,
+          language: item.language,
+          module,
+          targetPage: module,
+          createdAt: fullItem.createdAt,
+        },
+        id
+      ).catch(() => {});
+    }
+
+    return fullItem;
+  } catch (e) {
+    console.warn(`Failed to save history for ${module}:`, e);
+    return {
+      ...item,
+      id: item.id || `hist_${Date.now()}`,
+      module: module as any,
+      createdAt: item.createdAt || new Date().toISOString(),
+    };
+  }
+}
+
+export function deleteFeatureHistoryItem(module: string, id: string, userId?: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = loadFeatureHistory(module, userId);
+    const updated = existing.filter((x) => x.id !== id);
+    localStorage.setItem(getFeatureHistoryKey(module, userId), JSON.stringify(updated));
+    if (userId) {
+      deleteUserConversation(id).catch(() => {});
+    }
+  } catch (e) {
+    console.warn(`Failed to delete history item for ${module}:`, e);
+  }
+}
+
+export function loadAllFeaturesHistory(userId?: string): FeatureHistoryItem[] {
+  const modules = ['chat', 'teacher', 'student', 'farmer', 'medical', 'legal', 'government'];
+  let all: FeatureHistoryItem[] = [];
+  for (const m of modules) {
+    all = all.concat(loadFeatureHistory(m, userId));
+  }
+  // Also incorporate any local chat sessions
+  const localChats = loadLocalChatConversations(userId);
+  for (const c of localChats) {
+    if (!all.some((x) => x.id === c.id)) {
+      const lastMsg = c.messages?.[c.messages.length - 1]?.text || c.subtitle || '';
+      all.push({
+        id: c.id,
+        module: 'chat',
+        title: c.title,
+        subtitle: c.subtitle || lastMsg.slice(0, 100),
+        query: c.title,
+        resultText: lastMsg,
+        language: c.language,
+        createdAt: c.createdAt || new Date().toISOString(),
+        updatedAt: c.updatedAt,
+      });
+    }
+  }
+  return all.sort(
+    (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+  );
+}
+
+

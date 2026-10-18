@@ -1,21 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { Copy, Check } from 'lucide-react';
-import { formatTextForClipboard } from '../utils/mathFormatter';
+import {
+  formatTextForClipboard,
+  normalizeMathInMarkdown,
+  renderKaTeXSafely,
+} from '../utils/mathFormatter';
 
 interface FormattedMarkdownProps {
   content: string;
   className?: string;
   isRTL?: boolean;
+  renderHeadingAction?: (headingText: string) => React.ReactNode;
 }
 
 export const FormattedMarkdown: React.FC<FormattedMarkdownProps> = ({
   content,
   className = '',
   isRTL = false,
+  renderHeadingAction,
 }) => {
   const [copiedFormula, setCopiedFormula] = useState<string | null>(null);
 
@@ -26,6 +32,12 @@ export const FormattedMarkdown: React.FC<FormattedMarkdownProps> = ({
     setTimeout(() => setCopiedFormula(null), 2000);
   };
 
+  // Pre-process markdown so that all equations, fractions, roots, powers,
+  // and chemical formulas are properly formatted for KaTeX rendering
+  const normalizedContent = useMemo(() => {
+    return normalizeMathInMarkdown(content);
+  }, [content]);
+
   return (
     <div
       dir={isRTL ? 'rtl' : 'ltr'}
@@ -34,34 +46,71 @@ export const FormattedMarkdown: React.FC<FormattedMarkdownProps> = ({
       } ${className}`}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
+        rehypePlugins={[
+          [
+            rehypeKatex,
+            {
+              throwOnError: false,
+              strict: false,
+              errorColor: '#ef4444',
+            },
+          ],
+        ]}
         components={{
-          h3: ({ children }) => (
-            <h3 className="text-base sm:text-lg font-extrabold text-[var(--text-primary)] mt-5 mb-2 pb-1 border-b border-[var(--border)]">
+          h1: ({ children }) => (
+            <h2 className="text-lg sm:text-xl font-extrabold text-[var(--text-primary)] mt-4 mb-2">
+              {children}
+            </h2>
+          ),
+          h2: ({ children }) => (
+            <h3 className="text-base sm:text-lg font-bold text-[var(--text-primary)] mt-3.5 mb-1.5">
               {children}
             </h3>
           ),
+          h3: ({ children }) => {
+            const headingText = String(children || '');
+            const actionNode = renderHeadingAction ? renderHeadingAction(headingText) : null;
+            return (
+              <div className="flex items-center justify-between gap-2 mt-4 mb-1.5">
+                <h3 className="text-base sm:text-lg font-extrabold text-[var(--text-primary)] m-0">
+                  {children}
+                </h3>
+                {actionNode && <div className="shrink-0">{actionNode}</div>}
+              </div>
+            );
+          },
           h4: ({ children }) => (
-            <h4 className="text-sm sm:text-base font-bold text-[var(--text-primary)] mt-3 mb-1.5">
+            <h4 className="text-sm sm:text-base font-bold text-[var(--text-primary)] mt-3 mb-1">
               {children}
             </h4>
           ),
           p: ({ children }) => (
-            <p className="my-2 text-[var(--text-primary)] leading-relaxed">{children}</p>
+            <p className="mb-3.5 mt-0 text-[var(--text-primary)] leading-relaxed text-sm sm:text-base">
+              {children}
+            </p>
           ),
+          hr: () => null,
           ul: ({ children }) => (
-            <ul className={`my-2 space-y-1 list-disc ${isRTL ? 'pr-5' : 'pl-5'} text-[var(--text-primary)]`}>
+            <ul
+              className={`mb-3 mt-1.5 space-y-1 list-disc ${
+                isRTL ? 'pr-5' : 'pl-5'
+              } text-[var(--text-primary)] text-sm sm:text-base`}
+            >
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className={`my-2 space-y-1 list-decimal ${isRTL ? 'pr-5' : 'pl-5'} text-[var(--text-primary)] font-medium`}>
+            <ol
+              className={`mb-3 mt-1.5 space-y-1 list-decimal ${
+                isRTL ? 'pr-5' : 'pl-5'
+              } text-[var(--text-primary)] font-medium text-sm sm:text-base`}
+            >
               {children}
             </ol>
           ),
           li: ({ children }) => (
-            <li className="leading-relaxed text-[var(--text-primary)]">{children}</li>
+            <li className="leading-relaxed text-[var(--text-primary)] mb-0.5">{children}</li>
           ),
           strong: ({ children }) => (
             <strong className="font-bold text-[var(--text-primary)]">{children}</strong>
@@ -97,7 +146,57 @@ export const FormattedMarkdown: React.FC<FormattedMarkdownProps> = ({
           ),
           code: ({ className: codeClassName, children }) => {
             const isBlock = Boolean(codeClassName);
-            const textContent = String(children || '');
+            const textContent = String(children || '').trim();
+
+            // If the code content contains LaTeX math commands, render via KaTeX instead of raw code!
+            const containsLatex =
+              /\\(frac|sqrt|pm|times|cdot|approx|ne|leq|geq|sum|int|partial|alpha|beta|gamma|theta|pi|infty|mu|sigma|to|right|left)/.test(
+                textContent
+              ) ||
+              (textContent.includes('^') && textContent.includes('=')) ||
+              (textContent.includes('_{') || textContent.includes('^{'));
+
+            if (!isBlock && containsLatex) {
+              const katexHtml = renderKaTeXSafely(textContent, false);
+              return (
+                <span
+                  dir="ltr"
+                  className="inline-block px-1 align-baseline font-serif text-[1.05em] text-[var(--text-primary)]"
+                  dangerouslySetInnerHTML={{ __html: katexHtml }}
+                />
+              );
+            }
+
+            if (isBlock && (containsLatex || codeClassName?.includes('math') || codeClassName?.includes('latex'))) {
+              const katexHtml = renderKaTeXSafely(textContent, true);
+              return (
+                <div className="relative group my-3 p-3.5 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)] overflow-x-auto text-center shadow-xs">
+                  <div
+                    dir="ltr"
+                    className="inline-block py-1 text-base sm:text-lg text-[var(--text-primary)]"
+                    dangerouslySetInnerHTML={{ __html: katexHtml }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleCopyFormula(textContent)}
+                    className="absolute top-2.5 right-2.5 px-2 py-1 rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] text-[11px] font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-xs border border-[var(--border)]"
+                    title="Copy formula"
+                  >
+                    {copiedFormula === textContent ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-500" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            }
 
             if (isBlock) {
               return (
@@ -129,6 +228,7 @@ export const FormattedMarkdown: React.FC<FormattedMarkdownProps> = ({
                 </div>
               );
             }
+
             return (
               <code className="px-1.5 py-0.5 rounded-md bg-[var(--surface-secondary)] border border-[var(--border)] font-mono text-[11px] text-[var(--accent-text)]">
                 {children}
@@ -137,7 +237,7 @@ export const FormattedMarkdown: React.FC<FormattedMarkdownProps> = ({
           },
         }}
       >
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   );

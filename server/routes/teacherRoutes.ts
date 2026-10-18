@@ -11,6 +11,11 @@ import {
   deduplicateRequest,
 } from '../geminiService.js';
 import { getGlobalLanguageDirective, getLanguageName } from '../languageDirectives.js';
+import {
+  generateCurriculumLesson,
+  generateCurriculumQuiz,
+  generateCurriculumFlashcards,
+} from '../curriculumEngine.js';
 
 export const teacherRouter = Router();
 
@@ -23,7 +28,14 @@ export function getEducationLanguageInstruction(lang?: string): string {
   const langName = getLanguageName(lang || 'ur');
   return `${baseDirective}
 ADDITIONAL EDUCATIONAL INSTRUCTION:
-Provide pedagogical, structured explanations in ${langName} with key academic/technical terminology included in parentheses where helpful for Pakistani board/curriculum students (FBISE, Punjab, Sindh, KPK, Balochistan). Ensure the entire lesson is delivered in ${langName}.`;
+Provide pedagogical, structured explanations in ${langName} with key academic/technical terminology included in parentheses where helpful for Pakistani board/curriculum students (FBISE, Punjab, Sindh, KPK, Balochistan). Ensure the entire lesson is delivered in ${langName}.
+
+MATHEMATICAL AND SCIENTIFIC FORMULA DIRECTIVE:
+All mathematical formulas, equations, fractions, square roots, powers, and chemical equations MUST be properly formatted with LaTeX math delimiters so they render via KaTeX:
+- Inline math: $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$ or $a^2 + b^2 = c^2$
+- Display math: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+- Chemical equations: $6\\mathrm{CO}_2 + 6\\mathrm{H}_2\\mathrm{O} \\longrightarrow \\mathrm{C}_6\\mathrm{H}_{12}\\mathrm{O}_6 + 6\\mathrm{O}_2$
+- Never leave raw un-delimited LaTeX or raw backslash formulas without $ delimiters.`;
 }
 
 // Subject Visual Meta and Domain Boundaries for Teacher
@@ -109,6 +121,14 @@ export function getSubjectVisual(subject: string): { icon: string; name: string;
   };
 }
 
+const MATH_AND_SCIENCE_FORMATTING_RULE = `
+4. MATHEMATICAL & SCIENTIFIC FORMULA FORMATTING:
+   - Format ALL mathematical formulas, fractions, powers, roots, and chemical equations using standard KaTeX markdown syntax.
+   - Use inline math $formula$ within sentences, e.g. $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$, $a^2 + b^2 = c^2$, $\\mathrm{H_2O}$.
+   - Use block math $$ formula $$ on separate lines for main formulas, steps, derivations, and chemical equations.
+   - NEVER output raw un-bracketed LaTeX commands like \\frac or \\sqrt without enclosing in $ or $$.
+   - Never display raw dollar signs for currency; write 'Rs.' or 'PKR'.`;
+
 // Helper to stream or return JSON for text-based teacher endpoints
 async function handleTeacherTextGeneration(
   req: Request,
@@ -150,10 +170,13 @@ async function handleTeacherTextGeneration(
     });
   }
 
+  const subject = req.body?.subject || 'General Science';
+  const rawTopic = req.body?.topic || req.body?.question || req.body?.query || req.body?.problem || req.body?.text || subject;
+  const topic = typeof rawTopic === 'string' && rawTopic.trim() ? rawTopic.trim() : subject;
+  const grade = req.body?.grade || req.body?.gradeLevel || 'Matric (Class 9-10)';
+  const language = req.body?.language || req.body?.targetLanguage || 'ur';
+
   const ai = getGemini();
-  if (!ai) {
-    return res.status(503).json({ error: 'AI_UNAVAILABLE', message: 'Gemini API not configured.' });
-  }
 
   if (stream) {
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -162,115 +185,150 @@ async function handleTeacherTextGeneration(
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders?.();
 
-    const candidateModels = getOrderedCandidateModels();
-    let streamedSuccessfully = false;
-    let accumulatedText = '';
+    if (ai) {
+      const candidateModels = getOrderedCandidateModels();
+      let streamedSuccessfully = false;
+      let accumulatedText = '';
 
-    for (const modelName of candidateModels) {
-      try {
-        const streamResp = await ai.models.generateContentStream({
-          model: modelName,
-          contents: prompt,
-          config: getFastModelConfig(modelName, {
-            systemInstruction,
-            temperature: 0.35,
-          }),
-        });
-
-        for await (const chunk of streamResp) {
-          const chunkText =
-            chunk.text ||
-            chunk?.candidates?.[0]?.content?.parts
-              ?.map((p: any) => p.text)
-              .filter(Boolean)
-              .join('') ||
-            '';
-          if (chunkText) {
-            streamedSuccessfully = true;
-            accumulatedText += chunkText;
-            res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
-          }
-        }
-
-        if (streamedSuccessfully && accumulatedText.trim()) {
-          markWorkingModel(modelName);
-          teacherTextCache.set(cacheKey, accumulatedText);
-          res.write(
-            `data: ${JSON.stringify({
-              done: true,
-              [responseField]: accumulatedText,
-              answer: accumulatedText,
-              explanation: accumulatedText,
-            })}\n\n`
-          );
-          return res.end();
-        }
-      } catch (err: any) {
-        if (isQuotaExhaustedError(err)) {
-          markModelRateLimited(modelName);
-        }
-        if (streamedSuccessfully && accumulatedText.trim()) {
-          res.write(
-            `data: ${JSON.stringify({
-              done: true,
-              [responseField]: accumulatedText,
-              answer: accumulatedText,
-              explanation: accumulatedText,
-            })}\n\n`
-          );
-          return res.end();
-        }
-      }
-    }
-
-    res.write(
-      `data: ${JSON.stringify({
-        error: 'Unable to generate lesson right now. Please try again.',
-        done: true,
-      })}\n\n`
-    );
-    return res.end();
-  }
-
-  try {
-    const generatedText = await deduplicateRequest(`inflight_${cacheKey}`, async () => {
-      const response = await callWithCandidateModels(
-        actionName,
-        (modelName) =>
-          ai.models.generateContent({
+      for (const modelName of candidateModels) {
+        try {
+          const streamResp = await ai.models.generateContentStream({
             model: modelName,
             contents: prompt,
             config: getFastModelConfig(modelName, {
               systemInstruction,
               temperature: 0.35,
             }),
-          }),
-        16000
-      );
-      return (
-        response.text ||
-        response?.candidates?.[0]?.content?.parts
-          ?.map((p: any) => p.text)
-          .filter(Boolean)
-          .join('\n') ||
-        ''
-      );
+          });
+
+          for await (const chunk of streamResp) {
+            const chunkText =
+              chunk.text ||
+              chunk?.candidates?.[0]?.content?.parts
+                ?.map((p: any) => p.text)
+                .filter(Boolean)
+                .join('') ||
+              '';
+            if (chunkText) {
+              streamedSuccessfully = true;
+              accumulatedText += chunkText;
+              res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
+            }
+          }
+
+          if (streamedSuccessfully && accumulatedText.trim()) {
+            markWorkingModel(modelName);
+            teacherTextCache.set(cacheKey, accumulatedText);
+            res.write(
+              `data: ${JSON.stringify({
+                done: true,
+                [responseField]: accumulatedText,
+                answer: accumulatedText,
+                explanation: accumulatedText,
+              })}\n\n`
+            );
+            return res.end();
+          }
+        } catch (err: any) {
+          if (isQuotaExhaustedError(err)) {
+            markModelRateLimited(modelName);
+          }
+          if (streamedSuccessfully && accumulatedText.trim()) {
+            res.write(
+              `data: ${JSON.stringify({
+                done: true,
+                [responseField]: accumulatedText,
+                answer: accumulatedText,
+                explanation: accumulatedText,
+              })}\n\n`
+            );
+            return res.end();
+          }
+        }
+      }
+    }
+
+    // High-quality curriculum synthesis fallback ensuring every subject and topic generates properly
+    const fallbackText = generateCurriculumLesson({
+      subject: String(subject),
+      topic: String(topic),
+      grade: String(grade),
+      language: String(language),
     });
 
-    if (generatedText) {
-      teacherTextCache.set(cacheKey, generatedText);
-      return res.json({
-        [responseField]: generatedText,
-        answer: generatedText,
-        explanation: generatedText,
-        solution: generatedText,
-      });
+    teacherTextCache.set(cacheKey, fallbackText);
+    const paragraphs = fallbackText.split('\n\n');
+    for (const p of paragraphs) {
+      res.write(`data: ${JSON.stringify({ chunk: p + '\n\n' })}\n\n`);
     }
-    return res.status(503).json({ error: 'Unable to generate lesson content right now.' });
-  } catch (err: any) {
-    console.error(`${actionName} Error:`, err?.message || err);
-    return res.status(503).json({ error: 'Unable to generate lesson content right now.' });
+
+    res.write(
+      `data: ${JSON.stringify({
+        done: true,
+        [responseField]: fallbackText,
+        answer: fallbackText,
+        explanation: fallbackText,
+        solution: fallbackText,
+      })}\n\n`
+    );
+    return res.end();
   }
+
+  // Non-streaming handling
+  try {
+    if (ai) {
+      const generatedText = await deduplicateRequest(`inflight_${cacheKey}`, async () => {
+        const response = await callWithCandidateModels(
+          actionName,
+          (modelName) =>
+            ai.models.generateContent({
+              model: modelName,
+              contents: prompt,
+              config: getFastModelConfig(modelName, {
+                systemInstruction,
+                temperature: 0.35,
+              }),
+            }),
+          16000
+        );
+        return (
+          response.text ||
+          response?.candidates?.[0]?.content?.parts
+            ?.map((p: any) => p.text)
+            .filter(Boolean)
+            .join('\n') ||
+          ''
+        );
+      });
+
+      if (generatedText) {
+        teacherTextCache.set(cacheKey, generatedText);
+        return res.json({
+          [responseField]: generatedText,
+          answer: generatedText,
+          explanation: generatedText,
+          solution: generatedText,
+        });
+      }
+    }
+  } catch (err: any) {
+    console.warn(`${actionName} AI call failed, activating curriculum generator:`, err?.message || err);
+  }
+
+  // Fallback to curriculum lesson generator
+  const fallbackText = generateCurriculumLesson({
+    subject: String(subject),
+    topic: String(topic),
+    grade: String(grade),
+    language: String(language),
+  });
+  teacherTextCache.set(cacheKey, fallbackText);
+  return res.json({
+    [responseField]: fallbackText,
+    answer: fallbackText,
+    explanation: fallbackText,
+    solution: fallbackText,
+  });
 }
 
 // 1. AI Teacher: Ask Teacher / Interactive Lesson (any educational question or topic)
@@ -306,6 +364,7 @@ CRITICAL CONSTRAINTS:
 
 3. CLEAN FORMATTING:
    - Use standard Markdown headings (\`###\`), bold key terms (\`**term**\`), and clean bullet/numbered lists.
+${MATH_AND_SCIENCE_FORMATTING_RULE}
 ${getEducationLanguageInstruction(language)}`;
 
   const prompt = `SUBJECT: ${subject}
@@ -349,6 +408,7 @@ Structure your lesson with:
 - \`### ⚠️ Common Board Exam Mistakes to Avoid\`
 - \`### ✅ Quick Revision Checklist\`
 
+${MATH_AND_SCIENCE_FORMATTING_RULE}
 ${getEducationLanguageInstruction(language)}`;
 
   const prompt = `Subject: ${subject}\nGrade Level: ${grade}\nDifficulty: ${difficulty}\nTopic: ${topic}`;
@@ -411,16 +471,24 @@ teacherRouter.post('/api/teacher/quiz', async (req: Request, res: Response) => {
   const effectiveTopic = typeof rawTopic === 'string' && rawTopic.trim() ? rawTopic.trim() : subject;
 
   const ai = getGemini();
-  if (!ai) {
-    return res.status(503).json({ error: 'AI_UNAVAILABLE', message: 'Gemini API not configured.' });
-  }
-
   const count = Math.min(Math.max(parseInt(String(numQuestions), 10) || 4, 1), 8);
   const cacheKey = `teacher_quiz_${language}_${subject}_${effectiveGrade}_${count}_${effectiveTopic.toLowerCase()}`;
 
   const cached = teacherJsonCache.get(cacheKey);
   if (cached) {
     return res.json(cached);
+  }
+
+  if (!ai) {
+    const fallbackQuiz = generateCurriculumQuiz({
+      subject: String(subject),
+      topic: String(effectiveTopic),
+      grade: String(effectiveGrade),
+      language: String(language),
+      count,
+    });
+    teacherJsonCache.set(cacheKey, fallbackQuiz);
+    return res.json(fallbackQuiz);
   }
 
   const systemInstruction = `You are an expert examiner for Pakistani education boards (FBISE, Punjab, Sindh, KPK, Balochistan) specializing in ${subject}.
@@ -493,8 +561,16 @@ Generate ${count} multiple-choice question(s) in ${getLanguageName(language)}.`;
     teacherJsonCache.set(cacheKey, payload);
     return res.json(payload);
   } catch (err: any) {
-    console.error('Teacher Quiz Error:', err?.message || err);
-    return res.status(503).json({ error: 'Unable to generate quiz right now.' });
+    console.warn('Teacher Quiz AI failed, using curriculum quiz generator:', err?.message || err);
+    const fallback = generateCurriculumQuiz({
+      subject: String(subject),
+      topic: String(effectiveTopic),
+      grade: String(effectiveGrade),
+      language: String(language),
+      count,
+    });
+    teacherJsonCache.set(cacheKey, fallback);
+    return res.json(fallback);
   }
 });
 
@@ -515,11 +591,6 @@ teacherRouter.post('/api/teacher/flashcards', async (req: Request, res: Response
   const rawTopic = topic || query || subject;
   const effectiveTopic = typeof rawTopic === 'string' && rawTopic.trim() ? rawTopic.trim() : subject;
 
-  const ai = getGemini();
-  if (!ai) {
-    return res.status(503).json({ error: 'AI_UNAVAILABLE', message: 'Gemini API not configured.' });
-  }
-
   const requestedCount = rawCount || numCards;
   const count = Math.min(Math.max(parseInt(String(requestedCount), 10) || 5, 3), 8);
   const cacheKey = `teacher_cards_${language}_${subject}_${effectiveGrade}_${count}_${effectiveTopic.toLowerCase()}`;
@@ -527,6 +598,19 @@ teacherRouter.post('/api/teacher/flashcards', async (req: Request, res: Response
   const cached = teacherJsonCache.get(cacheKey);
   if (cached) {
     return res.json(cached);
+  }
+
+  const ai = getGemini();
+  if (!ai) {
+    const fallback = generateCurriculumFlashcards({
+      subject: String(subject),
+      topic: String(effectiveTopic),
+      grade: String(effectiveGrade),
+      language: String(language),
+      count,
+    });
+    teacherJsonCache.set(cacheKey, fallback);
+    return res.json(fallback);
   }
 
   const systemInstruction = `You are the PakLingo Flashcard Maker for Pakistani students specializing in ${subject}.
@@ -591,8 +675,16 @@ ${sourceText ? `Provided Text:\n"""\n${sourceText}\n"""\n` : ''}Number of Flashc
     teacherJsonCache.set(cacheKey, payload);
     return res.json(payload);
   } catch (err: any) {
-    console.error('Teacher Flashcards Error:', err?.message || err);
-    return res.status(503).json({ error: 'Unable to generate flashcards right now.' });
+    console.warn('Teacher Flashcards AI failed, using curriculum flashcards generator:', err?.message || err);
+    const fallback = generateCurriculumFlashcards({
+      subject: String(subject),
+      topic: String(effectiveTopic),
+      grade: String(effectiveGrade),
+      language: String(language),
+      count,
+    });
+    teacherJsonCache.set(cacheKey, fallback);
+    return res.json(fallback);
   }
 });
 
@@ -617,6 +709,7 @@ Help the student understand how to solve the problem step-by-step:
 - \`### ✅ Final Answer\`
 - \`### 💡 Verification & Exam Tip\`
 
+${MATH_AND_SCIENCE_FORMATTING_RULE}
 ${getEducationLanguageInstruction(language)}`;
 
   const prompt = `Subject: ${subject}\nGrade Level: ${grade}\nProblem to solve:\n"${problem}"`;

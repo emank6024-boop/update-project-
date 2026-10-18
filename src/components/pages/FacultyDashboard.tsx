@@ -16,8 +16,7 @@ import {
   Square,
   RefreshCw,
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { FormattedMarkdown } from '../FormattedMarkdown';
 import { PageId, LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -457,8 +456,8 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({
           </div>
 
           {generatedOutput ? (
-            <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-[var(--text-primary)] leading-relaxed p-5 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)]">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{generatedOutput}</ReactMarkdown>
+            <div className="p-5 rounded-2xl bg-[var(--surface-secondary)] border border-[var(--border)]">
+              <FormattedMarkdown content={generatedOutput} isRTL={isRTL} />
             </div>
           ) : (
             <div className="py-20 text-center space-y-3">

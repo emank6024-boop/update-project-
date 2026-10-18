@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Menu,
@@ -84,6 +84,43 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isFeaturesDropdownOpen, setIsFeaturesDropdownOpen] = useState(false);
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
 
+  const featuresDropdownRef = useRef<HTMLDivElement>(null);
+  const themeDropdownRef = useRef<HTMLDivElement>(null);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+      if (featuresDropdownRef.current && !featuresDropdownRef.current.contains(target)) {
+        setIsFeaturesDropdownOpen(false);
+      }
+      if (themeDropdownRef.current && !themeDropdownRef.current.contains(target)) {
+        setIsThemeDropdownOpen(false);
+      }
+      if (langDropdownRef.current && !langDropdownRef.current.contains(target)) {
+        setIsLangDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsFeaturesDropdownOpen(false);
+        setIsThemeDropdownOpen(false);
+        setIsLangDropdownOpen(false);
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   const activeLang =
     SUPPORTED_LANGUAGES.find((l) => l.code === selectedLanguage) ||
     SUPPORTED_LANGUAGES[0];
@@ -93,6 +130,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     setIsMobileMenuOpen(false);
     setIsFeaturesDropdownOpen(false);
     setIsThemeDropdownOpen(false);
+    setIsLangDropdownOpen(false);
   };
 
   const handleLanguageSelect = (code: LanguageCode) => {
@@ -208,7 +246,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* Features Dropdown */}
-            <div className="relative">
+            <div ref={featuresDropdownRef} className="relative z-50">
               <button
                 type="button"
                 onClick={() => setIsFeaturesDropdownOpen(!isFeaturesDropdownOpen)}
@@ -228,12 +266,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <AnimatePresence>
                 {isFeaturesDropdownOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setIsFeaturesDropdownOpen(false)}
-                    />
-                    <motion.div
+                  <motion.div
                       initial={{ opacity: 0, y: -6, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.98 }}
@@ -283,7 +316,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                         })}
                       </div>
                     </motion.div>
-                  </>
                 )}
               </AnimatePresence>
             </div>
@@ -318,7 +350,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* 3. Right Action Controls: Theme, Light/Dark Mode, Language Selector, User Profile */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
             {/* Theme Color Picker Popover Button (Desktop/Tablet — Mobile has swatches in Drawer) */}
-            <div className="relative hidden sm:block">
+            <div ref={themeDropdownRef} className="relative z-50 hidden sm:block">
               <button
                 type="button"
                 id="navbar-theme-color-picker-btn"
@@ -340,27 +372,23 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <AnimatePresence>
                 {isThemeDropdownOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setIsThemeDropdownOpen(false)}
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                      transition={{ duration: 0.15, ease: 'easeOut' }}
-                      role="dialog"
-                      aria-label="Theme and Accent Color Picker"
-                      className={`absolute ${
-                        isRTL ? 'left-0' : 'right-0'
-                      } mt-2 w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xl p-3.5 z-50 space-y-3.5`}
-                    >
-                      {/* Header & Reset */}
-                      <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
-                        <span className="text-xs font-bold text-[var(--text-primary)]">
-                          {t('settings.themeTitle', 'Theme & Accent Color')}
-                        </span>
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    role="dialog"
+                    aria-label="Theme and Accent Color Picker"
+                    className={`absolute ${
+                      isRTL ? 'left-0' : 'right-0'
+                    } mt-2 w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xl p-3.5 z-50 space-y-3.5`}
+                  >
+                    {/* Header & Reset & Close */}
+                    <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
+                      <span className="text-xs font-bold text-[var(--text-primary)]">
+                        {t('settings.themeTitle', 'Theme & Accent Color')}
+                      </span>
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={resetThemeToDefault}
@@ -369,9 +397,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                           title="Reset to default PakLingo AI Emerald theme"
                         >
                           <RotateCcw className="w-3 h-3" />
-                          <span>Reset Default</span>
+                          <span>Reset</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsThemeDropdownOpen(false)}
+                          className="p-1 rounded-lg hover:bg-[var(--surface-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                          title="Close menu"
+                          aria-label="Close theme menu"
+                        >
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
+                    </div>
 
                       {/* Light / Dark Mode Switcher */}
                       <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[var(--surface-secondary)] border border-[var(--border)]">
@@ -490,7 +528,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </button>
                       </div>
                     </motion.div>
-                  </>
                 )}
               </AnimatePresence>
             </div>
@@ -517,7 +554,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* Central Language Selector Dropdown */}
-            <div className="relative">
+            <div ref={langDropdownRef} className="relative z-50">
               <button
                 type="button"
                 id="main-language-selector-button"
@@ -539,57 +576,51 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <AnimatePresence>
                 {isLangDropdownOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setIsLangDropdownOpen(false)}
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                      transition={{ duration: 0.15, ease: 'easeOut' }}
-                      className={`absolute ${
-                        isRTL ? 'left-0' : 'right-0'
-                      } mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xl py-1.5 z-50 max-h-96 overflow-y-auto`}
-                    >
-                      <div className="px-3 py-2 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider border-b border-[var(--border)]">
-                        {t('nav.selectLanguage', 'Select Interface Language')}
-                      </div>
-                      <div className="py-1">
-                        {SUPPORTED_LANGUAGES.map((lang) => {
-                          const isSelected = selectedLanguage === lang.code;
-                          return (
-                            <button
-                              key={lang.code}
-                              type="button"
-                              onClick={() => handleLanguageSelect(lang.code)}
-                              className={`w-full px-3.5 py-2 text-start flex items-center justify-between text-xs transition-colors cursor-pointer ${
-                                isSelected
-                                  ? 'bg-[var(--accent-subtle)] font-bold'
-                                  : 'text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="text-base">{lang.flag || '🇵🇰'}</span>
-                                <div className="flex flex-col">
-                                  <span className="font-semibold text-[var(--text-primary)]">
-                                    {lang.nativeName}
-                                  </span>
-                                  <span className="text-[10px] text-[var(--text-muted)]">
-                                    {lang.name} • {lang.region}
-                                  </span>
-                                </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    className={`absolute ${
+                      isRTL ? 'left-0' : 'right-0'
+                    } mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-xl py-1.5 z-50 max-h-96 overflow-y-auto`}
+                  >
+                    <div className="px-3 py-2 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider border-b border-[var(--border)]">
+                      {t('nav.selectLanguage', 'Select Interface Language')}
+                    </div>
+                    <div className="py-1">
+                      {SUPPORTED_LANGUAGES.map((lang) => {
+                        const isSelected = selectedLanguage === lang.code;
+                        return (
+                          <button
+                            key={lang.code}
+                            type="button"
+                            onClick={() => handleLanguageSelect(lang.code)}
+                            className={`w-full px-3.5 py-2 text-start flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                              isSelected
+                                ? 'bg-[var(--accent-subtle)] font-bold'
+                                : 'text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">{lang.flag || '🇵🇰'}</span>
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-[var(--text-primary)]">
+                                  {lang.nativeName}
+                                </span>
+                                <span className="text-[10px] text-[var(--text-muted)]">
+                                  {lang.name} • {lang.region}
+                                </span>
                               </div>
-                              {isSelected && (
-                                <Check className="w-4 h-4 text-[var(--accent-text)] shrink-0" />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </motion.div>
-                  </>
+                            </div>
+                            {isSelected && (
+                              <Check className="w-4 h-4 text-[var(--accent-text)] shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
                 )}
               </AnimatePresence>
             </div>

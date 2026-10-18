@@ -54,6 +54,17 @@ chatRouter.post('/api/chat', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'A message or file attachment is required.' });
   }
 
+  const cleanBotGreeting = (text: string): string => {
+    if (!text) return '';
+    return text
+      .replace(/^(?:Hello!?|Hi!?|Greetings!?|السلام\s*علیکم!?|سلام!?)\s*(?:I\s*am|I'm|this\s*is|میں)\s*(?:your)?\s*PakLingo.*?(?:\n+|$)/i, '')
+      .replace(/^(?:I\s*am|I'm|میں)\s*(?:your)?\s*PakLingo.*?(?:\n+|$)/i, '')
+      .replace(/^As\s*(?:your)?\s*PakLingo.*?(?:\n+|$)/i, '')
+      .replace(/^میں\s*آپ\s*کا\s*پاک\s*لنگو.*?(?:\n+|$)/i, '')
+      .replace(/^السلام\s*علیکم!?\s*میں\s*پاک\s*لنگو.*?(?:\n+|$)/i, '')
+      .trim();
+  };
+
   const ai = getGemini();
   if (!ai) {
     return res.status(503).json({
@@ -66,7 +77,12 @@ chatRouter.post('/api/chat', async (req: Request, res: Response) => {
   const langDirective = getGlobalLanguageDirective(effectiveLang);
   const langName = getLanguageName(effectiveLang);
 
-  const systemInstruction = `You are the PakLingo AI Assistant — Pakistan's premier multilingual, multimodal civic, educational, healthcare, agricultural, and legal intelligence assistant.
+  const systemInstruction = `You are a high-capability intelligence advisor for Pakistan, supporting citizens, students, teachers, farmers, and professionals across all Pakistani languages.
+
+CRITICAL INSTRUCTION — NO REPEATED INTRODUCTIONS OR GREETINGS:
+- NEVER start responses by introducing yourself.
+- DO NOT say "I am your PakLingo assistant", "I am PakLingo AI", "Hello! I am...", "As your AI assistant...", "السلام علیکم! میں آپ کا پاک لینگو اسسٹنٹ ہوں", or any variation of introductory greetings.
+- Answer the user's specific question DIRECTLY and immediately from the very first sentence.
 
 CORE RESPONSIBILITIES:
 1. Provide accurate, well-structured, practical, and empathetic guidance tailored to Pakistani citizens, students, teachers, farmers, and professionals.
@@ -78,7 +94,7 @@ CORE RESPONSIBILITIES:
 
 PROFESSIONAL CHAT RESPONSE FORMATTING RULES:
 Format every response so it is clean, visual, scannable, and easy to read:
-- Start with a clear Markdown title or heading in ${langName} (e.g., \`### 📘 [Topic Title]\`).
+- Start directly with the answer or a clear Markdown title or heading in ${langName} (e.g., \`### 📘 [Topic Title]\`).
 - Highlight the **Main Idea / Direct Summary** in 1–2 concise sentences near the top.
 - Use structured sections with clean visual markers where helpful (write all section titles in ${langName}):
   - \`### 💡 ...\` (Key Concepts / Overview)
@@ -262,10 +278,11 @@ Respond ENTIRELY in ${langName} (including all section headings, bullet points, 
     );
 
     if (reply) {
+      const sanitizedReply = cleanBotGreeting(reply);
       if (canUseCache) {
-        chatResponseCache.set(cacheKey, reply);
+        chatResponseCache.set(cacheKey, sanitizedReply);
       }
-      return res.json({ reply });
+      return res.json({ reply: sanitizedReply });
     }
     return res.status(503).json({ error: 'AI service temporarily unavailable. Please try again.' });
   } catch (err: any) {

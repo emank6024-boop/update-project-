@@ -7,8 +7,7 @@ import {
   Mic,
   Square,
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { FormattedMarkdown } from '../FormattedMarkdown';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { AudioControlBar } from '../AudioControlBar';
@@ -198,11 +197,10 @@ export const GovernmentAssistant: React.FC<GovernmentAssistantProps> = ({ select
             language={selectedLanguage}
             label={`${currentLanguage.nativeName} — ${t('voice.listenBtn', 'Listen Audio')}`}
           />
-          <div className="prose prose-xs sm:prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {result.steps || result.guidance || result.answer || result.text || ''}
-            </ReactMarkdown>
-          </div>
+          <FormattedMarkdown
+            content={result.steps || result.guidance || result.answer || result.text || ''}
+            isRTL={isRTL}
+          />
         </div>
       )}
     </div>

@@ -33,8 +33,7 @@ import {
   PanelLeftOpen,
   Clock,
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { FormattedMarkdown } from '../FormattedMarkdown';
 import { LanguageCode, ChatMessage, ChatAttachment, ChatConversation } from '../../types';
 import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import { useLanguage } from '../../context/LanguageContext';
@@ -134,13 +133,44 @@ const SPEECH_LANGUAGE_OPTIONS: SpeechLangOption[] = [
 ];
 
 const WELCOME_MESSAGES: Record<string, string> = {
-  en: `## 📘 Welcome to PakLingo AI Assistant\nHello! I am **PakLingo AI**, your multilingual Pakistani assistant.\n\n* 💡 **Ask Anything:** Public services (NADRA, BISP 8171, Passports), education, healthcare, agriculture, or legal rights.\n* 🎤 **Voice & Audio:** Speak in Urdu, English, or regional languages and click **Listen** to hear natural responses.\n* 🖼️ **Image & Document Analysis:** Upload a CNIC, utility bill, crop photo, or PDF document for instant analysis.`,
-  ur: `## 📘 پاک لنگو اے آئی معاون میں خوش آمدید\nالسلام علیکم! میں **پاک لنگو اے آئی** ہوں، آپ کا بااعتماد پاکستانی ذہین معاون۔\n\n* 💡 **مکمل رہنمائی:** نادرا، بے نظیر انکم سپورٹ (8171)، پاسپورٹ، تعلیم، صحت، زراعت یا قانونی حقوق کے بارے میں کوئی بھی سوال پوچھیں۔\n* 🎤 **آواز کے ذریعے گفتگو:** مائیکروفون دبا کر اردو یا اپنی علاقائی زبان میں سوال بولیں اور **سنیں (Listen)** بٹن سے قدرتی اردو آواز میں جواب سنیں۔\n* 🖼️ **تصویر اور دستاویزات کا تجزیہ:** بجلی کا بل، شناختی کارڈ، فصل کی تصویر یا کوئی بھی دستاویز اپ لوڈ کریں۔`,
-  sd: `## 📘 پاڪ لنگو اي آءِ مددگار ۾ ڀليڪار\nاسلام عليڪم! مان **پاڪ لنگو اي آءِ** آهيان، توهان جو بااعتماد پاڪستاني مددگار.\n\n* 💡 **هر قسم جي رهنمائي:** سرڪاري دستاويز، نادرا، صحت، زراعت، تعليم يا قانوني معاملن بابت پڇو.\n* 🎤 **آواز ۽ تصوير:** مائيڪروفون سان ڳالهايو يا تصوير ۽ دستاويز اپلوڊ ڪريو.`,
-  pa: `## 📘 پاک لنگو اے آئی وچ جی آیاں نوں\nسلام وعلیکم! میں **پاک لنگو اے آئی** ہاں، تہاڈا مخلص پاکستانی معاون۔\n\n* 💡 **مکمل رہنمائی:** سرکاری کاغذاں، نادرا، صحت، واہی بیجی، پڑھائی یا کسی وی معاملے بارے پچھو۔\n* 🎤 **بول کے یا تصویر نال پچھو:** مائیک نال بول کے یا تصویر اپ لوڈ کر کے فوری جواب حاصل کرو۔`,
-  bal: `## 📘 پاک لنگو اے آئی کمکار ءَ وش آتک ئے\nسلام! من **پاک لنگو اے آئی** آں، شمارا وتی مخلصیں کمکار۔ شما نبشتہ کُت، گوں مائیکروفون ءَ گپ جت یا عکسی ءُ کاگدے اپ لوڈ کُت کن ات۔`,
-  ps: `## 📘 پاک لنګو اي آی مرستیال ته ښه راغلاست\nسلام! زه **پاک لنګو اي آی** یم، ستاسو پښتون او باوري مرستیال. تاسو کولی شئ د لیکلو، مایکروفون له لارې غږیدو، یا د انځور او سند پورته کولو له لارې له ما څخه پوښتنې وکړئ.`,
-  roman_ur: `## 📘 PakLingo AI Assistant Mein Khush Aamdeed\nAssalam-o-Alaikum! Main **PakLingo AI** hoon, aap ka ba-aitemad Pakistani multimodal assistant.\n\n* 💡 **Har Sawal Ka Jawab:** NADRA, BISP 8171, electricity bills, health, farming, ya education ke baray mein poochhein.\n* 🎤 **Voice & Image Support:** Microphone se bolein, jawab ko **Listen** button se sunein, ya image/document upload karein.`,
+  en: `### 💡 How can I help you today?
+Ask directly or select any topic:
+* 🏛️ **Civic Services:** NADRA CNIC, BISP 8171, Passports, FBR, Electricity/Gas Bills
+* 📚 **Education & Study:** Step-by-step problem solver, concepts, Pakistani board syllabi
+* 🌾 **Agriculture:** Crop diseases, pest control, urea/DAP fertilizer schedules
+* ⚖️ **Legal Information:** Citizen rights, tenancy, inheritance in Pakistan`,
+  ur: `### 💡 آپ کیا دریافت کرنا چاہتے ہیں؟
+براہِ راست اپنا سوال لکھیں یا نیچے دیے گئے موضوعات میں سے انتخاب کریں:
+* 🏛️ **سرکاری سہولیات:** نادرا شناختی کارڈ، بے نظیر انکم سپورٹ (8171)، پاسپورٹ، بجلی/گیس کا بل
+* 📚 **تعلیم اور نصاب:** سائنسی اور حسابی سوالات کے مرحلہ وار حل اور امتحانی رہنمائی
+* 🌾 **زراعت و کسان:** فصلوں کی بیماریاں، کیڑے مار ادویات، کھادوں کے اوقات اور منڈی کے بھاؤ
+* ⚖️ **قانونی رہنمائی:** بنیادی حقوق، کرایہ داری اور قانونی تقاضے`,
+  sd: `### 💡 توهان ڇا پڇڻ چاهيو ٿا؟
+پنهنجو سوال سڌو لکو يا هيٺ ڏنل شعبن مان چونڊيو:
+* 🏛️ **سرڪاري سهولتون:** نادرا ڪارڊ، بي نظير انڪم سپورٽ (8171)، پاسپورٽ
+* 📚 **تعليم ۽ پڙهائي:** درسي سوالن جا حل ۽ امتحاني تياري
+* 🌾 **زراعت:** فصلن جون بيماريون، ڀاڻ ۽ زرعي مشورا`,
+  pa: `### 💡 تسیں کی پچھنا چاہندے او؟
+سدھا سوال پچھو یا ہیٹھاں دتے موضوع چُنو:
+* 🏛️ **سرکاری سہولتاں:** نادرا، بے نظیر انکم سپورٹ (8171)، بجلی دا بل
+* 📚 **پڑھائی تے نصاب:** سوالاں دا حل تے امتحانی مشورے
+* 🌾 **واہی بیجی:** فصلاں دیاں بیماریاں، کھاد تے دوائیاں`,
+  bal: `### 💡 شمارا چے لوٹ ایت؟
+وتی جست ءَ براہ راست نبشتہ بکن ات:
+* 🏛️ **سرکاری کار:** نادرا، بے نظیر انکم سپورٹ (8171)، پاسپورٹ
+* 📚 **وانگ ءُ زانگ:** کتابی جست ءُ امتحانی رہنمائی
+* 🌾 **کشت ءُ کشاری:** ڈگارانی نادراہی ءُ کھاد`,
+  ps: `### 💡 تاسو څه پوښتنه کول غواړئ؟
+خپله پوښتنه مستقیم ولیکئ:
+* 🏛️ **عامه خدمات:** نادرا تذکره، د بې نظیر پروګرام (8171)، پاسپورټ
+* 📚 **زدکړې:** د مضامینو حل او د ازموینې تیاری
+* 🌾 **کرنه:** د فصلونو ناروغۍ او د درملو سپارښتنې`,
+  roman_ur: `### 💡 Aap kya daryaft karna chahte hain?
+Direct sawal likhein ya topic muntakhib karein:
+* 🏛️ **Public Services:** NADRA CNIC, BISP 8171, Passport, Utility bills
+* 📚 **Education:** Step-by-step problem solver, concepts, board syllabi
+* 🌾 **Agriculture:** Crop diseases, pest control, fertilizers
+* ⚖️ **Legal Info:** Citizen rights, tenancy, general guidance`,
 };
 
 function formatFileSize(bytes: number): string {
@@ -2105,102 +2135,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
                     <p className="whitespace-pre-wrap break-words font-medium">{m.text}</p>
                   ) : (
                     <div className="space-y-2.5">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          h1: ({ children }) => (
-                            <h3 className="text-base sm:text-lg font-extrabold text-[var(--text-primary)] mt-3 mb-1.5 pb-1 border-b border-[var(--border)]">
-                              {children}
-                            </h3>
-                          ),
-                          h2: ({ children }) => (
-                            <h4 className="text-sm sm:text-base font-bold text-[var(--text-primary)] mt-3 mb-1.5 pb-1 border-b border-[var(--border)]">
-                              {children}
-                            </h4>
-                          ),
-                          h3: ({ children }) => (
-                            <h5 className="text-xs sm:text-sm font-bold text-[var(--accent-text)] mt-2.5 mb-1">
-                              {children}
-                            </h5>
-                          ),
-                          p: ({ children }) => (
-                            <p className="my-1.5 text-[var(--text-primary)]">{children}</p>
-                          ),
-                          ul: ({ children }) => (
-                            <ul
-                              className={`my-2 space-y-1.5 list-disc ${
-                                msgIsRTL ? 'pr-5' : 'pl-5'
-                              } text-[var(--text-primary)]`}
-                            >
-                              {children}
-                            </ul>
-                          ),
-                          ol: ({ children }) => (
-                            <ol
-                              className={`my-2 space-y-1.5 list-decimal ${
-                                msgIsRTL ? 'pr-5' : 'pl-5'
-                              } text-[var(--text-primary)] font-medium`}
-                            >
-                              {children}
-                            </ol>
-                          ),
-                          li: ({ children }) => (
-                            <li className="leading-relaxed text-[var(--text-primary)]">{children}</li>
-                          ),
-                          strong: ({ children }) => (
-                            <strong className="font-bold text-[var(--text-primary)]">{children}</strong>
-                          ),
-                          blockquote: ({ children }) => (
-                            <blockquote
-                              className={`my-2.5 p-3 rounded-xl bg-[var(--surface)] border-[var(--accent)] ${
-                                msgIsRTL ? 'border-r-4' : 'border-l-4'
-                              } text-xs text-[var(--text-secondary)]`}
-                            >
-                              {children}
-                            </blockquote>
-                          ),
-                          table: ({ children }) => (
-                            <div className="my-3 w-full overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-                              <table className="w-full text-xs border-collapse">{children}</table>
-                            </div>
-                          ),
-                          thead: ({ children }) => (
-                            <thead className="bg-[var(--accent-subtle)] text-[var(--text-primary)] border-b border-[var(--border)]">
-                              {children}
-                            </thead>
-                          ),
-                          th: ({ children }) => (
-                            <th className="px-3 py-2 font-bold text-start border-r last:border-r-0 border-[var(--border)]">
-                              {children}
-                            </th>
-                          ),
-                          td: ({ children }) => (
-                            <td className="px-3 py-2 border-t border-r last:border-r-0 border-[var(--border)] text-[var(--text-primary)]">
-                              {children}
-                            </td>
-                          ),
-                          code: ({ className, children }) => {
-                            const isBlock = Boolean(className);
-                            if (isBlock) {
-                              return (
-                                <pre
-                                  dir="ltr"
-                                  className="my-2.5 p-3 rounded-xl bg-slate-900 text-slate-100 text-xs font-mono overflow-x-auto text-left"
-                                >
-                                  <code>{children}</code>
-                                </pre>
-                              );
-                            }
-                            return (
-                              <code className="px-1.5 py-0.5 rounded-md bg-[var(--surface)] border border-[var(--border)] font-mono text-[11px] text-[var(--accent-text)]">
-                                {children}
-                              </code>
-                            );
-                          },
-                        }}
-                      >
-                        {m.text}
-                      </ReactMarkdown>
+                      <FormattedMarkdown content={m.text} isRTL={msgIsRTL} />
                     </div>
                   )}
 

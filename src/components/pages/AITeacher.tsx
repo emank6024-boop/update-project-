@@ -27,8 +27,7 @@ import {
   Mic,
   Square,
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { FormattedMarkdown } from '../FormattedMarkdown';
 import { LanguageCode } from '../../types';
 import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import { useLanguage } from '../../context/LanguageContext';
@@ -69,6 +68,7 @@ const SUBJECTS_CONFIG = [
       'Pythagoras Theorem & Right Triangles (مسئلہ فیثاغورث)',
       'Matrices, Determinants & Cramer Rule (کالب اور مقطع)',
       'Trigonometric Ratios & Identities (مثلثیاتی نسبتیں)',
+      'Calculus: Derivatives & Slopes (ڈیریویٹیوز اور سلوپ)',
     ],
   },
   {
@@ -101,6 +101,8 @@ const SUBJECTS_CONFIG = [
     defaultLabel: 'Biology',
     icon: BookOpen,
     topics: [
+      'Animal Cell Structure & Organelles (جانوروں کا خلیہ اور آرگنیلز)',
+      'Plant Cell Anatomy & Chloroplasts (پودوں کا خلیہ)',
       'Photosynthesis & Cellular Respiration (ضیائی تالیف اور تنفس)',
       'Cell Organelles: Nucleus, Mitochondria & Ribosomes (خلیہ کی ساخت)',
       'Mitosis vs Meiosis Cell Division (خلوی تقسیم)',
@@ -789,61 +791,59 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
                     </div>
                   </div>
 
-                  {/* Smart Educational Visual Concept Diagram */}
-                  <SmartVisualCard
-                    title={`${subject} — ${activeTopicTitle || query}`}
-                    prompt={`Educational diagram and scientific textbook illustration explaining ${activeTopicTitle || query} for ${subject} ${grade} in Pakistan boards`}
-                    category="student"
-                    language={lessonLang}
-                    initialAspectRatio="4:3"
-                    autoGenerate={true}
-                  />
-
-                  {/* Lesson Content with Per-Heading Audio Play Button */}
+                  {/* Lesson & Diagram Content Area: Side-by-Side on Desktop/Tablet, Compact on Mobile */}
                   <div
                     dir={lessonDirRTL ? 'rtl' : 'ltr'}
-                    className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none text-[var(--text-primary)] ${
-                      lessonDirRTL ? 'text-right leading-[2.0]' : 'text-left leading-relaxed'
-                    }`}
+                    className="flex flex-col lg:flex-row gap-6 items-start"
                   >
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        h3: ({ children }) => {
-                          const headingText = String(children || '');
-                          return (
-                            <div className="flex items-center justify-between gap-2 mt-5 mb-2.5 pb-1.5 border-b border-[var(--border-subtle)]">
-                              <h3 className="text-base sm:text-lg font-extrabold text-[var(--text-primary)] m-0">
-                                {children}
-                              </h3>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  // Find section text following this heading for targeted audio playback
-                                  const idx = lessonText.indexOf(headingText);
-                                  const slice =
-                                    idx >= 0
-                                      ? lessonText.slice(idx, idx + 700)
-                                      : headingText;
-                                  const detected = detectSpeechLanguage(slice, lessonLang);
-                                  speak(slice, detected);
-                                }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-secondary)] hover:text-[var(--accent-text)] border border-[var(--border)] text-[11px] font-semibold transition-colors cursor-pointer shrink-0"
-                                title="Listen to this section"
-                              >
-                                <Volume2 className="w-3 h-3" />
-                                <span>Listen</span>
-                              </button>
-                            </div>
-                          );
-                        },
-                      }}
+                    {/* Main Lesson Content with Per-Heading Audio Play Button */}
+                    <div
+                      className={`flex-1 min-w-0 prose prose-sm sm:prose-base dark:prose-invert max-w-none text-[var(--text-primary)] ${
+                        lessonDirRTL ? 'text-right leading-[2.0]' : 'text-left leading-relaxed'
+                      }`}
                     >
-                      {lessonText}
-                    </ReactMarkdown>
-                    {isStreaming && (
-                      <span className="inline-block w-2 h-4 ml-1 align-middle bg-[var(--accent)] animate-pulse rounded-xs" />
-                    )}
+                      <FormattedMarkdown
+                        content={lessonText}
+                        isRTL={lessonDirRTL}
+                        renderHeadingAction={(headingText) => (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Find section text following this heading for targeted audio playback
+                              const idx = lessonText.indexOf(headingText);
+                              const slice =
+                                idx >= 0
+                                  ? lessonText.slice(idx, idx + 700)
+                                  : headingText;
+                              const detected = detectSpeechLanguage(slice, lessonLang);
+                              speak(slice, detected);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--surface-secondary)] hover:bg-[var(--accent-subtle)] text-[var(--text-secondary)] hover:text-[var(--accent-text)] border border-[var(--border)] text-[11px] font-semibold transition-colors cursor-pointer shrink-0"
+                            title="Listen to this section"
+                          >
+                            <Volume2 className="w-3 h-3" />
+                            <span>Listen</span>
+                          </button>
+                        )}
+                      />
+                      {isStreaming && (
+                        <span className="inline-block w-2 h-4 ml-1 align-middle bg-[var(--accent)] animate-pulse rounded-xs" />
+                      )}
+                    </div>
+
+                    {/* Compact Side Educational Visual Card - sits beside text on desktop, click to enlarge */}
+                    <div className="w-full lg:w-72 xl:w-80 shrink-0 lg:sticky lg:top-4 order-first lg:order-last">
+                      <SmartVisualCard
+                        key={`${subject}_${activeTopicTitle || query}_${grade}`}
+                        title={`${subject} — ${activeTopicTitle || query}`}
+                        prompt={`Educational diagram and scientific textbook illustration explaining ${activeTopicTitle || query} for ${subject} ${grade} in Pakistan boards`}
+                        category="student"
+                        language={lessonLang}
+                        initialAspectRatio="4:3"
+                        autoGenerate={true}
+                        compact={true}
+                      />
+                    </div>
                   </div>
 
                   {/* Bottom Lesson Actions */}

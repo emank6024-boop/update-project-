@@ -10,8 +10,7 @@ import {
   Mic,
   Square,
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { FormattedMarkdown } from '../FormattedMarkdown';
 import { LanguageCode } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { AudioControlBar } from '../AudioControlBar';
@@ -180,32 +179,36 @@ export const MedicalAssistant: React.FC<MedicalAssistantProps> = ({ selectedLang
 
       {/* Result Card & Visual Anatomy/Health Guide */}
       {result && (
-        <div className="space-y-6">
-          <SmartVisualCard
-            title={query || t('medical.title', 'Healthcare & Clinical Anatomy')}
-            prompt={`Medical anatomy and clinical health educational illustration explaining: ${query}`}
-            category="medical"
-            language={selectedLanguage}
-            initialAspectRatio="4:3"
-            autoGenerate={true}
-          />
-
-          <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
+        <div className="flex flex-col lg:flex-row gap-6 items-start" dir={isRTL ? 'rtl' : 'ltr'}>
+          {/* Main Medical Advice Text */}
+          <div className="flex-1 min-w-0 p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm space-y-4">
             <AudioControlBar
               text={result.answer || result.guidance || result.text || ''}
               language={selectedLanguage}
               label={`${currentLanguage.nativeName} — ${t('voice.listenBtn', 'Listen Audio')}`}
             />
-            <div className="prose prose-xs sm:prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-[var(--text-primary)]">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {result.answer || result.guidance || result.text || ''}
-              </ReactMarkdown>
-            </div>
+            <FormattedMarkdown
+              content={result.answer || result.guidance || result.text || ''}
+              isRTL={isRTL}
+            />
 
             <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-200 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{t('medical.disclaimer', 'Notice: Informational guidance only. Not a medical prescription. Consult a licensed doctor.')}</span>
             </div>
+          </div>
+
+          {/* Compact Side Anatomy / Clinical Visual Card */}
+          <div className="w-full lg:w-72 xl:w-80 shrink-0 lg:sticky lg:top-4 order-first lg:order-last">
+            <SmartVisualCard
+              title={query || t('medical.title', 'Healthcare & Clinical Anatomy')}
+              prompt={`Medical anatomy and clinical health educational illustration explaining: ${query}`}
+              category="medical"
+              language={selectedLanguage}
+              initialAspectRatio="4:3"
+              autoGenerate={true}
+              compact={true}
+            />
           </div>
         </div>
       )}
