@@ -276,6 +276,11 @@ export interface FeatureHistoryItem {
   topic?: string;
   crop?: string;
   language: string;
+  imageUrl?: string;
+  sourceUrl?: string;
+  sourceName?: string;
+  formulas?: string[];
+  youtubeVideos?: Array<{ id: string; title: string; url: string; thumbnail: string; channel?: string }>;
   createdAt: string;
   updatedAt?: string;
 }

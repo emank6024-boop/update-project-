@@ -53,6 +53,7 @@ import {
 import { getLanguageBCP47, isLanguageRTL } from '../../i18n';
 import { PakLingoMark } from '../PakLingoLogo';
 import { SmartVisualCard } from '../SmartVisualCard';
+import { EducationalYouTubeSection } from '../EducationalYouTubeSection';
 
 interface AIAssistantProps {
   selectedLanguage: LanguageCode;
@@ -1288,6 +1289,14 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
           };
           const completedConversationMessages = [...nextMessagesWithUser, finalBotMsg];
           syncConversationToStorage(convId, completedConversationMessages, selectedLanguage);
+
+          // Automatically provide real visual diagram and YouTube educational links for any topic search
+          const isTopicQuery =
+            displayQuery.length > 3 &&
+            !/^(hi|hello|hey|salam|assalam|aoa|test|thanks|thank you)\b/i.test(displayQuery.trim());
+          if (isTopicQuery) {
+            setVisibleVisuals((prev) => ({ ...prev, [botMsgId]: true }));
+          }
         }
 
         if (autoReadAloud && replyText) {
@@ -2139,9 +2148,9 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
                     </div>
                   )}
 
-                  {/* Smart Visual Explanation Card */}
+                  {/* Smart Visual Explanation Card & Educational Resources */}
                   {!isUser && visibleVisuals[m.id] && (
-                    <div className="mt-4 pt-3 border-t border-[var(--border)]">
+                    <div className="mt-4 pt-3 border-t border-[var(--border)] space-y-4">
                       <SmartVisualCard
                         title={m.text.slice(0, 45).replace(/[#*`_]/g, '').trim()}
                         prompt={
@@ -2153,6 +2162,14 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
                         language={selectedLanguage}
                         initialAspectRatio="4:3"
                         autoGenerate={true}
+                      />
+
+                      <EducationalYouTubeSection
+                        topic={
+                          (messages[idx - 1]?.text && messages[idx - 1].sender === 'user')
+                            ? messages[idx - 1].text.slice(0, 60).replace(/[?.,!]/g, '').trim()
+                            : m.text.slice(0, 60).replace(/[?.,!]/g, '').trim()
+                        }
                       />
                     </div>
                   )}

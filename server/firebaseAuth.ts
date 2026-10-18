@@ -25,11 +25,16 @@ try {
   const configPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
   if (fs.existsSync(configPath)) {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    firebaseApiKey = config.apiKey || '';
-    firebaseProjectId = config.projectId || '';
+    firebaseApiKey = config.apiKey || process.env.FIREBASE_API_KEY || '';
+    firebaseProjectId = config.projectId || process.env.FIREBASE_PROJECT_ID || '';
+  } else {
+    firebaseApiKey = process.env.FIREBASE_API_KEY || '';
+    firebaseProjectId = process.env.FIREBASE_PROJECT_ID || '';
   }
 } catch (err) {
   console.warn('Could not read firebase-applet-config.json:', err);
+  firebaseApiKey = process.env.FIREBASE_API_KEY || '';
+  firebaseProjectId = process.env.FIREBASE_PROJECT_ID || '';
 }
 
 // In-memory verification cache to avoid excessive network requests on repeated calls

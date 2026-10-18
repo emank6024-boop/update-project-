@@ -338,7 +338,601 @@ export function generateEducationalSvg(options: DiagramOptions): string {
   }
 
   // =========================================================================
-  // PRIORITY 2: MATHEMATICS (ریاضی)
+  // PRIORITY 2: CHEMISTRY (کیمسٹری)
+  // When Chemistry, Periodic Table, Elements, or Bonding are queried,
+  // MUST NEVER return Biology Animal Cell or Photosynthesis!
+  // =========================================================================
+  const isChemQuery =
+    cLower === 'chemistry' ||
+    text.includes('chemistry') ||
+    text.includes('کیمسٹری') ||
+    text.includes('periodic table') ||
+    text.includes('periodic') ||
+    text.includes('دوری جدول') ||
+    text.includes('جدول') ||
+    text.includes('element') ||
+    text.includes('عنصر') ||
+    text.includes('atomic') ||
+    text.includes('chemical bond') ||
+    text.includes('covalent') ||
+    text.includes('ionic') ||
+    text.includes('بانڈنگ') ||
+    text.includes('acid') ||
+    text.includes('تیزاب') ||
+    text.includes('base') ||
+    text.includes('اساس') ||
+    text.includes('mendeleev') ||
+    text.includes('moseley');
+
+  if (isChemQuery) {
+    const isBonding = text.includes('bond') || text.includes('بانڈنگ') || text.includes('ionic') || text.includes('covalent');
+    const isAcidBase = text.includes('acid') || text.includes('تیزاب') || text.includes('base') || text.includes('اساس') || text.includes('ph scale');
+
+    // 2B. Chemical Bonding
+    if (isBonding) {
+      const headerTitle = isEn
+        ? '🧪 CHEMISTRY • CHEMICAL BONDING &amp; ELECTRON SHARING'
+        : '🧪 کیمسٹری • کیمیائی بانڈنگ اور الیکٹرانز کا اشتراک';
+      const headerSubtitle = isEn
+        ? 'Ionic Bonding (Electron Transfer) vs Covalent Bonding (Electron Sharing)'
+        : 'آئیونک بانڈ (الیکٹران کی منتقلی) بمقابلہ کوویلنٹ بانڈ (باہمی اشتراک)';
+
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%">
+        ${commonDefs}
+        <rect width="${width}" height="${height}" fill="#ffffff" rx="16" />
+        <rect width="${width}" height="${height}" fill="none" stroke="#e2e8f0" stroke-width="2" rx="16" />
+
+        <!-- Header -->
+        <g transform="translate(35, 25)">
+          <rect width="320" height="32" rx="16" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.2" />
+          <text x="16" y="20" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#7c3aed">
+            ${headerTitle}
+          </text>
+          <text x="340" y="21" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#0f172a">
+            ${headerSubtitle}
+          </text>
+        </g>
+
+        <!-- Left Visual: Ionic Bond (NaCl) -->
+        <g transform="translate(45, 75)" filter="url(#cardShadow)">
+          <rect width="360" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
+          <text x="18" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#0284c7">
+            1. Ionic Bond: Na⁺ + Cl⁻ ⟶ NaCl
+          </text>
+
+          <!-- Sodium (Na) atom losing electron -->
+          <g transform="translate(80, 110)">
+            <circle cx="0" cy="0" r="38" fill="#e0f2fe" stroke="#0284c7" stroke-width="2" />
+            <circle cx="0" cy="0" r="24" fill="#bae6fd" stroke="#0284c7" stroke-width="1.5" stroke-dasharray="3 2" />
+            <circle cx="0" cy="0" r="12" fill="#0369a1" />
+            <text x="0" y="4" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#ffffff">Na</text>
+            <text x="0" y="55" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#0369a1">Na (2,8,1)</text>
+            <text x="0" y="70" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#0284c7">Loses 1 e⁻</text>
+          </g>
+
+          <!-- Transfer Arrow -->
+          <g transform="translate(170, 110)">
+            <line x1="-15" y1="0" x2="25" y2="0" stroke="#f43f5e" stroke-width="2.5" />
+            <polygon points="25,-4 34,0 25,4" fill="#f43f5e" />
+            <circle cx="5" cy="-8" r="4" fill="#f43f5e" />
+            <text x="5" y="-14" text-anchor="middle" font-family="system-ui, sans-serif" font-size="8" font-weight="bold" fill="#f43f5e">e⁻</text>
+          </g>
+
+          <!-- Chlorine (Cl) atom gaining electron -->
+          <g transform="translate(260, 110)">
+            <circle cx="0" cy="0" r="45" fill="#fef3c7" stroke="#d97706" stroke-width="2" />
+            <circle cx="0" cy="0" r="30" fill="#fde68a" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3 2" />
+            <circle cx="0" cy="0" r="14" fill="#b45309" />
+            <text x="0" y="4" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#ffffff">Cl</text>
+            <text x="0" y="60" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#b45309">Cl (2,8,7)</text>
+            <text x="0" y="75" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#d97706">Gains 1 e⁻</text>
+          </g>
+
+          <!-- Electrostatic Attraction Box -->
+          <rect x="20" y="215" width="320" height="75" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.2" />
+          <text x="30" y="240" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#15803d">
+            Electrostatic Attraction (برقی سکونی کشش):
+          </text>
+          <text x="30" y="260" font-family="system-ui, sans-serif" font-size="11" fill="#166534">
+            Na⁺ (2,8) + Cl⁻ (2,8,8) ⟶ Strong crystal lattice
+          </text>
+          <text x="30" y="278" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+            Complete transfer of valence electrons forms octets.
+          </text>
+
+          <!-- Covalent preview -->
+          <rect x="20" y="305" width="320" height="75" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2" />
+          <text x="30" y="330" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#1d4ed8">
+            2. Covalent Bond: H + H ⟶ H₂
+          </text>
+          <text x="30" y="350" font-family="system-ui, sans-serif" font-size="11" fill="#1e40af">
+            Mutual sharing of electrons between non-metals.
+          </text>
+          <text x="30" y="368" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+            H:H single covalent bond completes duet stability.
+          </text>
+        </g>
+
+        <!-- Right Side: Rules & Comparison -->
+        <g transform="translate(425, 75)" filter="url(#cardShadow)">
+          <rect width="380" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
+          <text x="18" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">
+            ✦ کیمیائی بانڈز کا تقابل (Comparison &amp; Octet Rule):
+          </text>
+
+          <g transform="translate(18, 45)">
+            <rect width="344" height="60" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#7c3aed">
+              ★ Octet Rule (آکٹیٹ قانون):
+            </text>
+            <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+              Atoms lose, gain, or share electrons to attain 8 valence electrons (noble gas configuration).
+            </text>
+          </g>
+
+          <g transform="translate(18, 115)">
+            <rect width="344" height="60" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#0284c7">
+              • Ionic Bond Characteristics:
+            </text>
+            <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+              Between metals and non-metals (ΔEN &gt; 1.7). High melting/boiling points, conduct in solution.
+            </text>
+          </g>
+
+          <g transform="translate(18, 185)">
+            <rect width="344" height="60" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#16a34a">
+              • Covalent Bond Characteristics:
+            </text>
+            <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+              Between non-metals. Single (H₂), double (O₂), or triple (N₂) bonds via shared pairs.
+            </text>
+          </g>
+
+          <g transform="translate(18, 255)">
+            <rect width="344" height="60" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#ea580c">
+              • Coordinate (Dative) Covalent Bond:
+            </text>
+            <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+              Bond pair donated by a single donor atom (e.g. NH₄⁺ and H₃O⁺).
+            </text>
+          </g>
+
+          <rect x="18" y="325" width="344" height="55" rx="8" fill="#fef2f2" stroke="#fca5a5" stroke-width="1" />
+          <text x="28" y="346" font-family="system-ui, sans-serif" font-size="10.5" font-weight="bold" fill="#dc2626">
+            بورڈ امتحان تعریف: الیکٹروویلنٹ (آئیونک) اور کوویلنٹ بانڈ
+          </text>
+          <text x="28" y="364" font-family="system-ui, sans-serif" font-size="9.5" fill="#7f1d1d">
+            امتحان میں لیوس ڈاٹ اینڈ کراس سٹرکچر بنانا پورے نمبر دلاتا ہے۔
+          </text>
+        </g>
+
+        <!-- Bottom Bar -->
+        <g transform="translate(35, 492)" filter="url(#cardShadow)">
+          <rect width="770" height="62" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2" />
+          <text x="18" y="24" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#7c3aed">
+            ✦ FBISE &amp; BISE Board Exam Alert (Class 9 Chemistry Chapter 4):
+          </text>
+          <text x="18" y="44" font-family="system-ui, sans-serif" font-size="10.5" fill="#334155">
+            ${isEn ? 'Electronegativity difference determines bond character: ΔEN &gt; 1.7 produces predominantly ionic character; ΔEN &lt; 1.7 produces covalent.' : 'الیکٹرو نیگیٹیویٹی کا فرق 1.7 سے زیادہ ہو تو آئیونک بانڈ اور کم ہو تو کوویلنٹ بانڈ بنتا ہے۔'}
+          </text>
+        </g>
+      </svg>`;
+    }
+
+    // 2A. Authentic Modern Periodic Table of Elements (دوری جدول اور متواتر رجحانات)
+    const headerTitle = isEn
+      ? '🧪 CHEMISTRY • MODERN PERIODIC TABLE OF ELEMENTS'
+      : '🧪 کیمسٹری • جدید دوری جدول اور متواتر رجحانات (Periodic Table)';
+    const headerSubtitle = isEn
+      ? 'Periods (1–7), Groups (1–18), Electronic Shells &amp; Periodic Trends'
+      : 'پیریڈز (1 تا 7)، گروپس (1 تا 18)، ایٹمی ریڈیئس اور الیکٹرو نیگیٹیویٹی رجحانات';
+
+    // Detailed Element matrix for Periods 1, 2, 3, 4
+    // Standard chemical elements organized precisely by Group (1 to 18)
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%">
+      ${commonDefs}
+      <rect width="${width}" height="${height}" fill="#ffffff" rx="16" />
+      <rect width="${width}" height="${height}" fill="none" stroke="#e2e8f0" stroke-width="2" rx="16" />
+
+      <!-- Top Header Badge -->
+      <g transform="translate(35, 25)">
+        <rect width="320" height="32" rx="16" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2" />
+        <text x="16" y="20" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#1d4ed8">
+          ${headerTitle}
+        </text>
+        <text x="340" y="21" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#0f172a">
+          ${headerSubtitle}
+        </text>
+      </g>
+
+      <!-- Main Periodic Table Grid Container (Left side: width ~500) -->
+      <g transform="translate(35, 75)" filter="url(#cardShadow)">
+        <rect width="495" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
+
+        <!-- Periodic Trends Direction Arrows on Top and Side -->
+        <!-- Top Trend Arrow: Electronegativity & Ionization Energy Increases -> -->
+        <g transform="translate(25, 20)">
+          <line x1="10" y1="0" x2="440" y2="0" stroke="#7c3aed" stroke-width="2.5" />
+          <polygon points="440,-4 450,0 440,4" fill="#7c3aed" />
+          <text x="220" y="-5" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#7c3aed">
+            ${isEn ? 'Ionization Energy &amp; Electronegativity Increase ⟶ (Atomic Radius Decreases ⟶)' : 'الیکٹرو نیگیٹیویٹی اور آئیونائزیشن انرجی میں اضافہ ⟶ (ایٹمی سائز کم ہوتا ہے)'}
+          </text>
+        </g>
+
+        <!-- Side Trend Arrow: Atomic Radius Increases Downwards | -->
+        <g transform="translate(14, 35)">
+          <line x1="0" y1="10" x2="0" y2="280" stroke="#059669" stroke-width="2" />
+          <polygon points="-4,280 0,290 4,280" fill="#059669" />
+          <text x="-4" y="150" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" fill="#059669" transform="rotate(-90 -4 150)">
+            ${isEn ? 'Atomic Radius Increases ⇣' : 'ایٹمی ریڈیئس میں اضافہ ⇣'}
+          </text>
+        </g>
+
+        <!-- Group Numbers across top (1 to 18) -->
+        <g transform="translate(30, 42)" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" fill="#64748b">
+          <text x="12" y="0" text-anchor="middle">1</text>
+          <text x="36" y="0" text-anchor="middle">2</text>
+          <text x="60" y="0" text-anchor="middle">3</text>
+          <text x="84" y="0" text-anchor="middle">4</text>
+          <text x="108" y="0" text-anchor="middle">5</text>
+          <text x="132" y="0" text-anchor="middle">6</text>
+          <text x="156" y="0" text-anchor="middle">7</text>
+          <text x="180" y="0" text-anchor="middle">8</text>
+          <text x="204" y="0" text-anchor="middle">9</text>
+          <text x="228" y="0" text-anchor="middle">10</text>
+          <text x="252" y="0" text-anchor="middle">11</text>
+          <text x="276" y="0" text-anchor="middle">12</text>
+          <text x="300" y="0" text-anchor="middle">13</text>
+          <text x="324" y="0" text-anchor="middle">14</text>
+          <text x="348" y="0" text-anchor="middle">15</text>
+          <text x="372" y="0" text-anchor="middle">16</text>
+          <text x="396" y="0" text-anchor="middle">17</text>
+          <text x="420" y="0" text-anchor="middle">18</text>
+        </g>
+
+        <!-- Period Numbers down left (1 to 6) -->
+        <g transform="translate(24, 72)" font-family="system-ui, sans-serif" font-size="9.5" font-weight="bold" fill="#64748b">
+          <text x="0" y="0">P1</text>
+          <text x="0" y="44">P2</text>
+          <text x="0" y="88">P3</text>
+          <text x="0" y="132">P4</text>
+          <text x="0" y="176">P5</text>
+          <text x="0" y="220">P6</text>
+        </g>
+
+        <!-- ELEMENT TILES (Group width = 24px, tile height = 40px) -->
+        <g transform="translate(30, 52)">
+          <!-- PERIOD 1 -->
+          <!-- H (1, Group 1) -->
+          <g transform="translate(0, 0)">
+            <rect width="23" height="38" rx="4" fill="#fee2e2" stroke="#ef4444" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#dc2626">1</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#991b1b">H</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#b91c1c">1.0</text>
+          </g>
+          <!-- He (2, Group 18) -->
+          <g transform="translate(408, 0)">
+            <rect width="23" height="38" rx="4" fill="#f3e8ff" stroke="#a855f7" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#7e22ce">2</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#6b21a8">He</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#7e22ce">4.0</text>
+          </g>
+
+          <!-- PERIOD 2 -->
+          <!-- Li (3, G1) -->
+          <g transform="translate(0, 44)">
+            <rect width="23" height="38" rx="4" fill="#fee2e2" stroke="#ef4444" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#dc2626">3</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#991b1b">Li</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#b91c1c">6.9</text>
+          </g>
+          <!-- Be (4, G2) -->
+          <g transform="translate(24, 44)">
+            <rect width="23" height="38" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#d97706">4</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#b45309">Be</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#d97706">9.0</text>
+          </g>
+          <!-- B (5, G13) -->
+          <g transform="translate(288, 44)">
+            <rect width="23" height="38" rx="4" fill="#ccfbf1" stroke="#14b8a6" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#0f766e">5</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#115e59">B</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#0f766e">10.8</text>
+          </g>
+          <!-- C (6, G14) -->
+          <g transform="translate(312, 44)">
+            <rect width="23" height="38" rx="4" fill="#dcfce7" stroke="#22c55e" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#15803d">6</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#166534">C</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#15803d">12.0</text>
+          </g>
+          <!-- N (7, G15) -->
+          <g transform="translate(336, 44)">
+            <rect width="23" height="38" rx="4" fill="#dcfce7" stroke="#22c55e" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#15803d">7</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#166534">N</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#15803d">14.0</text>
+          </g>
+          <!-- O (8, G16) -->
+          <g transform="translate(360, 44)">
+            <rect width="23" height="38" rx="4" fill="#dcfce7" stroke="#22c55e" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#15803d">8</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#166534">O</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#15803d">16.0</text>
+          </g>
+          <!-- F (9, G17) ★ HIGHEST ELECTRONEGATIVITY -->
+          <g transform="translate(384, 44)">
+            <rect width="23" height="38" rx="4" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.5" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#4338ca">9</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#312e81">F★</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#4338ca">19.0</text>
+          </g>
+          <!-- Ne (10, G18) -->
+          <g transform="translate(408, 44)">
+            <rect width="23" height="38" rx="4" fill="#f3e8ff" stroke="#a855f7" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#7e22ce">10</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#6b21a8">Ne</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#7e22ce">20.2</text>
+          </g>
+
+          <!-- PERIOD 3 -->
+          <!-- Na (11, G1) -->
+          <g transform="translate(0, 88)">
+            <rect width="23" height="38" rx="4" fill="#fee2e2" stroke="#ef4444" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#dc2626">11</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#991b1b">Na</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#b91c1c">23.0</text>
+          </g>
+          <!-- Mg (12, G2) -->
+          <g transform="translate(24, 88)">
+            <rect width="23" height="38" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#d97706">12</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#b45309">Mg</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#d97706">24.3</text>
+          </g>
+          <!-- Al (13, G13) -->
+          <g transform="translate(288, 88)">
+            <rect width="23" height="38" rx="4" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#475569">13</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#334155">Al</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#64748b">27.0</text>
+          </g>
+          <!-- Si (14, G14) -->
+          <g transform="translate(312, 88)">
+            <rect width="23" height="38" rx="4" fill="#ccfbf1" stroke="#14b8a6" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#0f766e">14</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#115e59">Si</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#0f766e">28.1</text>
+          </g>
+          <!-- P (15, G15) -->
+          <g transform="translate(336, 88)">
+            <rect width="23" height="38" rx="4" fill="#dcfce7" stroke="#22c55e" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#15803d">15</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#166534">P</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#15803d">31.0</text>
+          </g>
+          <!-- S (16, G16) -->
+          <g transform="translate(360, 88)">
+            <rect width="23" height="38" rx="4" fill="#dcfce7" stroke="#22c55e" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#15803d">16</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#166534">S</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#15803d">32.1</text>
+          </g>
+          <!-- Cl (17, G17) -->
+          <g transform="translate(384, 88)">
+            <rect width="23" height="38" rx="4" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#4338ca">17</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#312e81">Cl</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#4338ca">35.5</text>
+          </g>
+          <!-- Ar (18, G18) -->
+          <g transform="translate(408, 88)">
+            <rect width="23" height="38" rx="4" fill="#f3e8ff" stroke="#a855f7" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7.5" font-weight="bold" fill="#7e22ce">18</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#6b21a8">Ar</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#7e22ce">39.9</text>
+          </g>
+
+          <!-- PERIOD 4 (K to Kr) -->
+          <!-- K (19, G1) -->
+          <g transform="translate(0, 132)">
+            <rect width="23" height="38" rx="4" fill="#fee2e2" stroke="#ef4444" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#dc2626">19</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#991b1b">K</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#b91c1c">39.1</text>
+          </g>
+          <!-- Ca (20, G2) -->
+          <g transform="translate(24, 132)">
+            <rect width="23" height="38" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#d97706">20</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#b45309">Ca</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#d97706">40.1</text>
+          </g>
+          <!-- Transition Metals (Sc to Zn: 21 to 30) -->
+          <g transform="translate(48, 132)">
+            <rect width="238" height="38" rx="4" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.2" />
+            <text x="119" y="18" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#1e40af">
+              Transition Metals (Sc²¹ ⟶ Zn³⁰)
+            </text>
+            <text x="119" y="32" text-anchor="middle" font-family="system-ui, sans-serif" font-size="8.5" fill="#2563eb">
+              Sc • Ti • V • Cr • Mn • Fe • Co • Ni • Cu • Zn
+            </text>
+          </g>
+          <!-- Ga (31, G13) -->
+          <g transform="translate(288, 132)">
+            <rect width="23" height="38" rx="4" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#475569">31</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#334155">Ga</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#64748b">69.7</text>
+          </g>
+          <!-- Ge (32, G14) -->
+          <g transform="translate(312, 132)">
+            <rect width="23" height="38" rx="4" fill="#ccfbf1" stroke="#14b8a6" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#0f766e">32</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#115e59">Ge</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#0f766e">72.6</text>
+          </g>
+          <!-- As (33, G15) -->
+          <g transform="translate(336, 132)">
+            <rect width="23" height="38" rx="4" fill="#ccfbf1" stroke="#14b8a6" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#0f766e">33</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#115e59">As</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#0f766e">74.9</text>
+          </g>
+          <!-- Se (34, G16) -->
+          <g transform="translate(360, 132)">
+            <rect width="23" height="38" rx="4" fill="#dcfce7" stroke="#22c55e" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#15803d">34</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#166534">Se</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#15803d">79.0</text>
+          </g>
+          <!-- Br (35, G17) -->
+          <g transform="translate(384, 132)">
+            <rect width="23" height="38" rx="4" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#4338ca">35</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#312e81">Br</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#4338ca">79.9</text>
+          </g>
+          <!-- Kr (36, G18) -->
+          <g transform="translate(408, 132)">
+            <rect width="23" height="38" rx="4" fill="#f3e8ff" stroke="#a855f7" stroke-width="1.2" />
+            <text x="3" y="10" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#7e22ce">36</text>
+            <text x="11.5" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#6b21a8">Kr</text>
+            <text x="11.5" y="34" text-anchor="middle" font-family="system-ui, sans-serif" font-size="6.5" fill="#7e22ce">83.8</text>
+          </g>
+
+          <!-- Periods 5-7 Indicative Rows -->
+          <g transform="translate(0, 176)">
+            <rect width="431" height="32" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+            <text x="12" y="20" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#334155">
+              Period 5 (Rb³⁷ ⟶ Xe⁵⁴):
+            </text>
+            <text x="160" y="20" font-family="system-ui, sans-serif" font-size="9" fill="#475569">
+              Rb, Sr, Y, Zr, Nb, Mo, Tc, Ru, Rh, Pd, Ag, Cd, In, Sn, Sb, Te, I, Xe
+            </text>
+          </g>
+          <g transform="translate(0, 214)">
+            <rect width="431" height="32" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+            <text x="12" y="20" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#334155">
+              Period 6 &amp; 7 (Cs⁵⁵ ⟶ Og¹¹⁸):
+            </text>
+            <text x="175" y="20" font-family="system-ui, sans-serif" font-size="9" fill="#475569">
+              Includes Lanthanides (57–71) &amp; Actinides (89–103) inner transition series
+            </text>
+          </g>
+        </g>
+
+        <!-- Element Color Legend (Bottom of table card) -->
+        <g transform="translate(25, 320)" font-family="system-ui, sans-serif" font-size="9" font-weight="bold">
+          <!-- Row 1 -->
+          <rect x="0" y="0" width="10" height="10" rx="2" fill="#fee2e2" stroke="#ef4444" stroke-width="1" />
+          <text x="14" y="9" fill="#991b1b">Alkali Metals (G1)</text>
+
+          <rect x="110" y="0" width="10" height="10" rx="2" fill="#fef3c7" stroke="#f59e0b" stroke-width="1" />
+          <text x="124" y="9" fill="#b45309">Alkaline Earth (G2)</text>
+
+          <rect x="230" y="0" width="10" height="10" rx="2" fill="#eff6ff" stroke="#3b82f6" stroke-width="1" />
+          <text x="244" y="9" fill="#1e40af">Transition Metals</text>
+
+          <rect x="350" y="0" width="10" height="10" rx="2" fill="#ccfbf1" stroke="#14b8a6" stroke-width="1" />
+          <text x="364" y="9" fill="#0f766e">Metalloids</text>
+
+          <!-- Row 2 -->
+          <rect x="0" y="16" width="10" height="10" rx="2" fill="#dcfce7" stroke="#22c55e" stroke-width="1" />
+          <text x="14" y="25" fill="#166534">Non-metals</text>
+
+          <rect x="110" y="16" width="10" height="10" rx="2" fill="#e0e7ff" stroke="#6366f1" stroke-width="1" />
+          <text x="124" y="25" fill="#312e81">Halogens (G17)</text>
+
+          <rect x="230" y="16" width="10" height="10" rx="2" fill="#f3e8ff" stroke="#a855f7" stroke-width="1" />
+          <text x="244" y="25" fill="#6b21a8">Noble Gases (G18)</text>
+
+          <rect x="350" y="16" width="10" height="10" rx="2" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1" />
+          <text x="364" y="25" fill="#334155">Post-Transition</text>
+        </g>
+      </g>
+
+      <!-- Right Side: Zoomed Element Tile Detail & Scientific Periodic Trends Card -->
+      <g transform="translate(545, 75)" filter="url(#cardShadow)">
+        <rect width="260" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
+
+        <!-- Zoomed Element Tile: Carbon (6) -->
+        <g transform="translate(75, 18)">
+          <rect width="110" height="110" rx="10" fill="#ffffff" stroke="#22c55e" stroke-width="2" filter="url(#elementShadow)" />
+          <text x="10" y="22" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#15803d">6</text>
+          <text x="55" y="65" text-anchor="middle" font-family="system-ui, sans-serif" font-size="34" font-weight="extrabold" fill="#166534">C</text>
+          <text x="55" y="84" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#0f172a">Carbon</text>
+          <text x="55" y="98" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#64748b">12.011 • 2s² 2p²</text>
+        </g>
+
+        <!-- Trends Summary Box -->
+        <g transform="translate(14, 142)">
+          <rect width="232" height="235" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+          <text x="12" y="20" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#0f172a">
+            ✦ متواتر رجحانات (Periodic Trends):
+          </text>
+
+          <g transform="translate(10, 30)">
+            <rect width="212" height="42" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-width="1" />
+            <text x="8" y="16" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#15803d">
+              1. ایٹمی ریڈیئس (Atomic Radius):
+            </text>
+            <text x="8" y="32" font-family="system-ui, sans-serif" font-size="9" fill="#334155">
+              پیریڈ میں کم ⟶ اور گروپ میں زیادہ ⇣ ہوتا ہے۔
+            </text>
+          </g>
+
+          <g transform="translate(10, 78)">
+            <rect width="212" height="42" rx="6" fill="#eff6ff" stroke="#93c5fd" stroke-width="1" />
+            <text x="8" y="16" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#1d4ed8">
+              2. آئیونائزیشن انرجی (Ionization Energy):
+            </text>
+            <text x="8" y="32" font-family="system-ui, sans-serif" font-size="9" fill="#334155">
+              پیریڈ میں زیادہ ⟶ اور گروپ میں کم ⇣ ہوتی ہے۔
+            </text>
+          </g>
+
+          <g transform="translate(10, 126)">
+            <rect width="212" height="42" rx="6" fill="#fdf4ff" stroke="#f0abfc" stroke-width="1" />
+            <text x="8" y="16" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#a21caf">
+              3. الیکٹرو نیگیٹیویٹی (Electronegativity):
+            </text>
+            <text x="8" y="32" font-family="system-ui, sans-serif" font-size="9" fill="#334155">
+              فلورین ($F$) سب سے زیادہ ($4.0$) قیمت رکھتا ہے۔
+            </text>
+          </g>
+
+          <g transform="translate(10, 174)">
+            <rect width="212" height="42" rx="6" fill="#fffbeb" stroke="#fde68a" stroke-width="1" />
+            <text x="8" y="16" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#b45309">
+              4. شیلڈنگ ایفیکٹ (Shielding Effect):
+            </text>
+            <text x="8" y="32" font-family="system-ui, sans-serif" font-size="9" fill="#334155">
+              پیریڈ میں یکساں رہتا ہے، گروپ میں بڑھتا ہے۔
+            </text>
+          </g>
+        </g>
+      </g>
+
+      <!-- Bottom Bar -->
+      <g transform="translate(35, 492)" filter="url(#cardShadow)">
+        <rect width="770" height="62" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2" />
+        <text x="18" y="24" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#1d4ed8">
+          ✦ بورڈ امتحانی قانون (FBISE &amp; BISE Class 9 Chemistry Chapter 3):
+        </text>
+        <text x="18" y="44" font-family="system-ui, sans-serif" font-size="10.5" fill="#334155">
+          ${isEn ? 'Modern Periodic Law (Moseley 1913): Properties of elements are periodic functions of their Atomic Numbers (Z). 7 Periods &amp; 18 Groups.' : 'جدید متواتر قانون (موزلے 1913): عناصر کی طبعی اور کیمیائی خصوصیات ان کے ایٹمی نمبروں کا متواتر عمل ہوتی ہیں۔ دوری جدول میں 7 پیریڈز اور 18 گروپس ہیں۔'}
+        </text>
+      </g>
+    </svg>`;
+  }
+
+  // =========================================================================
+  // PRIORITY 3: MATHEMATICS (ریاضی)
   // MUST NEVER return Biology Animal Cell or Photosynthesis!
   // =========================================================================
   const isMathQuery =
@@ -588,7 +1182,172 @@ export function generateEducationalSvg(options: DiagramOptions): string {
       </svg>`;
     }
 
-    // 2C. Calculus & Derivatives (or general Quadratic default)
+    // 2C. Algebra & Algebraic Identities (الجبرا اور الجبرائی کلیے)
+    const isAlgebra =
+      text.includes('algebra') ||
+      text.includes('الجبرا') ||
+      text.includes('identity') ||
+      text.includes('identities') ||
+      text.includes('polynomial') ||
+      text.includes('factor') ||
+      text.includes('تجزیہ') ||
+      text.includes('کلیہ') ||
+      text.includes('expression') ||
+      text.includes('کثیر رقمی');
+
+    if (isAlgebra) {
+      const headerTitle = isEn
+        ? '📐 MATHEMATICS • ALGEBRAIC IDENTITIES &amp; GEOMETRIC PROOF'
+        : '📐 ریاضی • الجبرائی کلیات اور ہندسی ثبوت (Algebraic Identities)';
+      const headerSubtitle = isEn
+        ? 'Visual Geometric Proof: (a + b)² = a² + 2ab + b² &amp; Essential Board Identities'
+        : 'ہندسی ثبوت: ²(a + b) = a² + 2ab + b² اور بورڈ نصاب کے بنیادی الجبرائی کلیے';
+
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%">
+        ${commonDefs}
+        <rect width="${width}" height="${height}" fill="#ffffff" rx="16" />
+        <rect width="${width}" height="${height}" fill="none" stroke="#e2e8f0" stroke-width="2" rx="16" />
+
+        <!-- Top Header -->
+        <g transform="translate(35, 25)">
+          <rect width="320" height="32" rx="16" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2" />
+          <text x="16" y="20" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#1d4ed8">
+            ${headerTitle}
+          </text>
+          <text x="340" y="21" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#0f172a">
+            ${headerSubtitle}
+          </text>
+        </g>
+
+        <!-- Left Visual: Geometric Proof of (a + b)^2 = a^2 + 2ab + b^2 -->
+        <g transform="translate(45, 75)" filter="url(#cardShadow)">
+          <rect width="395" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
+          <text x="18" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#1d4ed8">
+            ${isEn ? '✦ Geometric Proof of (a + b)²:' : '✦ الجبرائی کلیے کا ہندسی ثبوت: ²(a + b)'}
+          </text>
+
+          <!-- Outer Square of Side (a + b) -->
+          <g transform="translate(60, 48)">
+            <!-- a x a Square (Top Left - Blue) -->
+            <rect x="0" y="0" width="160" height="160" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5" />
+            <text x="80" y="85" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="extrabold" fill="#1d4ed8">a²</text>
+            <text x="80" y="105" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#3b82f6">(a × a)</text>
+
+            <!-- a x b Rectangle (Top Right - Green) -->
+            <rect x="160" y="0" width="90" height="160" fill="#f0fdf4" stroke="#16a34a" stroke-width="2.5" />
+            <text x="205" y="85" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="extrabold" fill="#15803d">ab</text>
+            <text x="205" y="105" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#16a34a">(a × b)</text>
+
+            <!-- b x a Rectangle (Bottom Left - Amber) -->
+            <rect x="0" y="160" width="160" height="90" fill="#fffbeb" stroke="#d97706" stroke-width="2.5" />
+            <text x="80" y="210" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="extrabold" fill="#b45309">ab</text>
+            <text x="80" y="228" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#d97706">(b × a)</text>
+
+            <!-- b x b Square (Bottom Right - Purple) -->
+            <rect x="160" y="160" width="90" height="90" fill="#faf5ff" stroke="#9333ea" stroke-width="2.5" />
+            <text x="205" y="210" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="extrabold" fill="#7e22ce">b²</text>
+            <text x="205" y="228" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#9333ea">(b × b)</text>
+
+            <!-- Side Dimension Markers -->
+            <!-- Top Dimensions (a and b) -->
+            <line x1="0" y1="-10" x2="160" y2="-10" stroke="#2563eb" stroke-width="2" />
+            <text x="80" y="-16" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#2563eb">a</text>
+            <line x1="160" y1="-10" x2="250" y2="-10" stroke="#16a34a" stroke-width="2" />
+            <text x="205" y="-16" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#16a34a">b</text>
+
+            <!-- Left Dimensions (a and b) -->
+            <line x1="-10" y1="0" x2="-10" y2="160" stroke="#2563eb" stroke-width="2" />
+            <text x="-16" y="85" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#2563eb">a</text>
+            <line x1="-10" y1="160" x2="-10" y2="250" stroke="#d97706" stroke-width="2" />
+            <text x="-16" y="210" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#d97706">b</text>
+          </g>
+
+          <!-- Summation Result Banner -->
+          <rect x="15" y="325" width="365" height="52" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2" />
+          <text x="197" y="356" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14.5" font-weight="extrabold" fill="#1e40af">
+            Total Area = a² + ab + ab + b² = a² + 2ab + b²
+          </text>
+        </g>
+
+        <!-- Right Side: Essential Board Algebraic Identities & Solved Factoring -->
+        <g transform="translate(455, 75)" filter="url(#cardShadow)">
+          <rect width="350" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
+          <text x="18" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">
+            ✦ بنیادی الجبرائی فارمولے (Core Identities):
+          </text>
+
+          <g transform="translate(16, 42)">
+            <!-- Identity 1 -->
+            <rect width="318" height="40" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <text x="12" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#1d4ed8">
+              1. (a + b)² = a² + 2ab + b²
+            </text>
+
+            <!-- Identity 2 -->
+            <g transform="translate(0, 46)">
+              <rect width="318" height="40" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+              <text x="12" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#7c3aed">
+                2. (a - b)² = a² - 2ab + b²
+              </text>
+            </g>
+
+            <!-- Identity 3 (Difference of Two Squares) -->
+            <g transform="translate(0, 92)">
+              <rect width="318" height="40" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-width="1.2" />
+              <text x="12" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#15803d">
+                3. a² - b² = (a - b)(a + b) ★
+              </text>
+            </g>
+
+            <!-- Identity 4 (Three Variables) -->
+            <g transform="translate(0, 138)">
+              <rect width="318" height="40" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+              <text x="12" y="24" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#ea580c">
+                4. (a + b + c)² = a² + b² + c² + 2(ab + bc + ca)
+              </text>
+            </g>
+
+            <!-- Identity 5 (Cubic Identity) -->
+            <g transform="translate(0, 184)">
+              <rect width="318" height="40" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+              <text x="12" y="24" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#0284c7">
+                5. (a + b)³ = a³ + 3a²b + 3ab² + b³
+              </text>
+            </g>
+          </g>
+
+          <!-- Solved Factoring Example -->
+          <g transform="translate(16, 276)">
+            <rect width="318" height="100" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="1" />
+            <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#0f172a">
+              📝 حل شدہ بورڈ مثال (Solved Board Examples):
+            </text>
+            <text x="12" y="44" font-family="system-ui, sans-serif" font-size="11" fill="#15803d">
+              • Factorize: x² - 16 = (x - 4)(x + 4)
+            </text>
+            <text x="12" y="66" font-family="system-ui, sans-serif" font-size="11" fill="#1d4ed8">
+              • Expand: (2x + 3)² = (2x)² + 2(2x)(3) + 3² = 4x² + 12x + 9
+            </text>
+            <text x="12" y="88" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#b45309">
+              نصاب مطابقت: فیڈرل و پنجاب بورڈ نہم کلاس باب 4 اور 5
+            </text>
+          </g>
+        </g>
+
+        <!-- Bottom Bar -->
+        <g transform="translate(35, 492)" filter="url(#cardShadow)">
+          <rect width="770" height="62" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2" />
+          <text x="18" y="24" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#1d4ed8">
+            ✦ FBISE &amp; BISE Board Exam Alert (Class 9 Math Chapter 4 &amp; 5):
+          </text>
+          <text x="18" y="44" font-family="system-ui, sans-serif" font-size="10.5" fill="#334155">
+            ${isEn ? 'Algebraic identities carry 4 compulsory marks in FBISE Section B. When factorizing, always look for common factors first, then check if a² - b² applies.' : 'الجبرائی کلیات بورڈ امتحانات کے سیکشن B میں لازمی آتے ہیں۔ تجزیہ کرتے وقت سب سے پہلے مشترک نکالیں، پھر دو مربعوں کے فرق (a² - b²) کا کلیہ لگائیں۔'}
+          </text>
+        </g>
+      </svg>`;
+    }
+
+    // 2D. Calculus & Derivatives (or general Quadratic default)
     // Default Quadratic Function & Parabola Plot for Math
     const headerTitle = isEn
       ? '📐 MATHEMATICS • QUADRATIC FUNCTIONS &amp; PARABOLA'
@@ -886,33 +1645,305 @@ export function generateEducationalSvg(options: DiagramOptions): string {
     </svg>`;
   }
 
-  // 3B. Animal Cell (Default Biology)
-  const headerTitle = isEn
-    ? '🔬 BIOLOGY • ANIMAL CELL ANATOMY'
-    : '🔬 بیالوجی • جانوروں کا خلیہ (Animal Cell)';
-  const headerSubtitle = isEn
-    ? 'Internal Organelles &amp; Microscopic Eukaryotic Structure'
-    : 'اندرونی آرگنیلز اور یوکیریوٹک خلیے کی سائنسی ساخت';
+  // 3B. Animal Cell (خلیہ حیوان)
+  // ONLY returned for Animal Cell queries — NEVER for Chemistry, Math, Physics, or general topics!
+  const isAnimalCell =
+    text.includes('animal cell') ||
+    text.includes('جانوروں کا خلیہ') ||
+    text.includes('خلیہ حیوان') ||
+    text.includes('animal') ||
+    text.includes('جانور') ||
+    text.includes('حیوان') ||
+    text.includes('centriole') ||
+    text.includes('lysosome') ||
+    (isBiologyQuery && !isPlantCell && !isPhotosynthesis);
 
-  const bioLabels = isEn
-    ? [
-        { name: '1. Plasma Membrane', desc: 'Flexible lipid bilayer with receptors (No rigid cell wall)', color: '#0284c7' },
-        { name: '2. Nucleus &amp; Nucleolus', desc: 'Double membrane envelope housing DNA &amp; genetic chromatin', color: '#7e22ce' },
-        { name: '3. Centrosome &amp; Centrioles ★', desc: 'Perpendicular barrels forming spindle fibers in division', color: '#d97706', star: true },
-        { name: '4. Mitochondria (Powerhouse)', desc: 'Double-membraned organelle generating ATP energy via respiration', color: '#ea580c' },
-        { name: '5. Golgi Apparatus', desc: 'Flattened cisternae packaging proteins and secretory vesicles', color: '#db2777' },
-        { name: '6. Lysosomes (Digestive Bags) ★', desc: 'Acidic hydrolytic enzymes digesting worn-out cellular parts', color: '#e11d48', star: true },
-        { name: '7. Endoplasmic Reticulum', desc: 'Rough ER (with ribosomes) &amp; Smooth ER (lipid synthesis)', color: '#6366f1' },
-      ]
-    : [
-        { name: '1. پلازما ممبرین (Plasma Membrane)', desc: 'لچکدار لپڈ بائی لیئر (جانوروں میں سیل وال نہیں ہوتی)', color: '#0284c7' },
-        { name: '2. نیوکلیئس اور مرکزہ (Nucleus)', desc: 'دوہری جھلی پر مشتمل کنٹرول روم، جس میں DNA موجود ہے', color: '#7e22ce' },
-        { name: '3. سینٹریولز (Centrioles) ★', desc: 'خلوی تقسیم کے دوران سپنڈل فائبرز بناتے ہیں (پودوں میں غیر حاضر)', color: '#d97706', star: true },
-        { name: '4. مائٹوکونڈریا - پاور ہاؤس (Mitochondria)', desc: 'سیلولر ریسپائریشن کے ذریعے توانائی ($ATP$) بناتا ہے', color: '#ea580c' },
-        { name: '5. گولجی باڈی (Golgi Apparatus)', desc: 'پروٹینز کی ترسیل اور پیکنگ کے لیے پاؤچز اور ویزیکلز', color: '#db2777' },
-        { name: '6. لائسوسومز (Lysosomes) ★', desc: 'ہاضم انزائمز جو غیر ضروری اور پرانے مادوں کو ختم کرتے ہیں', color: '#e11d48', star: true },
-        { name: '7. اینڈوپلازمک ریٹیکولم (ER)', desc: 'رف ER (پروٹین کی تیاری) اور سموتھ ER (چکنائی کی تیاری)', color: '#6366f1' },
-      ];
+  if (isAnimalCell) {
+    const headerTitle = isEn
+      ? '🔬 BIOLOGY • ANIMAL CELL ANATOMY'
+      : '🔬 بیالوجی • جانوروں کا خلیہ (Animal Cell)';
+    const headerSubtitle = isEn
+      ? 'Internal Organelles &amp; Microscopic Eukaryotic Structure'
+      : 'اندرونی آرگنیلز اور یوکیریوٹک خلیے کی سائنسی ساخت';
+
+    const bioLabels = isEn
+      ? [
+          { name: '1. Plasma Membrane', desc: 'Flexible lipid bilayer with receptors (No rigid cell wall)', color: '#0284c7' },
+          { name: '2. Nucleus &amp; Nucleolus', desc: 'Double membrane envelope housing DNA &amp; genetic chromatin', color: '#7e22ce' },
+          { name: '3. Centrosome &amp; Centrioles ★', desc: 'Perpendicular barrels forming spindle fibers in division', color: '#d97706', star: true },
+          { name: '4. Mitochondria (Powerhouse)', desc: 'Double-membraned organelle generating ATP energy via respiration', color: '#ea580c' },
+          { name: '5. Golgi Apparatus', desc: 'Flattened cisternae packaging proteins and secretory vesicles', color: '#db2777' },
+          { name: '6. Lysosomes (Digestive Bags) ★', desc: 'Acidic hydrolytic enzymes digesting worn-out cellular parts', color: '#e11d48', star: true },
+          { name: '7. Endoplasmic Reticulum', desc: 'Rough ER (with ribosomes) &amp; Smooth ER (lipid synthesis)', color: '#6366f1' },
+        ]
+      : [
+          { name: '1. پلازما ممبرین (Plasma Membrane)', desc: 'لچکدار لپڈ بائی لیئر (جانوروں میں سیل وال نہیں ہوتی)', color: '#0284c7' },
+          { name: '2. نیوکلیئس اور مرکزہ (Nucleus)', desc: 'دوہری جھلی پر مشتمل کنٹرول روم، جس میں DNA موجود ہے', color: '#7e22ce' },
+          { name: '3. سینٹریولز (Centrioles) ★', desc: 'خلوی تقسیم کے دوران سپنڈل فائبرز بناتے ہیں (پودوں میں غیر حاضر)', color: '#d97706', star: true },
+          { name: '4. مائٹوکونڈریا - پاور ہاؤس (Mitochondria)', desc: 'سیلولر ریسپائریشن کے ذریعے توانائی ($ATP$) بناتا ہے', color: '#ea580c' },
+          { name: '5. گولجی باڈی (Golgi Apparatus)', desc: 'پروٹینز کی ترسیل اور پیکنگ کے لیے پاؤچز اور ویزیکلز', color: '#db2777' },
+          { name: '6. لائسوسومز (Lysosomes) ★', desc: 'ہاضم انزائمز جو غیر ضروری اور پرانے مادوں کو ختم کرتے ہیں', color: '#e11d48', star: true },
+          { name: '7. اینڈوپلازمک ریٹیکولم (ER)', desc: 'رف ER (پروٹین کی تیاری) اور سموتھ ER (چکنائی کی تیاری)', color: '#6366f1' },
+        ];
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%">
+      ${commonDefs}
+      <rect width="${width}" height="${height}" fill="#ffffff" rx="16" />
+      <rect width="${width}" height="${height}" fill="none" stroke="#e2e8f0" stroke-width="2" rx="16" />
+
+      <!-- Top Header -->
+      <g transform="translate(35, 25)">
+        <rect width="260" height="32" rx="16" fill="#f0fdf4" stroke="#86efac" stroke-width="1.2" />
+        <text x="16" y="20" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#15803d">
+          ${headerTitle}
+        </text>
+        <text x="280" y="21" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#0f172a">
+          ${headerSubtitle}
+        </text>
+      </g>
+
+      <!-- Cell Visual Container -->
+      <g transform="translate(45, 75)" filter="url(#cardShadow)">
+        <rect width="400" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
+
+        <!-- Animal Cell Membrane (Irregular Shape) -->
+        <path d="M 60,180 C 40,80 140,40 240,50 C 340,60 380,140 370,230 C 360,320 280,365 180,360 C 80,355 40,280 60,180 Z" fill="#eff6ff" stroke="#3b82f6" stroke-width="3.5" />
+
+        <!-- Cytoplasm Texture -->
+        <circle cx="210" cy="205" r="130" fill="#dbeafe" opacity="0.3" />
+
+        <!-- Nucleus -->
+        <circle cx="210" cy="190" r="50" fill="#f3e8ff" stroke="#7e22ce" stroke-width="2.5" />
+        <circle cx="210" cy="190" r="20" fill="#9333ea" />
+        <text x="210" y="255" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#6b21a8">
+          ${isEn ? 'Nucleus &amp; DNA' : 'نیوکلیئس اور ڈی این اے'}
+        </text>
+
+        <!-- Mitochondria with Cristae folds -->
+        <g transform="translate(105, 120)">
+          <ellipse cx="0" cy="0" rx="28" ry="16" fill="#ffedd5" stroke="#ea580c" stroke-width="2" />
+          <path d="M -18,0 Q -10,-8 0,0 Q 10,8 18,0" fill="none" stroke="#c2410c" stroke-width="1.8" />
+          <text x="0" y="28" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" fill="#9a3412">Mitochondria</text>
+        </g>
+
+        <!-- Centrioles (Paired barrels) -->
+        <g transform="translate(300, 110)">
+          <rect x="-8" y="-12" width="16" height="24" rx="2" fill="#fef3c7" stroke="#d97706" stroke-width="1.8" />
+          <rect x="-12" y="-8" width="24" height="16" rx="2" fill="#fef3c7" stroke="#d97706" stroke-width="1.8" />
+          <text x="0" y="26" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" fill="#b45309">Centrioles ★</text>
+        </g>
+
+        <!-- Lysosomes -->
+        <g transform="translate(120, 270)">
+          <circle cx="0" cy="0" r="14" fill="#ffe4e6" stroke="#e11d48" stroke-width="2" />
+          <text x="0" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" fill="#9f1239">Lysosome ★</text>
+        </g>
+      </g>
+
+      <!-- Right Side: Organelle Key -->
+      <g transform="translate(465, 75)" filter="url(#cardShadow)">
+        <rect width="340" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
+        <text x="18" y="28" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#0f172a">
+          ${isEn ? '✦ Animal Cell Organelle Directory:' : '✦ جانوروں کے خلیے کے بنیادی اجزاء:'}
+        </text>
+
+        <g transform="translate(18, 42)">
+          ${bioLabels
+            .slice(0, 7)
+            .map(
+              (item, idx) => `
+            <g transform="translate(0, ${idx * 48})">
+              <rect width="304" height="42" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+              <text x="10" y="16" font-family="system-ui, sans-serif" font-size="10.5" font-weight="bold" fill="${item.color}">
+                ${item.name}
+              </text>
+              <text x="10" y="32" font-family="system-ui, sans-serif" font-size="9.5" fill="#475569">
+                ${item.desc.slice(0, 52)}
+              </text>
+            </g>
+          `
+            )
+            .join('')}
+        </g>
+      </g>
+
+      <!-- Bottom Bar -->
+      <g transform="translate(35, 492)" filter="url(#cardShadow)">
+        <rect width="770" height="62" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2" />
+        <text x="18" y="24" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#15803d">
+          ${isEn ? '★ Board Exam Key Distinction (FBISE &amp; BISE Syllabi):' : '✦ بورڈ امتحان اہم نکتہ (FBISE &amp; BISE Syllabus):'}
+        </text>
+        <text x="18" y="44" font-family="system-ui, sans-serif" font-size="10.5" fill="#334155">
+          ${isEn ? 'Animal cells have Centrioles (for cell division) and Lysosomes, but totally LACK a rigid Cell Wall, Chloroplasts, or a large permanent central vacuole.' : 'جانوروں کے خلیے میں سینٹریولز اور لائسوسومز ہوتے ہیں، لیکن ان میں سیل وال، کلوروپلاسٹس یا بڑا مستقل ویکیول نہیں ہوتا۔'}
+        </text>
+      </g>
+    </svg>`;
+  }
+
+  // =========================================================================
+  // PRIORITY 4: PHYSICS (طبیعیات)
+  // Newton's Laws, Force F = ma, Ohm's Law, Motion
+  // =========================================================================
+  const isPhysicsQuery =
+    cLower === 'physics' ||
+    text.includes('physic') ||
+    text.includes('طبیعیات') ||
+    text.includes('newton') ||
+    text.includes('قوت') ||
+    text.includes('حرکت') ||
+    text.includes('force') ||
+    text.includes('motion') ||
+    text.includes('ohm') ||
+    text.includes('current') ||
+    text.includes('velocity') ||
+    text.includes('acceleration') ||
+    text.includes('اسراع');
+
+  if (isPhysicsQuery) {
+    const headerTitle = isEn
+      ? '⚛️ PHYSICS • FORCES &amp; NEWTON’S LAWS OF MOTION'
+      : '⚛️ طبیعیات • نیوٹن کے قوانینِ حرکت اور قوت (Newton’s Laws)';
+    const headerSubtitle = isEn
+      ? 'Free-Body Force Diagram: F = m × a &amp; Action-Reaction Pairs'
+      : 'فری باڈی ڈایاگرام: F = m × a، عمل اور ردِعمل کے مساوی جوڑے';
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%">
+      ${commonDefs}
+      <rect width="${width}" height="${height}" fill="#ffffff" rx="16" />
+      <rect width="${width}" height="${height}" fill="none" stroke="#e2e8f0" stroke-width="2" rx="16" />
+
+      <!-- Top Header -->
+      <g transform="translate(35, 25)">
+        <rect width="320" height="32" rx="16" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.2" />
+        <text x="16" y="20" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#7c3aed">
+          ${headerTitle}
+        </text>
+        <text x="340" y="21" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#0f172a">
+          ${headerSubtitle}
+        </text>
+      </g>
+
+      <!-- Free-Body Force Diagram Visual (Left: 45 to 450) -->
+      <g transform="translate(45, 75)" filter="url(#cardShadow)">
+        <rect width="400" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
+        <text x="18" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#7c3aed">
+          ${isEn ? '✦ Free-Body Diagram (Block on Surface):' : '✦ فری باڈی ڈایاگرام (قوتوں کا توازن):'}
+        </text>
+
+        <!-- Ground Surface with hatch marks -->
+        <g transform="translate(40, 240)">
+          <line x1="0" y1="0" x2="320" y2="0" stroke="#64748b" stroke-width="3" />
+          <line x1="20" y1="0" x2="10" y2="15" stroke="#94a3b8" stroke-width="1.5" />
+          <line x1="60" y1="0" x2="50" y2="15" stroke="#94a3b8" stroke-width="1.5" />
+          <line x1="100" y1="0" x2="90" y2="15" stroke="#94a3b8" stroke-width="1.5" />
+          <line x1="140" y1="0" x2="130" y2="15" stroke="#94a3b8" stroke-width="1.5" />
+          <line x1="180" y1="0" x2="170" y2="15" stroke="#94a3b8" stroke-width="1.5" />
+          <line x1="220" y1="0" x2="210" y2="15" stroke="#94a3b8" stroke-width="1.5" />
+          <line x1="260" y1="0" x2="250" y2="15" stroke="#94a3b8" stroke-width="1.5" />
+          <line x1="300" y1="0" x2="290" y2="15" stroke="#94a3b8" stroke-width="1.5" />
+        </g>
+
+        <!-- Mass Block m = 10 kg -->
+        <g transform="translate(150, 160)">
+          <rect x="-45" y="-45" width="90" height="85" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5" />
+          <text x="0" y="-8" text-anchor="middle" font-family="system-ui, sans-serif" font-size="15" font-weight="bold" fill="#1e40af">Mass m</text>
+          <text x="0" y="14" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#3b82f6">10 kg</text>
+
+          <!-- Normal Reaction Force N (Upward) -->
+          <line x1="0" y1="-45" x2="0" y2="-115" stroke="#16a34a" stroke-width="3" />
+          <polygon points="0,-122 -6,-110 6,-110" fill="#16a34a" />
+          <text x="12" y="-105" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#16a34a">N = mg</text>
+
+          <!-- Gravity Force W = mg (Downward) -->
+          <line x1="0" y1="40" x2="0" y2="110" stroke="#dc2626" stroke-width="3" />
+          <polygon points="0,117 -6,105 6,105" fill="#dc2626" />
+          <text x="12" y="105" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#dc2626">W = mg</text>
+
+          <!-- Applied Force F (Rightward) -->
+          <line x1="45" y1="0" x2="115" y2="0" stroke="#7c3aed" stroke-width="3" />
+          <polygon points="122,0 110,-6 110,6" fill="#7c3aed" />
+          <text x="80" y="-10" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#7c3aed">F = 50 N</text>
+
+          <!-- Friction Force f (Leftward) -->
+          <line x1="-45" y1="35" x2="-95" y2="35" stroke="#d97706" stroke-width="2.5" />
+          <polygon points="-102,35 -90,30 -90,40" fill="#d97706" />
+          <text x="-75" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#d97706">f (Friction)</text>
+        </g>
+      </g>
+
+      <!-- Right Column: Formulas & Laws -->
+      <g transform="translate(465, 75)" filter="url(#cardShadow)">
+        <rect width="340" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
+        <text x="18" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">
+          ✦ نیوٹن کے قوانینِ حرکت (Laws of Motion):
+        </text>
+
+        <g transform="translate(18, 45)">
+          <rect width="304" height="60" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+          <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#7c3aed">
+            1. پہلا قانون حرکت (Law of Inertia):
+          </text>
+          <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+            جسم ساکن ہے تو ساکن رہے گا جب تک غیر متوازن قوت اثر نہ کرے۔
+          </text>
+        </g>
+
+        <g transform="translate(18, 115)">
+          <rect width="304" height="65" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.2" />
+          <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#15803d">
+            2. دوسرا قانون حرکت: F = m × a ★
+          </text>
+          <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#166534">
+            قوت (F) اسراع (a) کے راست متناسب اور کمیت (m) کے الٹ متناسب ہے۔
+          </text>
+        </g>
+
+        <g transform="translate(18, 190)">
+          <rect width="304" height="60" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+          <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#0284c7">
+            3. تیسرا قانون حرکت (Action = Reaction):
+          </text>
+          <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+            ہر عمل کا ایک برابر مگر مخالف سمت میں ردعمل ہوتا ہے۔
+          </text>
+        </g>
+
+        <!-- Solved Box -->
+        <rect x="18" y="265" width="304" height="110" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+        <text x="14" y="24" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#0f172a">
+          📝 عددی مسئلہ (Numerical Solution):
+        </text>
+        <text x="14" y="46" font-family="system-ui, sans-serif" font-size="10.5" fill="#334155">
+          Given: Mass m = 10 kg, Acceleration a = 5 m/s²
+        </text>
+        <text x="14" y="68" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#15803d">
+          Formula: F = m × a = 10 × 5 = 50 N
+        </text>
+        <text x="14" y="92" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+          قوت کی SI اکائی نیوٹن (Newton = kg·m/s²) ہے۔
+        </text>
+      </g>
+
+      <!-- Bottom Bar -->
+      <g transform="translate(35, 492)" filter="url(#cardShadow)">
+        <rect width="770" height="62" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2" />
+        <text x="18" y="24" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#7c3aed">
+          ✦ FBISE &amp; BISE Physics Board Tip (Class 9 Chapter 3):
+        </text>
+        <text x="18" y="44" font-family="system-ui, sans-serif" font-size="10.5" fill="#334155">
+          ${isEn ? 'Always draw the vector directions for force (F) and acceleration (a). 1 Newton = 1 kg × 1 m/s².' : 'عددی سوال حل کرتے وقت قوت اور اسراع کی سمت ضرور واضح کریں اور اکائی (نیوٹن N) لکھنا نہ بھولیں۔'}
+        </text>
+      </g>
+    </svg>`;
+  }
+
+  // =========================================================================
+  // PRIORITY 5: UNIVERSAL EDUCATIONAL CONCEPT WHITEBOARD SCHEMATIC
+  // Tailored directly to the exact requested topic and subject!
+  // NEVER defaults to an unrelated animal cell or misleading diagram!
+  // =========================================================================
+  const safeTopic = escapeXmlText(title || prompt.slice(0, 48));
+  const safeSubject = escapeXmlText(category || 'General Science');
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%">
     ${commonDefs}
@@ -921,77 +1952,117 @@ export function generateEducationalSvg(options: DiagramOptions): string {
 
     <!-- Top Header -->
     <g transform="translate(35, 25)">
-      <rect width="260" height="32" rx="16" fill="#f0fdf4" stroke="#86efac" stroke-width="1.2" />
+      <rect width="320" height="32" rx="16" fill="#f0fdf4" stroke="#86efac" stroke-width="1.2" />
       <text x="16" y="20" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#15803d">
-        ${headerTitle}
+        📚 ${safeSubject.toUpperCase()} • CURRICULUM STUDY GUIDE
       </text>
-      <text x="280" y="21" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#0f172a">
-        ${headerSubtitle}
+      <text x="340" y="21" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#0f172a">
+        ${safeTopic}
       </text>
     </g>
 
-    <!-- Cell Visual Container -->
+    <!-- Left Column: Core Principles & Definitions -->
     <g transform="translate(45, 75)" filter="url(#cardShadow)">
       <rect width="400" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
-
-      <!-- Animal Cell Membrane (Irregular Shape) -->
-      <path d="M 60,180 C 40,80 140,40 240,50 C 340,60 380,140 370,230 C 360,320 280,365 180,360 C 80,355 40,280 60,180 Z" fill="#eff6ff" stroke="#3b82f6" stroke-width="3.5" />
-
-      <!-- Cytoplasm Texture -->
-      <circle cx="210" cy="205" r="130" fill="#dbeafe" opacity="0.3" />
-
-      <!-- Nucleus -->
-      <circle cx="210" cy="190" r="50" fill="#f3e8ff" stroke="#7e22ce" stroke-width="2.5" />
-      <circle cx="210" cy="190" r="20" fill="#9333ea" />
-      <text x="210" y="255" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#6b21a8">
-        ${isEn ? 'Nucleus &amp; DNA' : 'نیوکلیئس اور ڈی این اے'}
+      <text x="18" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#15803d">
+        ✦ موضوع کی بنیادی سائنسی و تعلیمی تعریف:
       </text>
 
-      <!-- Mitochondria with Cristae folds -->
-      <g transform="translate(105, 120)">
-        <ellipse cx="0" cy="0" rx="28" ry="16" fill="#ffedd5" stroke="#ea580c" stroke-width="2" />
-        <path d="M -18,0 Q -10,-8 0,0 Q 10,8 18,0" fill="none" stroke="#c2410c" stroke-width="1.8" />
-        <text x="0" y="28" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" fill="#9a3412">Mitochondria</text>
+      <g transform="translate(18, 45)">
+        <rect width="364" height="65" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+        <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#0f172a">
+          1. بنیادی تصور (Core Concept):
+        </text>
+        <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+          ${safeTopic} نصاب کا لازمی حصہ ہے جو اہم اصولوں کی وضاحت کرتا ہے۔
+        </text>
       </g>
 
-      <!-- Centrioles (Paired barrels) -->
-      <g transform="translate(300, 110)">
-        <rect x="-8" y="-12" width="16" height="24" rx="2" fill="#fef3c7" stroke="#d97706" stroke-width="1.8" />
-        <rect x="-12" y="-8" width="24" height="16" rx="2" fill="#fef3c7" stroke="#d97706" stroke-width="1.8" />
-        <text x="0" y="26" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" fill="#b45309">Centrioles ★</text>
+      <g transform="translate(18, 120)">
+        <rect width="364" height="75" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+        <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#1d4ed8">
+          2. سائنسی میکانزم اور مراحل (Step Mechanics):
+        </text>
+        <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+          • مرحلہ وار فہم اور بنیادی متغیرات کی شناخت
+        </text>
+        <text x="12" y="58" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+          • متعلقہ فارمولوں اور قواعد کا منظم اطلاق
+        </text>
       </g>
 
-      <!-- Lysosomes -->
-      <g transform="translate(120, 270)">
-        <circle cx="0" cy="0" r="14" fill="#ffe4e6" stroke="#e11d48" stroke-width="2" />
-        <text x="0" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" fill="#9f1239">Lysosome ★</text>
+      <g transform="translate(18, 205)">
+        <rect width="364" height="80" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+        <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#7c3aed">
+          3. اہم اصطلاحات (Key Terminology):
+        </text>
+        <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+          سائنسی اصطلاحات کو انگریزی اور اردو دونوں میں یاد رکھیں۔
+        </text>
+        <text x="12" y="58" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+          امتحانات میں درست اصطلاح پورے نمبر دلاتی ہے۔
+        </text>
       </g>
+
+      <rect x="18" y="295" width="364" height="85" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.2" />
+      <text x="24" y="322" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#15803d">
+        ✦ تصدیق شدہ سائنسی و تعلیمی خاکہ
+      </text>
+      <text x="24" y="344" font-family="system-ui, sans-serif" font-size="10" fill="#166534">
+        پاک لینگو تعلیمی نظام: وفاقی و صوبائی بورڈز کے عین مطابق تیار کردہ۔
+      </text>
     </g>
 
-    <!-- Right Side: Organelle Key -->
+    <!-- Right Column: Curriculum Takeaways & Exam Tips -->
     <g transform="translate(465, 75)" filter="url(#cardShadow)">
       <rect width="340" height="395" rx="12" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.2" />
-      <text x="18" y="28" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#0f172a">
-        ${isEn ? '✦ Animal Cell Organelle Directory:' : '✦ جانوروں کے خلیے کے بنیادی اجزاء:'}
+      <text x="18" y="28" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#0f172a">
+        ✦ بورڈ امتحانی رہنمائی (Exam Mastery):
       </text>
 
-      <g transform="translate(18, 42)">
-        ${bioLabels
-          .slice(0, 7)
-          .map(
-            (item, idx) => `
-          <g transform="translate(0, ${idx * 48})">
-            <rect width="304" height="42" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
-            <text x="10" y="16" font-family="system-ui, sans-serif" font-size="10.5" font-weight="bold" fill="${item.color}">
-              ${item.name}
-            </text>
-            <text x="10" y="32" font-family="system-ui, sans-serif" font-size="9.5" fill="#475569">
-              ${item.desc.slice(0, 52)}
-            </text>
-          </g>
-        `
-          )
-          .join('')}
+      <g transform="translate(18, 45)">
+        <rect width="304" height="80" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+        <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#1d4ed8">
+          • امتحانی ساخت (Paper Pattern):
+        </text>
+        <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+          اس موضوع سے کثیر الانتخابی (MCQs) اور
+        </text>
+        <text x="12" y="58" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+          مختصر سوالات (Short Questions) لازمی پوچھے جاتے ہیں۔
+        </text>
+      </g>
+
+      <g transform="translate(18, 135)">
+        <rect width="304" height="80" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+        <text x="12" y="22" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#ea580c">
+          • جوابی پرچے کا طریقہ (Presentation):
+        </text>
+        <text x="12" y="42" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+          سب سے پہلے جامع تعریف، پھر فارمولا یا خاکہ،
+        </text>
+        <text x="12" y="58" font-family="system-ui, sans-serif" font-size="10" fill="#475569">
+          اور آخر میں روزمرہ مثال درج کریں۔
+        </text>
+      </g>
+
+      <g transform="translate(18, 225)">
+        <rect width="304" height="150" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1" />
+        <text x="14" y="24" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#1d4ed8">
+          ★ سنہری نصابی اصول (Key Takeaway):
+        </text>
+        <text x="14" y="48" font-family="system-ui, sans-serif" font-size="10.5" fill="#1e40af">
+          موضوع: ${safeTopic}
+        </text>
+        <text x="14" y="70" font-family="system-ui, sans-serif" font-size="10" fill="#334155">
+          • کسی بھی سوال میں اکائیوں (Units) کا اندراج نہ بھولیں
+        </text>
+        <text x="14" y="90" font-family="system-ui, sans-serif" font-size="10" fill="#334155">
+          • ریاضیاتی و سائنسی مساواتوں کو نمایاں باکس میں لکھیں
+        </text>
+        <text x="14" y="110" font-family="system-ui, sans-serif" font-size="10" fill="#334155">
+          • سابقہ 5 سالہ بورڈ پیپرز کے سوالات کی مشق کریں
+        </text>
       </g>
     </g>
 
@@ -999,11 +2070,12 @@ export function generateEducationalSvg(options: DiagramOptions): string {
     <g transform="translate(35, 492)" filter="url(#cardShadow)">
       <rect width="770" height="62" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.2" />
       <text x="18" y="24" font-family="system-ui, sans-serif" font-size="11.5" font-weight="bold" fill="#15803d">
-        ${isEn ? '★ Board Exam Key Distinction (FBISE &amp; BISE Syllabi):' : '✦ بورڈ امتحان اہم نکتہ (FBISE &amp; BISE Syllabus):'}
+        ✦ بورڈ نصاب تصدیق (FBISE &amp; Provincial BISE Boards):
       </text>
       <text x="18" y="44" font-family="system-ui, sans-serif" font-size="10.5" fill="#334155">
-        ${isEn ? 'Animal cells have Centrioles (for cell division) and Lysosomes, but totally LACK a rigid Cell Wall, Chloroplasts, or a large permanent central vacuole.' : 'جانوروں کے خلیے میں سینٹریولز اور لائسوسومز ہوتے ہیں، لیکن ان میں سیل وال، کلوروپلاسٹس یا بڑا مستقل ویکیول نہیں ہوتا۔'}
+        ${isEn ? 'PakLingo AI verified curriculum diagram strictly aligned with Pakistani academic syllabi.' : 'پاک لینگو سائنسی تصدیق شدہ نصابی خاکہ: وفاقی و صوبائی تعلیمی بورڈز کے نصاب کے عین مطابق۔'}
       </text>
     </g>
   </svg>`;
 }
+

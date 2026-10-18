@@ -35,6 +35,10 @@ import { useVoiceSettings, detectSpeechLanguage } from '../../context/VoiceSetti
 import { AudioControlBar } from '../AudioControlBar';
 import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 import { SmartVisualCard } from '../SmartVisualCard';
+import { EducationalYouTubeSection } from '../EducationalYouTubeSection';
+import { MathFormula } from '../MathFormula';
+import { useAuth } from '../../context/AuthContext';
+import { saveFeatureHistoryItem, FeatureHistoryItem } from '../../lib/firestoreService';
 
 interface AITeacherProps {
   selectedLanguage: LanguageCode;
@@ -155,6 +159,7 @@ function isRTLText(text: string, fallbackRTL: boolean): boolean {
 export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
   const { isRTL, t, currentLanguage, setSelectedLanguage } = useLanguage();
   const { speak, stopSpeaking } = useVoiceSettings();
+  const { user } = useAuth();
 
   const [mode, setMode] = useState<TeacherMode>('lesson');
   const [subject, setSubject] = useState<string>('Mathematics');
@@ -167,6 +172,23 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
   React.useEffect(() => {
     setLessonLang(selectedLanguage);
   }, [selectedLanguage]);
+
+  // Load saved active inquiry when opened from HistoryPage
+  React.useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('paklingo_active_query_teacher');
+      if (stored) {
+        const item = JSON.parse(stored) as FeatureHistoryItem;
+        if (item.subject) setSubject(item.subject);
+        if (item.query || item.topic) {
+          setQuery(item.query || item.topic || '');
+          setActiveTopicTitle(item.query || item.topic || '');
+        }
+        if (item.resultText) setLessonText(item.resultText);
+        sessionStorage.removeItem('paklingo_active_query_teacher');
+      }
+    } catch {}
+  }, []);
 
   // Output States
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -186,6 +208,18 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
     SUBJECTS_CONFIG.find((s) => s.id === subject) || SUBJECTS_CONFIG[0];
   const activeLangMeta =
     SUPPORTED_LANGUAGES.find((l) => l.code === lessonLang) || currentLanguage;
+
+  const handleSubjectSelect = (subId: string) => {
+    setSubject(subId);
+    setLessonText('');
+    setActiveTopicTitle('');
+    setError(null);
+    stopSpeaking();
+    const config = SUBJECTS_CONFIG.find((s) => s.id === subId);
+    if (config?.topics && config.topics.length > 0) {
+      setQuery(config.topics[0]);
+    }
+  };
 
   // Stream or fetch lesson / solver response rapidly
   const runStreamableRequest = useCallback(
@@ -248,6 +282,21 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
                 if (parsed.done && (parsed.answer || parsed.explanation || parsed.solution)) {
                   fullText = parsed.answer || parsed.explanation || parsed.solution;
                   setLessonText(fullText);
+                  if (fullText) {
+                    saveFeatureHistoryItem(
+                      'teacher',
+                      {
+                        title: `${subject} — ${topicLabel}`,
+                        subtitle: `${grade} • ${activeLangMeta.nativeName}`,
+                        query: topicLabel,
+                        subject,
+                        topic: topicLabel,
+                        resultText: fullText,
+                        language: payload.language || lessonLang,
+                      },
+                      user?.id
+                    );
+                  }
                 }
               } catch (parseErr: any) {
                 if (parseErr?.message && !parseErr.message.includes('JSON')) {
@@ -261,6 +310,21 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
           const textResult =
             data.answer || data.explanation || data.solution || data.summary || data.text || '';
           setLessonText(textResult);
+          if (textResult) {
+            saveFeatureHistoryItem(
+              'teacher',
+              {
+                title: `${subject} — ${topicLabel}`,
+                subtitle: `${grade} • ${activeLangMeta.nativeName}`,
+                query: topicLabel,
+                subject,
+                topic: topicLabel,
+                resultText: textResult,
+                language: payload.language || lessonLang,
+              },
+              user?.id
+            );
+          }
         }
       } catch (err: any) {
         if (err?.name === 'AbortError') return;
@@ -590,7 +654,7 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
                   <button
                     key={sub.id}
                     type="button"
-                    onClick={() => setSubject(sub.id)}
+                    onClick={() => handleSubjectSelect(sub.id)}
                     className={`p-3 rounded-2xl border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer text-start min-w-0 ${
                       isSelected
                         ? 'bg-[var(--button-primary-bg)] text-[var(--button-primary-text)] border-[var(--accent)] shadow-xs'
@@ -845,6 +909,12 @@ export const AITeacher: React.FC<AITeacherProps> = ({ selectedLanguage }) => {
                       />
                     </div>
                   </div>
+
+                  {/* Automatic Educational YouTube Video Lessons */}
+                  <EducationalYouTubeSection
+                    topic={activeTopicTitle || query}
+                    subject={subject}
+                  />
 
                   {/* Bottom Lesson Actions */}
                   {!isStreaming && (

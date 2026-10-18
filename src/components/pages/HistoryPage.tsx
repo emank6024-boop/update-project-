@@ -290,6 +290,18 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                         {item.subtitle}
                       </p>
                     )}
+                    {item.formulas && item.formulas.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.formulas.slice(0, 3).map((f, fi) => (
+                          <span
+                            key={fi}
+                            className="px-1.5 py-0.5 rounded bg-[var(--surface-secondary)] text-[9px] font-mono font-medium text-[var(--text-secondary)] border border-[var(--border)] truncate max-w-[150px]"
+                          >
+                            {f}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <span className="text-[10px] text-[var(--text-muted)] block mt-1">
                       {new Date(item.createdAt).toLocaleDateString([], {
                         year: 'numeric',
@@ -300,6 +312,16 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                       })}
                     </span>
                   </div>
+
+                  {item.imageUrl && (
+                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 border border-[var(--border)] shrink-0 hidden sm:block">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="w-full h-full object-contain p-0.5"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">

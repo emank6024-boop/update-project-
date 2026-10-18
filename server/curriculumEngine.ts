@@ -557,6 +557,274 @@ $$6\\mathrm{CO}_2 + 6\\mathrm{H}_2\\mathrm{O} + \\text{روشنی} \\xrightarrow
       { front: 'جمود کی پیمائش کس شے سے ہوتی ہے؟', back: 'ماس (Mass) سے۔' },
     ],
   },
+
+  periodic_table: {
+    titleEn: 'Periodic Table of Elements & Periodic Trends',
+    titleUr: 'دوری جدول اور متواتر رجحانات (Periodic Table Trends)',
+    keywords: ['periodic table', 'دوری جدول', 'chemistry', 'atomic radius', 'electronegativity', 'ionization energy', 'periods', 'groups', 'elements', 'halogens', 'noble gas', 'alkali', 'moseley', 'mendeleev'],
+    overviewEn: `The Modern Periodic Table arranges all 118 known elements in order of increasing atomic number ($Z$) according to Moseley's Modern Periodic Law. Elements are organized into 7 horizontal rows called **Periods** and 18 vertical columns called **Groups**, grouping elements with matching valence electron configurations and chemical reactivities.`,
+    overviewUr: `جدید دوری جدول (Modern Periodic Table) میں تمام 118 کیمیائی عناصر کو ان کے بڑھتے ہوئے ایٹمی نمبر ($Z$) کے مطابق ترتیب دیا گیا ہے، جسے جدید متواتر قانون (Moseley's Law) کہتے ہیں۔ اس میں 7 افقی قطاریں یعنی **پیریڈز (Periods)** اور 18 عمودی کالم یعنی **گروپس (Groups)** ہوتے ہیں۔`,
+    explanationEn: `Henry Moseley in 1913 demonstrated that atomic number ($Z$, proton count), not atomic mass ($A$), is the true periodic determinant. Elements in the same group possess the same number of valence electrons and exhibit analogous chemical properties. Moving across a period (left to right), the nuclear charge increases, shrinking the atomic radius. Moving down a group, new electron shells ($n$) are added, increasing atomic size and shielding.`,
+    explanationUr: `مینڈلیف نے عناصر کو ایٹمی کمیت کے مطابق رکھا تھا، لیکن 1913 میں موزلے نے ثابت کیا کہ ایٹمی نمبر ($Z$) ہی اصل بنیادی بنیاد ہے۔ ایک ہی گروپ کے عناصر کے آخری شیل میں الیکٹرانز کی تعداد برابر ہوتی ہے، اس لیے ان کی کیمیائی خصوصیات یکساں ہوتی ہیں۔ پیریڈ میں بائیں سے دائیں نیوکلیئر چارج بڑھنے سے ایٹمی ریڈیئس گھٹتا ہے، جبکہ گروپ میں اوپر سے نیچے نئے شیلز کے اضافے سے ایٹمی سائز بڑھتا ہے۔`,
+    breakdownEn: `Detailed Architectural and Periodic Trends Breakdown:
+
+1. **Classification by Groups & Periods:**
+   - **7 Periods:** Period 1 ($n=1$, 2 elements: $\\mathrm{H, He}$), Period 2 & 3 (Short periods, 8 elements each), Periods 4 & 5 (Long periods, 18 elements each), Periods 6 & 7 (Very long, 32 elements including Lanthanides and Actinides).
+   - **18 Groups / Families:**
+     - Group 1: Alkali Metals ($ns^1$, e.g., $\\mathrm{Li, Na, K, Rb, Cs, Fr}$) — highly reactive, form $+1$ cations.
+     - Group 2: Alkaline Earth Metals ($ns^2$, e.g., $\\mathrm{Be, Mg, Ca, Sr, Ba}$) — form $+2$ cations.
+     - Groups 3–12: Transition Metals ($d$-block elements) — variable valency, colored ions.
+     - Group 17: Halogens ($ns^2 np^5$, e.g., $\\mathrm{F, Cl, Br, I}$) — form $-1$ anions (halides).
+     - Group 18: Noble Gases ($ns^2 np^6$, e.g., $\\mathrm{He, Ne, Ar, Kr, Xe, Rn}$) — stable octet, unreactive.
+
+2. **Core Periodic Trends:**
+   - **Atomic Radius ($r_{\\text{atomic}}$):** Decreases across a period ($\\to$) due to higher effective nuclear charge ($Z_{\\text{eff}}$); increases down a group ($\\downarrow$) due to shielding and additional principal shells ($n$).
+   - **First Ionization Energy ($\\mathrm{IE}_1$):** Energy to remove outermost valence electron:
+     $$\\mathrm{X}_{(g)} + \\mathrm{IE}_1 \\longrightarrow \\mathrm{X}^+_{(g)} + e^-$$
+     Increases across a period; decreases down a group.
+   - **Electronegativity ($\\mathrm{EN}$):** Relative tendency to attract a bonding pair of electrons (Fluorine highest at $4.0$ on Pauling scale). Increases across a period; decreases down a group.
+   - **Electron Affinity ($\\mathrm{EA}$):**
+     $$\\mathrm{X}_{(g)} + e^- \\longrightarrow \\mathrm{X}^-_{(g)} + \\mathrm{EA}$$`,
+    breakdownUr: `دوری جدول کی ساخت اور متواتر رجحانات کی تفصیل:
+
+1. **پیریڈز اور گروپس کی درجہ بندی:**
+   - **7 پیریڈز (Periods):** پیریڈ 1 میں صرف 2 عناصر ($\mathrm{H, He}$)، پیریڈ 2 اور 3 مختصر پیریڈز (8 عناصر)، پیریڈ 4 اور 5 طویل پیریڈز (18 عناصر)، پیریڈ 6 اور 7 طویل ترین (32 عناصر بمع لینتھانائیڈز اور ایکٹینائیڈز)۔
+   - **18 گروپس (Groups):**
+     - گروپ 1: الکلی میٹلز ($ns^1$، جیسے $\\mathrm{Li, Na, K}$) — انتہائی فعال دھاتیں۔
+     - گروپ 2: الکلائن ارتھ میٹلز ($ns^2$، جیسے $\\mathrm{Mg, Ca}$)۔
+     - گروپس 3 تا 12: ٹرانزیشن میٹلز ($d$-بلاک) — رنگین مرکبات بناتی ہیں۔
+     - گروپ 17: ہیلوجنز ($ns^2 np^5$، جیسے $\\mathrm{F, Cl, Br, I}$) — نمکیات بنانے والے۔
+     - گروپ 18: نوبل گیسز ($ns^2 np^6$، جیسے $\\mathrm{He, Ne, Ar}$) — مکمل آکٹیٹ، غیر فعال۔
+
+2. **اہم متواتر رجحانات (Periodic Trends):**
+   - **ایٹمی ریڈیئس (Atomic Radius):** پیریڈ میں بائیں سے دائیں کم ہوتا ہے (کیونکہ نیوکلیئس کی کشش بڑھتی ہے)؛ گروپ میں اوپر سے نیچے بڑھتا ہے (کیونکہ نئے شیلز کا اضافہ ہوتا ہے)۔
+   - **آئونائزیشن انرجی (Ionization Energy):**
+     $$\\mathrm{X}_{(g)} + \\mathrm{IE}_1 \\longrightarrow \\mathrm{X}^+_{(g)} + e^-$$
+     پیریڈ میں بائیں سے دائیں بڑھتی ہے، گروپ میں اوپر سے نیچے کم ہوتی ہے۔
+   - **الیکٹرو نیگیٹیوٹی (Electronegativity):** بانڈنگ الیکٹرانز کو اپنی طرف کھینچنے کی صلاحیت۔ پیریڈ میں بڑھتی ہے اور گروپ میں کم ہوتی ہے۔`,
+    pakistanExampleEn: `In Pakistan, the vast salt deposits at Khewra Salt Mines in Punjab consist of Halite ($\\mathrm{NaCl}$)—an ionic compound formed by the explosive alkali metal Sodium ($\\mathrm{Na}$, Group 1) donating its valence electron to the toxic halogen Chlorine ($\\mathrm{Cl}$, Group 17). Furthermore, Pakistan's Saindak and Reko Diq reserves in Balochistan harbor trillions of dollars in copper ($\\mathrm{Cu}$, Group 11 transition metal) and gold ($\\mathrm{Au}$).`,
+    pakistanExampleUr: `پاکستان میں کھیوڑا نمک کی کانوں میں پایا جانے والا نمک ($\\mathrm{NaCl}$) دوری جدول کے گروپ 1 کی الکلی دھات سوڈیم ($\mathrm{Na}$) اور گروپ 17 کے ہیلوجن کلورین ($\mathrm{Cl}$) کے باہمی ملاپ کی زندہ مثال ہے۔ اسی طرح بلوچستان میں ریکوڈک اور سیندک کے ذخائر میں گروپ 11 کا اہم ٹرانزیشن عنصر تانبا ($\\mathrm{Cu}$) اور سونا پائے جاتے ہیں۔`,
+    examTipsEn: [
+      'In FBISE and Punjab board exams, state Modern Periodic Law: "The properties of elements are periodic functions of their atomic numbers."',
+      'Explain the atomic radius trend: Across a period, nuclear charge increases while shielding remains constant, pulling outer electrons closer.',
+      'Remember that Group 1 elements are Alkali Metals, Group 17 are Halogens, and Group 18 are Noble Gases.',
+      'Noble gases have zero or undefined electronegativity because they have complete outer octets ($s^2 p^6$) and do not form shared covalent bonds.',
+    ],
+    examTipsUr: [
+      'بورڈ امتحانات میں جدید متواتر قانون (Modern Periodic Law) کا متن لازمی لکھیں: "عناصر کی طبعی اور کیمیائی خصوصیات ان کے ایٹمی نمبروں کا متواتر عمل ہوتی ہیں۔"',
+      'پیریڈ میں ایٹمی ریڈیئس کے کم ہونے کی سائنسی وجہ (نیوکلیئر چارج میں اضافہ اور شیلڈنگ ایفیکٹ کا یکساں رہنا) ضرور بیان کریں۔',
+      'گروپ 1 (الکلی میٹلز)، گروپ 17 (ہیلوجنز) اور گروپ 18 (نوبل گیسز) کے نام اور ان کے آخری شیل کے الیکٹرانز یاد رکھیں۔',
+      'فلورین ($F$) دوری جدول کا سب سے زیادہ الیکٹرو نیگیٹو عنصر ہے جس کی قیمت $4.0$ ہے۔',
+    ],
+    quizzesEn: [
+      {
+        question: 'According to Moseley’s Modern Periodic Law, the physical and chemical properties of elements are periodic functions of their:',
+        options: ['Atomic Number ($Z$)', 'Atomic Mass ($A$)', 'Mass Defect', 'Number of Neutrons'],
+        correctIndex: 0,
+        explanation: 'Henry Moseley established in 1913 that atomic number ($Z$) determines the electronic configuration and periodic properties of elements.',
+      },
+      {
+        question: 'Moving from left to right across a period in the Periodic Table, the atomic radius:',
+        options: ['Decreases due to increasing effective nuclear charge', 'Increases due to extra shells', 'Remains exactly constant', 'Doubles at each element'],
+        correctIndex: 0,
+        explanation: 'Nuclear charge increases while electrons are added to the same energy level, pulling the electron cloud closer to the nucleus.',
+      },
+      {
+        question: 'Which group of the Periodic Table contains the chemically unreactive Noble Gases with complete outer octets?',
+        options: ['Group 18', 'Group 1', 'Group 17', 'Group 2'],
+        correctIndex: 0,
+        explanation: 'Group 18 elements (He, Ne, Ar, Kr, Xe, Rn) have complete valence shells ($ns^2 np^6$) and are exceptionally stable.',
+      },
+      {
+        question: 'Which element possesses the highest electronegativity value ($4.0$) on the Pauling scale?',
+        options: ['Fluorine (F)', 'Oxygen (O)', 'Chlorine (Cl)', 'Sodium (Na)'],
+        correctIndex: 0,
+        explanation: 'Fluorine has the highest electronegativity due to its small atomic size and strong effective nuclear pull.',
+      },
+    ],
+    quizzesUr: [
+      {
+        question: 'جدید متواتر قانون (Modern Periodic Law) کے مطابق عناصر کی خصوصیات کس کا متواتر عمل ہوتی ہیں؟',
+        options: ['ایٹمی نمبر ($Z$)', 'ایٹمی کمیت ($A$)', 'نیوٹرانز کی تعداد', 'والیوم'],
+        correctIndex: 0,
+        explanation: 'موزلے نے 1913 میں ثابت کیا کہ عناصر کی کیمیائی خصوصیات ان کے ایٹمی نمبر (پروٹونز کی تعداد) پر منحصر ہوتی ہیں۔',
+      },
+      {
+        question: 'پیریڈ میں بائیں سے دائیں جانے پر ایٹمی ریڈیئس (Atomic Radius) پر کیا اثر پڑتا ہے؟',
+        options: ['کم ہوتا ہے (نیوکلیئر چارج بڑھنے کی وجہ سے)', 'بڑھتا ہے', 'برابر رہتا ہے', 'پہلے بڑھتا ہے پھر کم ہوتا ہے'],
+        correctIndex: 0,
+        explanation: 'پیریڈ میں شیل وہی رہتا ہے لیکن نیوکلیئس میں پروٹون بڑھنے سے الیکٹرانز پر کھچاؤ زیادہ ہو جاتا ہے اور سائز چھوٹا ہو جاتا ہے۔',
+      },
+      {
+        question: 'دوری جدول کا سب سے زیادہ الیکٹرو نیگیٹو (Electronegative) عنصر کون سا ہے؟',
+        options: ['فلورین (F - 4.0)', 'سوڈیم (Na)', 'کلورین (Cl)', 'ہائیڈروجن (H)'],
+        correctIndex: 0,
+        explanation: 'فلورین کا سائز چھوٹا ہونے کی وجہ سے اس کی الیکٹرانز کو کھینچنے کی صلاحیت سب سے زیادہ ہوتی ہے۔',
+      },
+      {
+        question: 'گروپ 17 کے عناصر کو عام طور پر کیا کہا جاتا ہے؟',
+        options: ['ہیلوجنز (Halogens)', 'الکلی میٹلز', 'نوبل گیسز', 'ٹرانزیشن میٹلز'],
+        correctIndex: 0,
+        explanation: 'گروپ 17 کے عناصر (فلورین، کلورین، برومین، آئیوڈین) کو ہیلوجنز یعنی نمکیات بنانے والے کہا جاتا ہے۔',
+      },
+    ],
+    flashcardsEn: [
+      { front: 'State Modern Periodic Law.', back: 'The properties of elements are periodic functions of their atomic numbers ($Z$).' },
+      { front: 'How many Periods and Groups are in the Modern Periodic Table?', back: '7 Periods (horizontal rows) and 18 Groups (vertical columns).' },
+      { front: 'Why does atomic radius decrease across a period?', back: 'Because the effective nuclear charge ($Z_{\\text{eff}}$) increases, drawing the valence shell closer.' },
+      { front: 'What is Ionization Energy?', back: 'The minimum energy required to remove the most loosely bound electron from an isolated gaseous atom: $\\mathrm{X}_{(g)} + \\mathrm{IE} \\to \\mathrm{X}^+_{(g)} + e^-$.' },
+      { front: 'Which group contains the Alkali Metals?', back: 'Group 1 ($\\mathrm{Li, Na, K, Rb, Cs, Fr}$) with valence configuration $ns^1$.' },
+      { front: 'What is the trend of electronegativity down a group?', back: 'Electronegativity decreases down a group due to increased atomic radius and shielding effect.' },
+    ],
+    flashcardsUr: [
+      { front: 'جدید دوری قانون کیا ہے؟', back: 'عناصر کی خصوصیات ان کے ایٹمی نمبروں کا متواتر عمل ہوتی ہیں۔' },
+      { front: 'دوری جدول میں کتنے پیریڈز اور گروپس ہیں؟', back: '7 پیریڈز (افقی قطاریں) اور 18 گروپس (عمودی کالم)۔' },
+      { front: 'پیریڈ میں ایٹمی ریڈیئس کیوں کم ہوتا ہے؟', back: 'کیونکہ نیوکلیئر چارج بڑھنے سے الیکٹرانز نیوکلیئس کے قریب کھنچ جاتے ہیں۔' },
+      { front: 'آئونائزیشن انرجی کی تعریف کیا ہے؟', back: 'گیسی حالت میں ایٹم کے بیرونی شیل سے الیکٹران نکالنے کے لیے درکار کم از کم توانائی۔' },
+      { front: 'گروپ 1 کے عناصر کو کیا کہتے ہیں؟', back: 'الکلی میٹلز (سوڈیم، پوٹاشیم وغیرہ) جن کے آخری شیل میں 1 الیکٹران ہوتا ہے۔' },
+      { front: 'گروپ میں الیکٹرو نیگیٹیوٹی پر کیا اثر ہوتا ہے؟', back: 'اوپر سے نیچے جاتے ہوئے الیکٹرو نیگیٹیوٹی کم ہوتی ہے کیونکہ ایٹم کا سائز بڑا ہو جاتا ہے۔' },
+    ],
+  },
+
+  algebra: {
+    titleEn: 'Algebra, Polynomials & Algebraic Identities',
+    titleUr: 'الجبرا، کثیر رقمی مساوات اور بنیادی کلیات (Algebra & Polynomials)',
+    keywords: ['algebra', 'الجبرا', 'polynomial', 'factorization', 'identity', 'linear', 'simplify', 'variable'],
+    overviewEn: `Algebra is the foundational branch of mathematics dealing with symbols, variables, operational coefficients, and algebraic identities. It models relationships through polynomial expressions and enables the systematic solution of unknown quantities:
+$$(a+b)^2 = a^2 + 2ab + b^2, \\quad a^2 - b^2 = (a-b)(a+b)$$`,
+    overviewUr: `الجبرا (Algebra) ریاضی کی بنیادی شاخ ہے جس میں علامات، متغیرات (Variables) اور عددی سر (Coefficients) کی مدد سے حسابی مساوات اور کلیات حل کیے جاتے ہیں۔ الجبرے کی بنیادی شناختیں درج ذیل ہیں:
+$$(a+b)^2 = a^2 + 2ab + b^2, \\quad a^2 - b^2 = (a-b)(a+b)$$`,
+    explanationEn: `First developed comprehensively by the Muslim mathematician Muhammad ibn Musa al-Khwarizmi, algebra uses variables (such as $x, y, z$) to represent unknown values. Algebraic expressions are categorized into monomials, binomials, and polynomials. Factoring polynomials, simplifying rational expressions, and applying algebraic identities provide the analytical toolbox for all higher mathematics, physics, and engineering.`,
+    explanationUr: `الجبرا عظیم مسلمان ریاضی دان محمد بن موسیٰ الخوارزمی نے منظم انداز میں متعارف کرایا۔ الجبرے میں نامعلوم مقداروں کو متغیر ($x, y, z$) سے ظاہر کیا جاتا ہے۔ کثیر رقمی جملوں (Polynomials) کی تجزیہ (Factorization) اور بنیادی کلیات کا اطلاق طبیعیات، کمپیوٹر سائنس اور انجینئرنگ کے تمام شعبوں میں ناگزیر ہے۔`,
+    breakdownEn: `Essential Algebraic Identities and Problem Solving:
+
+1. **Standard Algebraic Identities (FBISE / BISE Core Curriculum):**
+   - Square of a sum:
+     $$(a + b)^2 = a^2 + 2ab + b^2$$
+   - Square of a difference:
+     $$(a - b)^2 = a^2 - 2ab + b^2$$
+   - Difference of two squares:
+     $$a^2 - b^2 = (a - b)(a + b)$$
+   - Sum and difference of two cubes:
+     $$a^3 + b^3 = (a + b)(a^2 - ab + b^2)$$
+     $$a^3 - b^3 = (a - b)(a^2 + ab + b^2)$$
+   - Cube of a binomial:
+     $$(a + b)^3 = a^3 + 3a^2b + 3ab^2 + b^3 = a^3 + b^3 + 3ab(a + b)$$
+     $$(a - b)^3 = a^3 - 3a^2b + 3ab^2 - b^3 = a^3 - b^3 - 3ab(a - b)$$
+
+2. **Step-by-Step Factoring Example:**
+   Factorize $x^2 + 7x + 12$:
+   - Look for two numbers whose product is $12$ and sum is $7$: $3$ and $4$ ($3 \\times 4 = 12$, $3 + 4 = 7$).
+   - Split the middle term:
+     $$x^2 + 3x + 4x + 12 = x(x + 3) + 4(x + 3) = (x + 3)(x + 4)$$
+
+3. **Solving Linear Equations:**
+   Solve: $3x + 7 = 22$
+   $$3x = 22 - 7 = 15 \\implies x = \\frac{15}{3} = 5$$`,
+    breakdownUr: `الجبرا کے بنیادی کلیات اور مرحلہ وار حل کا طریقہ:
+
+1. **اہم الجبرائی کلیات (Board Syllabus Core Identities):**
+   - دو رقمی جملے کا مربع:
+     $$(a + b)^2 = a^2 + 2ab + b^2$$
+   - تفریق کا مربع:
+     $$(a - b)^2 = a^2 - 2ab + b^2$$
+   - دو مربعوں کا فرق:
+     $$a^2 - b^2 = (a - b)(a + b)$$
+   - مکعب کے کلیات:
+     $$a^3 + b^3 = (a + b)(a^2 - ab + b^2)$$
+     $$a^3 - b^3 = (a - b)(a^2 + ab + b^2)$$
+     $$(a + b)^3 = a^3 + b^3 + 3ab(a + b)$$
+
+2. **تجزیہ (Factoring) کی عملی مثال:**
+   تجزیہ کریں: $x^2 + 7x + 12$
+   - دو ایسے اعداد تلاش کریں جن کا حاصل ضرب 12 اور مجموعہ 7 ہو (یعنی 3 اور 4):
+   - درمیانی رقم کو توڑیں:
+     $$x^2 + 3x + 4x + 12 = x(x + 3) + 4(x + 3) = (x + 3)(x + 4)$$
+
+3. **لکیری مساوات کا حل:**
+   حل کریں: $3x + 7 = 22$
+   $$3x = 22 - 7 = 15 \\implies x = 5$$`,
+    pakistanExampleEn: `In Pakistan's telecommunications sector (PTCL, Jazz, Zong) and electricity billing (WAPDA / K-Electric), algebraic linear equations determine the total consumer bill $B(x) = f + r \\cdot x$, where $f$ is the fixed meter tariff and $r$ is the unit rate per kilowatt-hour ($kWh$) or megabyte of data.`,
+    pakistanExampleUr: `پاکستان میں واپڈا اور کے الیکٹرک کے بجلی کے بل اور جاز یا یوفون کے موبائل پیکجز الجبرے کی لکیری مساوات $B(x) = f + r \\cdot x$ پر بنتے ہیں، جہاں $f$ مقررہ فکسڈ چارجز اور $r$ فی یونٹ بجلی یا ڈیٹا ریٹ ہوتا ہے۔`,
+    examTipsEn: [
+      'Always remember: $a^2 - b^2 = (a-b)(a+b)$, but $(a-b)^2 = a^2 - 2ab + b^2$. Never confuse the two!',
+      'When simplifying algebraic fractions, factor numerator and denominator completely before cancelling common terms.',
+      'Always verify your answer by substituting the solved variable back into the original algebraic expression.',
+    ],
+    examTipsUr: [
+      'امتحان میں دو مربعوں کے فرق ($a^2 - b^2$) اور تفریق کے مربع ($(a-b)^2$) کا فرق یاد رکھیں، ان میں غلطی اکثر ہوتی ہے۔',
+      'الجبری کسر کو مختصر کرتے وقت پہلے شمار کنندہ اور مخرج کے اجزائے ضربی بنائیں پھر مشترک رقم کاٹیں۔',
+      'حاصل کردہ متغیر کی قیمت کو اصل مساوات میں درج کر کے اپنے جواب کی تصدیق کریں۔',
+    ],
+    quizzesEn: [
+      {
+        question: 'What is the expanded form of $(a + b)^2$?',
+        options: ['$a^2 + 2ab + b^2$', '$a^2 + b^2$', '$a^2 - 2ab + b^2$', '$2a + 2b$'],
+        correctIndex: 0,
+        explanation: 'By binomial expansion: $(a + b)(a + b) = a^2 + ab + ba + b^2 = a^2 + 2ab + b^2$.',
+      },
+      {
+        question: 'What is the factored form of the difference of two squares $a^2 - b^2$?',
+        options: ['$(a - b)(a + b)$', '$(a - b)^2$', '$(a + b)^2$', '$a^2 - 2ab + b^2$'],
+        correctIndex: 0,
+        explanation: '$a^2 - b^2 = (a - b)(a + b)$ is the classic difference-of-squares identity.',
+      },
+      {
+        question: 'If $2x + 5 = 15$, what is the value of $x$?',
+        options: ['$x = 5$', '$x = 10$', '$x = 7.5$', '$x = 2$'],
+        correctIndex: 0,
+        explanation: '$2x = 15 - 5 = 10 \\implies x = 10/2 = 5$.',
+      },
+      {
+        question: 'Factorize the polynomial $x^2 - 16$:',
+        options: ['$(x - 4)(x + 4)$', '$(x - 4)^2$', '$(x + 4)^2$', '$(x - 8)(x + 2)$'],
+        correctIndex: 0,
+        explanation: '$x^2 - 16 = x^2 - 4^2 = (x - 4)(x + 4)$.',
+      },
+    ],
+    quizzesUr: [
+      {
+        question: 'کلیہ $(a + b)^2$ کی کھلی ہوئی شکل کیا ہے؟',
+        options: ['$a^2 + 2ab + b^2$', '$a^2 + b^2$', '$a^2 - 2ab + b^2$', '$2a + 2b$'],
+        correctIndex: 0,
+        explanation: '$(a + b)(a + b) = a^2 + 2ab + b^2$ الجبرے کا بنیادی کلیہ ہے۔',
+      },
+      {
+        question: 'دو مربعوں کے فرق $a^2 - b^2$ کے اجزائے ضربی کیا ہیں؟',
+        options: ['$(a - b)(a + b)$', '$(a - b)^2$', '$(a + b)^2$', '$a^2 - b^2$'],
+        correctIndex: 0,
+        explanation: '$a^2 - b^2 = (a - b)(a + b)$ الجبرے کا مشہور کلیہ ہے۔',
+      },
+      {
+        question: 'اگر $2x + 5 = 15$ ہو تو $x$ کی قیمت کیا ہوگی؟',
+        options: ['$5$', '$10$', '$7.5$', '$2$'],
+        correctIndex: 0,
+        explanation: '$2x = 15 - 5 = 10 \\implies x = 10 / 2 = 5$۔',
+      },
+      {
+        question: 'جملہ $x^2 - 16$ کے اجزائے ضربی کیا بنیں گے؟',
+        options: ['$(x - 4)(x + 4)$', '$(x - 4)^2$', '$(x + 4)^2$', '$(x - 8)(x + 2)$'],
+        correctIndex: 0,
+        explanation: '$x^2 - 16 = x^2 - 4^2 = (x - 4)(x + 4)$۔',
+      },
+    ],
+    flashcardsEn: [
+      { front: 'State the formula for $(a + b)^2$.', back: '$$(a + b)^2 = a^2 + 2ab + b^2$$' },
+      { front: 'State the formula for $(a - b)^2$.', back: '$$(a - b)^2 = a^2 - 2ab + b^2$$' },
+      { front: 'State the Difference of Two Squares identity.', back: '$$a^2 - b^2 = (a - b)(a + b)$$' },
+      { front: 'What is the factorization of $a^3 + b^3$?', back: '$$a^3 + b^3 = (a + b)(a^2 - ab + b^2)$$' },
+      { front: 'What is the factorization of $a^3 - b^3$?', back: '$$a^3 - b^3 = (a - b)(a^2 + ab + b^2)$$' },
+      { front: 'How do you solve a linear equation $ax + b = c$?', back: 'Isolate the variable: $ax = c - b \\implies x = \\frac{c - b}{a}$.' },
+    ],
+    flashcardsUr: [
+      { front: '$(a + b)^2$ کا کلیہ کیا ہے؟', back: '$$(a + b)^2 = a^2 + 2ab + b^2$$' },
+      { front: '$(a - b)^2$ کا کلیہ کیا ہے؟', back: '$$(a - b)^2 = a^2 - 2ab + b^2$$' },
+      { front: '$a^2 - b^2$ کے اجزائے ضربی کیا ہیں؟', back: '$$a^2 - b^2 = (a - b)(a + b)$$' },
+      { front: '$a^3 + b^3$ کا کلیہ کیا ہے؟', back: '$$a^3 + b^3 = (a + b)(a^2 - ab + b^2)$$' },
+      { front: '$a^3 - b^3$ کا کلیہ کیا ہے؟', back: '$$a^3 - b^3 = (a - b)(a^2 + ab + b^2)$$' },
+      { front: 'لکیری مساوات $ax + b = c$ کو کیسے حل کرتے ہیں؟', back: 'متغیر کو الگ کریں: $x = \\frac{c - b}{a}$۔' },
+    ],
+  },
 };
 
 function normalizeCurriculumSubject(sub: string): string {
@@ -581,7 +849,7 @@ function findCurriculumTopic(subject: string, topicQuery: string): CurriculumTop
   // 1. Strict Subject-Filtered Matching
   for (const key of Object.keys(TOPICS_DB)) {
     const item = TOPICS_DB[key];
-    const isMathTopic = key.includes('quadratic') || key.includes('pythagoras') || key.includes('matrices');
+    const isMathTopic = key.includes('quadratic') || key.includes('pythagoras') || key.includes('matrices') || key.includes('algebra');
     const isBioTopic = key.includes('cell') || key.includes('photosynthesis');
     const isPhysTopic = key.includes('newton') || key.includes('ohm');
     const isChemTopic = key.includes('chem') || key.includes('periodic');
@@ -599,7 +867,13 @@ function findCurriculumTopic(subject: string, topicQuery: string): CurriculumTop
 
   // 2. Default subject-specific topic if user asked about the subject broadly
   if (normSub === 'Mathematics') {
+    if (qLower.includes('algebra') || qLower.includes('الجبرا') || qLower.includes('polynomial') || qLower.includes('factor')) {
+      return TOPICS_DB['algebra'] || null;
+    }
     return TOPICS_DB['quadratic_equations'] || null;
+  }
+  if (normSub === 'Chemistry') {
+    return TOPICS_DB['periodic_table'] || null;
   }
   if (normSub === 'Physics') {
     return TOPICS_DB['newtons_laws'] || null;

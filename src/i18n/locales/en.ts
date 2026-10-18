@@ -13,8 +13,8 @@ export const enTranslations: TranslationDictionary = {
   'nav.voiceAssistant': 'Voice & Audio',
   'nav.documents': 'Documents & OCR',
   'nav.features': 'Features',
-  'nav.studentDashboard': 'Student Hub',
-  'nav.facultyDashboard': 'Faculty Hub',
+  'nav.studentDashboard': 'Student',
+  'nav.facultyDashboard': 'Teacher & Faculty',
   'nav.dedicatedTools': 'Specialized AI Pages',
   'nav.factCheck': 'Fact Check',
   'nav.modules': 'All Modules',
@@ -101,7 +101,7 @@ export const enTranslations: TranslationDictionary = {
   'module.legal.badge': 'Citizen Rights',
   'module.legal.action': 'Explore Legal Rights',
 
-  'module.teacher.title': 'STEM AI Teacher',
+  'module.teacher.title': 'STEM Teacher',
   'module.teacher.desc': 'Step-by-step problem solver for Matric and Intermediate Math, Physics, and Chemistry.',
   'module.teacher.badge': 'Matric & FSc',
   'module.teacher.action': 'Study With AI',
@@ -421,8 +421,8 @@ export const enTranslations: TranslationDictionary = {
   'feature.student.desc': 'Interactive regional-language tutoring, Pakistani board exam practice quizzes, and subject study guides.',
   'feature.student.btn': 'Get Started',
 
-  'feature.faculty.title': 'Faculty & Educator Dashboard',
-  'feature.faculty.desc': 'Bilingual lesson plan generation, grading rubric authoring, and board-standard exam question banks.',
+  'feature.faculty.title': 'Teacher & Faculty',
+  'feature.faculty.desc': 'Curriculum authoring, lesson plan generation, grading rubric authoring, and board-standard exam question banks.',
   'feature.faculty.btn': 'Explore Feature',
 
   'feature.gov.title': 'Civic & Government Services',
@@ -469,9 +469,9 @@ export const enTranslations: TranslationDictionary = {
   'student.incorrectAnswer': 'Not quite right. The correct answer is Ampere (A).',
   'student.askAboutBoard': 'Consult AI Tutor',
 
-  // Faculty Dashboard Keys
-  'faculty.welcome': 'Faculty & Educator Dashboard',
-  'faculty.subtitle': 'Curriculum authoring, bilingual lesson plan generation, and assessment tools for Pakistani teachers',
+  // Teacher & Faculty Keys
+  'faculty.welcome': 'Teacher & Faculty',
+  'faculty.subtitle': 'Curriculum authoring, lesson plan generation, and assessment tools for educators',
   'faculty.switchStudent': 'View Student Portal',
   'faculty.activeClasses': 'Active Classes',
   'faculty.lessonPlans': 'Curriculum Plans',
